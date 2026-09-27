@@ -1,0 +1,21 @@
+# ALIA runtime logs
+Logs/
+*.log
+
+# PowerShell / editor files
+*.ps1~
+*.tmp
+*.bak
+*.swp
+
+# Windows files
+Thumbs.db
+Desktop.ini
+
+# Build / packaging output
+bin/
+obj/
+dist/
+build/
+*.exe
+*.zip
