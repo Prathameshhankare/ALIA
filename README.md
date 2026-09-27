@@ -43,10 +43,10 @@ ALIA combines information from three logical data sets:
               │ Reconciliation│
               └───────────────┘
                  ▲     ▲     │
-                 │     │     │
-       Inventory │     │     │ Monitoring
-                 │     │     ▼
-          Aruba Central  Audit Results
+                 │     │     │ Monitoring
+       Inventory │     │     ▼
+                 │     │  Audit Results
+          Aruba Central
 ```
 
 The audit can identify conditions such as:
@@ -114,6 +114,35 @@ The application prompts for the required **Client ID** and **Client Secret** val
 
 ---
 
+## Building the Windows EXE
+
+The repository includes a production EXE builder:
+
+```text
+Build-ALIA-v3.0.ps1
+```
+
+The builder uses **PS2EXE** to compile `ALIA-v3.0.ps1` into a 64-bit, GUI-only Windows executable with DPI-aware metadata and an embedded application icon.
+
+Run it from **Windows PowerShell 5.1**:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\Build-ALIA-v3.0.ps1
+```
+
+If PS2EXE is not installed, the builder installs it for the current user automatically.
+
+The resulting executable is created here:
+
+```text
+dist\ALIA-v3.0.exe
+```
+
+The `dist` directory and generated executable files are excluded from Git through `.gitignore`. The builder itself is version-controlled so a reproducible EXE can be generated from the repository source.
+
+---
+
 ## Credential and Security Handling
 
 ALIA is designed so that API credentials are supplied at runtime.
@@ -134,13 +163,14 @@ Before deploying ALIA in a production environment, review the script and the con
 
 ```text
 ALIA/
-├── ALIA-v3.0.ps1    # Main Windows PowerShell application
-├── README.md        # Project documentation
-├── LICENSE          # GPL-3.0 license
-└── .gitignore       # Repository exclusions
+├── ALIA-v3.0.ps1          # Main Windows PowerShell application
+├── Build-ALIA-v3.0.ps1    # Production EXE builder using PS2EXE
+├── README.md              # Project documentation
+├── LICENSE                # GPL-3.0 license
+└── .gitignore             # Repository exclusions
 ```
 
-Runtime audit logs are intentionally excluded from Git through `.gitignore`.
+Generated EXE/build output and runtime audit logs are intentionally excluded from Git.
 
 ---
 
@@ -168,7 +198,7 @@ The dashboard and audit grid are intended to support operational review rather t
 
 GitHub:
 
-`https://github.com/Prathameshhankare/ALIA`
+`https://github.com/PrathameshHankare/ALIA`
 
 ---
 
