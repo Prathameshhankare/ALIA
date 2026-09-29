@@ -2780,10 +2780,7 @@ foreach($qb in @(
             $script:SearchTimer.Stop()
             $script:CurrentFilterDeviceType = 'All'
             $script:CurrentFilterHealth = 'All'
-            $script:CurrentFilterLicense = 'All'
-            $script:CurrentFilterStatus = 'All'
-            $script:chkProblemsOnly.Checked = $false
-            Show-View -View ([string]$sender.Tag) -Title $titleMap[[string]$sender.Tag]
+                                                Show-View -View ([string]$sender.Tag) -Title $titleMap[[string]$sender.Tag]
             Invoke-CurrentSearch
         }
         catch {
@@ -2806,15 +2803,6 @@ $searchTip = New-Object System.Windows.Forms.ToolTip
 $searchTip.SetToolTip($script:txtSearch, 'Search serial, MAC, model, device name or site')
 [void]$toolbar.Controls.Add($script:txtSearch)
 
-$script:cmbLicense = New-Object System.Windows.Forms.ComboBox
-$script:cmbLicense.DropDownStyle = 'DropDownList'
-[void]$script:cmbLicense.Items.AddRange(@('All','Licensed','Unlicensed','Expired'))
-$script:cmbLicense.SelectedIndex = 0
-$script:cmbLicense.Width = 85
-$script:cmbLicense.Height = 28
-$script:cmbLicense.Anchor = 'Top,Right'
-[void]$toolbar.Controls.Add($script:cmbLicense)
-
 $script:cmbHealth = New-Object System.Windows.Forms.ComboBox
 $script:cmbHealth.DropDownStyle = 'DropDownList'
 [void]$script:cmbHealth.Items.AddRange(@('All','Healthy','Warning','Critical'))
@@ -2833,14 +2821,6 @@ $script:cmbDeviceType.Height = 28
 $script:cmbDeviceType.Anchor = 'Top,Right'
 [void]$toolbar.Controls.Add($script:cmbDeviceType)
 
-$script:chkProblemsOnly = New-Object System.Windows.Forms.CheckBox
-$script:chkProblemsOnly.Text = 'Problems only'
-$script:chkProblemsOnly.AutoSize = $true
-$script:chkProblemsOnly.Font = [System.Drawing.Font]::new('Segoe UI', 8.5)
-$script:chkProblemsOnly.ForeColor = [System.Drawing.Color]::FromArgb(51,65,85)
-$script:chkProblemsOnly.Anchor = 'Top,Right'
-[void]$toolbar.Controls.Add($script:chkProblemsOnly)
-
 $script:btnResetFilters = New-Object System.Windows.Forms.Button
 $script:btnResetFilters.Text = 'Reset'
 $script:btnResetFilters.Width = 55
@@ -2857,16 +2837,12 @@ function Position-Toolbar {
     try {
         $right = $toolbar.ClientSize.Width - 14
         $script:btnResetFilters.Left = $right - $script:btnResetFilters.Width
-        $script:chkProblemsOnly.Left = $script:btnResetFilters.Left - $script:chkProblemsOnly.Width - 8
-        $script:cmbDeviceType.Left = $script:chkProblemsOnly.Left - $script:cmbDeviceType.Width - 8
+        $script:cmbDeviceType.Left = $script:btnResetFilters.Left - $script:cmbDeviceType.Width - 8
         $script:cmbHealth.Left = $script:cmbDeviceType.Left - $script:cmbHealth.Width - 8
-        $script:cmbLicense.Left = $script:cmbHealth.Left - $script:cmbLicense.Width - 8
-        $script:txtSearch.Left = $script:cmbLicense.Left - $script:txtSearch.Width - 8
+        $script:txtSearch.Left = $script:cmbHealth.Left - $script:txtSearch.Width - 8
         $script:txtSearch.Top = 1
-        $script:cmbLicense.Top = 1
         $script:cmbHealth.Top = 1
         $script:cmbDeviceType.Top = 1
-        $script:chkProblemsOnly.Top = 6
         $script:btnResetFilters.Top = 1
     } catch {}
 }
@@ -3420,22 +3396,16 @@ $script:btnHistory.Add_Click({
 
 $script:CurrentFilterDeviceType = 'All'
 $script:CurrentFilterHealth = 'All'
-$script:CurrentFilterLicense = 'All'
-$script:CurrentFilterStatus = 'All'
 
 $script:btnResetFilters.Add_Click({
     $script:txtSearch.Text = ''
-    $script:cmbLicense.SelectedIndex = 0
-    $script:cmbHealth.SelectedIndex = 0
+        $script:cmbHealth.SelectedIndex = 0
     $script:cmbDeviceType.SelectedIndex = 0
-    $script:chkProblemsOnly.Checked = $false
-    Invoke-CurrentSearch
+        Invoke-CurrentSearch
 })
 
-$script:cmbLicense.Add_SelectedIndexChanged({ Invoke-CurrentSearch })
 $script:cmbHealth.Add_SelectedIndexChanged({ Invoke-CurrentSearch })
 $script:cmbDeviceType.Add_SelectedIndexChanged({ Invoke-CurrentSearch })
-$script:chkProblemsOnly.Add_CheckedChanged({ Invoke-CurrentSearch })
 
 $resultsHeader.Visible = $true
 
@@ -3611,28 +3581,8 @@ function Invoke-CurrentSearch {
         )
     }
 
-    $licenseFilter = [string]$script:cmbLicense.SelectedItem
     $healthFilter = [string]$script:cmbHealth.SelectedItem
     $deviceFilter = [string]$script:cmbDeviceType.SelectedItem
-    $problemsOnly = $script:chkProblemsOnly.Checked
-
-    if ($licenseFilter -eq 'Licensed') {
-        $base = @($base | Where-Object {
-            -not [string]::IsNullOrWhiteSpace((Get-ObjectPropertyString -Object $_ -PropertyName 'LicenseTier'))
-        })
-    }
-    elseif ($licenseFilter -eq 'Unlicensed') {
-        $base = @($base | Where-Object {
-            [string]::IsNullOrWhiteSpace((Get-ObjectPropertyString -Object $_ -PropertyName 'LicenseTier'))
-        })
-    }
-    elseif ($licenseFilter -eq 'Expired') {
-        $base = @($base | Where-Object {
-            $licenseEnd = Get-ObjectPropertyString -Object $_ -PropertyName 'LicenseEnd'
-            if ([string]::IsNullOrWhiteSpace($licenseEnd)) { return $false }
-            try { ([datetime]$licenseEnd) -lt (Get-Date) } catch { return $false }
-        })
-    }
 
     if ($healthFilter -ne 'All') {
         $base = @($base | Where-Object {
@@ -3644,12 +3594,6 @@ function Invoke-CurrentSearch {
         $base = @($base | Where-Object {
             (Get-ObjectPropertyString -Object $_ -PropertyName 'GreenLakeDeviceType') -eq $deviceFilter -or
             (Get-ObjectPropertyString -Object $_ -PropertyName 'NormalizedDeviceType') -eq $deviceFilter
-        })
-    }
-
-    if ($problemsOnly) {
-        $base = @($base | Where-Object {
-            (Get-AuditHealth -Status ([string]$_.AuditStatus)) -ne 'Healthy'
         })
     }
 
@@ -3692,7 +3636,7 @@ function Invoke-CurrentSearch {
     }
 
     $script:lblRecordCount.Text = "Records: $($base.Count)"
-    Write-AuditLog DEBUG "Search/filter applied: view='$script:CurrentView'; term='$term'; license='$licenseFilter'; health='$healthFilter'; device='$deviceFilter'; problemsOnly=$problemsOnly; results=$($base.Count)."
+    Write-AuditLog DEBUG "Search/filter applied: view='$script:CurrentView'; term='$term'; health='$healthFilter'; device='$deviceFilter'; results=$($base.Count)."
     try { Update-DetailPanelFromSelection } catch {}
 }
 $script:SearchTimer.Add_Tick({
