@@ -3238,12 +3238,24 @@ $copyMac.Add_Click({
     }
 })
 $showDetails.Add_Click({ Update-DetailPanelFromSelection })
-$script:grid.ContextMenuStrip = $cellMenu
 
+# Use the CellContextMenuStripNeeded event for both row cells and column headers.
+# A grid-level ContextMenuStrip suppresses the per-cell context-menu resolution,
+# which prevents the header filter menu from appearing reliably.
+$script:grid.ContextMenuStrip = $null
 $script:grid.Add_CellContextMenuStripNeeded({
     param($sender,$e)
-    if ($e.RowIndex -eq -1 -and $e.ColumnIndex -ge 0) {
+    if ($e.ColumnIndex -lt 0) {
+        return
+    }
+
+    if ($e.RowIndex -eq -1) {
+        # Column header: show the grid-native sort/filter menu.
         $e.ContextMenuStrip = New-GridColumnFilterMenu -ColumnIndex $e.ColumnIndex
+    }
+    elseif ($e.RowIndex -ge 0) {
+        # Data row: preserve the existing copy/details context menu.
+        $e.ContextMenuStrip = $cellMenu
     }
 })
 
