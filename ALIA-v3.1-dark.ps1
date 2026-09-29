@@ -1929,7 +1929,7 @@ function Get-GridBaseObjects {
         $base = @(Get-ViewObjects -View $script:CurrentView)
     }
 
-    $term = $script:txtSearch.Text.Trim()
+    $term = Get-SearchTerm
     if (-not [string]::IsNullOrWhiteSpace($term)) {
         $escapedTerm = [regex]::Escape($term)
         $base = @($base | Where-Object {
@@ -2360,8 +2360,8 @@ function Show-View {
                     [string]$row.Cells['LicenseEnd'].Value
                 } else { '' }
                 switch (Get-AuditHealth -Status ([string]$row.Cells['AuditStatus'].Value) -LicenseEnd $licenseEndValue) {
-                    'Critical' { $row.DefaultCellStyle.BackColor = [System.Drawing.Color]::FromArgb(54,30,38) }
-                    'Warning'  { $row.DefaultCellStyle.BackColor = [System.Drawing.Color]::FromArgb(54,45,22) }
+                    'Critical' { $row.DefaultCellStyle.BackColor = [System.Drawing.Color]::FromArgb(42,28,36) }
+                    'Warning'  { $row.DefaultCellStyle.BackColor = [System.Drawing.Color]::FromArgb(43,37,24) }
                 }
             }
         }
@@ -2773,7 +2773,7 @@ $script:btnHistory.Text = 'Audit History'
 $script:btnHistory.Size = [System.Drawing.Size]::new(108, 28)
 $script:btnHistory.FlatStyle = 'Flat'
 $script:btnHistory.FlatAppearance.BorderSize = 1
-$script:btnHistory.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(71,85,105)
+$script:btnHistory.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(38,61,86)
 $script:btnHistory.BackColor = [System.Drawing.Color]::FromArgb(30,41,59)
 $script:btnHistory.ForeColor = [System.Drawing.Color]::White
 $script:btnHistory.Font = [System.Drawing.Font]::new('Segoe UI', 8.8)
@@ -3033,7 +3033,7 @@ $healthCard.Padding = [System.Windows.Forms.Padding]::new(10,5,10,6)
 
 $healthTitleIconHost = New-Object System.Windows.Forms.PictureBox
 $healthTitleIconHost.Size = [System.Drawing.Size]::new(26,26)
-$healthTitleIconHost.Location = [System.Drawing.Point]::new(8,2)
+$healthTitleIconHost.Location = [System.Drawing.Point]::new(9,2)
 $healthTitleIconHost.SizeMode = [System.Windows.Forms.PictureBoxSizeMode]::CenterImage
 $healthTitleIconHost.BackColor = [System.Drawing.Color]::Transparent
 $healthTitleIconHost.Tag = 'HEALTH_TITLE_ICON'
@@ -3041,7 +3041,7 @@ $healthTitleIconHost.Tag = 'HEALTH_TITLE_ICON'
 
 $healthHeadlineIconHost = New-Object System.Windows.Forms.PictureBox
 $healthHeadlineIconHost.Size = [System.Drawing.Size]::new(26,26)
-$healthHeadlineIconHost.Location = [System.Drawing.Point]::new(8,28)
+$healthHeadlineIconHost.Location = [System.Drawing.Point]::new(9,30)
 $healthHeadlineIconHost.SizeMode = [System.Windows.Forms.PictureBoxSizeMode]::CenterImage
 $healthHeadlineIconHost.BackColor = [System.Drawing.Color]::Transparent
 $healthHeadlineIconHost.Tag = 'HEALTH_HEADLINE_ICON'
@@ -3184,8 +3184,8 @@ function New-KpiCard {
     $p.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
 
     $iconHost = New-Object System.Windows.Forms.PictureBox
-    $iconHost.Size = [System.Drawing.Size]::new(42,42)
-    $iconHost.Location = [System.Drawing.Point]::new(10,8)
+    $iconHost.Size = [System.Drawing.Size]::new(40,40)
+    $iconHost.Location = [System.Drawing.Point]::new(11,7)
     $iconHost.SizeMode = [System.Windows.Forms.PictureBoxSizeMode]::CenterImage
     $iconHost.BackColor = [System.Drawing.Color]::Transparent
     $iconHost.Tag = $Accent
@@ -3193,7 +3193,7 @@ function New-KpiCard {
 
     $cap = New-Object System.Windows.Forms.Label
     $cap.Text = $Caption
-    $cap.Font = [System.Drawing.Font]::new('Segoe UI', 8.5)
+    $cap.Font = [System.Drawing.Font]::new('Segoe UI', 9.0)
     $cap.ForeColor = [System.Drawing.Color]::FromArgb(203,213,225)
     $cap.AutoSize = $false
     $cap.SetBounds(58,5,300,19)
@@ -3210,7 +3210,7 @@ function New-KpiCard {
 
     $trend = New-Object System.Windows.Forms.Label
     $trend.Text = ''
-    $trend.Font = [System.Drawing.Font]::new('Segoe UI', 7.5)
+    $trend.Font = [System.Drawing.Font]::new('Segoe UI', 7.8)
     $trend.ForeColor = [System.Drawing.Color]::FromArgb(148,163,184)
     $trend.AutoSize = $false
     $trend.SetBounds(58,56,300,17)
@@ -3287,7 +3287,7 @@ $script:btnShowAll.Width = 55
 $script:btnShowAll.Height = 28
 $script:btnShowAll.FlatStyle = 'Flat'
 $script:btnShowAll.FlatAppearance.BorderSize = 1
-$script:btnShowAll.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(51,65,85)
+$script:btnShowAll.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(38,61,86)
 $script:btnShowAll.BackColor = [System.Drawing.Color]::FromArgb(51,65,85)
 $script:btnShowAll.ForeColor = [System.Drawing.Color]::White
 $script:btnShowAll.Font = [System.Drawing.Font]::new('Segoe UI Semibold', 8)
@@ -3301,32 +3301,20 @@ $allTip.SetToolTip($script:btnShowAll, 'Show the raw reconciliation with all aud
 
 $script:txtSearch = New-Object System.Windows.Forms.TextBox
 $script:txtSearch.Font = [System.Drawing.Font]::new('Segoe UI', 8.8)
-$script:txtSearch.Width = 240
+$script:txtSearch.Width = 260
 $script:txtSearch.Height = 28
-$script:txtSearch.Text = ''
+$script:txtSearch.Text = 'Search devices...'
+$script:txtSearch.ForeColor = [System.Drawing.Color]::FromArgb(100,116,139)
+$script:txtSearch.BackColor = [System.Drawing.Color]::FromArgb(10,20,34)
 $script:txtSearch.Anchor = 'Top,Left'
+$script:SearchPlaceholderActive = $true
 $searchTip = New-Object System.Windows.Forms.ToolTip
 $searchTip.SetToolTip($script:txtSearch, 'Search across all visible reconciliation fields')
 [void]$toolbar.Controls.Add($script:txtSearch)
-if (-not ('ALIA.NativeMethods' -as [type])) {
-    Add-Type @"
-using System;
-using System.Runtime.InteropServices;
-namespace ALIA {
-    public static class NativeMethods {
-        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
-        public static extern IntPtr SendMessage(IntPtr hWnd, uint Msg, IntPtr wParam, string lParam);
-    }
-}
-"@
-}
-$script:txtSearch.Handle | Out-Null
-[ALIA.NativeMethods]::SendMessage($script:txtSearch.Handle, 0x1501, [IntPtr]1, 'Search devices...') | Out-Null
-
 $gridFilterHint = New-Object System.Windows.Forms.Label
 $gridFilterHint.Text = 'Click a column header to sort  •  Right-click a column header to filter'
-$gridFilterHint.Font = [System.Drawing.Font]::new('Segoe UI', 8.0)
-$gridFilterHint.ForeColor = [System.Drawing.Color]::FromArgb(100,116,139)
+$gridFilterHint.Font = [System.Drawing.Font]::new('Segoe UI', 8.4)
+$gridFilterHint.ForeColor = [System.Drawing.Color]::FromArgb(148,163,184)
 $gridFilterHint.AutoSize = $true
 $gridFilterHint.Anchor = 'Top,Right'
 [void]$toolbar.Controls.Add($gridFilterHint)
@@ -3367,13 +3355,13 @@ $script:lblRecordCount = New-Object System.Windows.Forms.Label
 $script:lblRecordCount.Text = 'Records: 0'
 $script:lblRecordCount.AutoSize = $true
 $script:lblRecordCount.Location = [System.Drawing.Point]::new(0,6)
-$script:lblRecordCount.ForeColor = [System.Drawing.Color]::FromArgb(100,116,139)
+$script:lblRecordCount.ForeColor = [System.Drawing.Color]::FromArgb(148,163,184)
 [void]$resultsHeader.Controls.Add($script:lblRecordCount)
 
 $script:lblViewBadge = New-Object System.Windows.Forms.Label
 $script:lblViewBadge.Text = 'All Audit Results'
-$script:lblViewBadge.Font = [System.Drawing.Font]::new('Segoe UI', 8)
-$script:lblViewBadge.ForeColor = [System.Drawing.Color]::FromArgb(100,116,139)
+$script:lblViewBadge.Font = [System.Drawing.Font]::new('Segoe UI', 8.4)
+$script:lblViewBadge.ForeColor = [System.Drawing.Color]::FromArgb(148,163,184)
 $script:lblViewBadge.Anchor = 'Top,Right'
 [void]$resultsHeader.Controls.Add($script:lblViewBadge)
 
@@ -3474,12 +3462,12 @@ $script:grid.AutoSizeColumnsMode = 'DisplayedCells'
 $script:grid.EnableHeadersVisualStyles = $false
 $script:grid.BackgroundColor = [System.Drawing.Color]::FromArgb(11,22,36)
 $script:grid.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
-$script:grid.GridColor = [System.Drawing.Color]::FromArgb(38,61,86)
-$script:grid.ColumnHeadersDefaultCellStyle.BackColor = [System.Drawing.Color]::FromArgb(20,35,54)
+$script:grid.GridColor = [System.Drawing.Color]::FromArgb(34,54,76)
+$script:grid.ColumnHeadersDefaultCellStyle.BackColor = [System.Drawing.Color]::FromArgb(18,32,49)
 $script:grid.ColumnHeadersDefaultCellStyle.ForeColor = [System.Drawing.Color]::FromArgb(226,232,240)
-$script:grid.ColumnHeadersDefaultCellStyle.Font = New-Object System.Drawing.Font('Segoe UI Semibold', 8.8)
+$script:grid.ColumnHeadersDefaultCellStyle.Font = New-Object System.Drawing.Font('Segoe UI Semibold', 9.0)
 $script:grid.ColumnHeadersHeight = 30
-$script:grid.DefaultCellStyle.Font = $fontSmall
+$script:grid.DefaultCellStyle.Font = [System.Drawing.Font]::new('Segoe UI', 8.8)
 $script:grid.DefaultCellStyle.SelectionBackColor = [System.Drawing.Color]::FromArgb(24,76,150)
 $script:grid.DefaultCellStyle.SelectionForeColor = [System.Drawing.Color]::White
 $script:grid.AlternatingRowsDefaultCellStyle.BackColor = [System.Drawing.Color]::FromArgb(14,27,43)
@@ -3515,7 +3503,7 @@ $script:detailTitle.AutoEllipsis = $true
 
 $script:detailStatus = New-Object System.Windows.Forms.Label
 $script:detailStatus.Text = ''
-$script:detailStatus.Font = [System.Drawing.Font]::new('Segoe UI Semibold', 8.8)
+$script:detailStatus.Font = [System.Drawing.Font]::new('Segoe UI Semibold', 9.0)
 $script:detailStatus.Location = [System.Drawing.Point]::new(6,36)
 $script:detailStatus.Size = [System.Drawing.Size]::new(320,20)
 $script:detailStatus.Anchor = 'Top,Left,Right'
@@ -3528,7 +3516,7 @@ $script:detailBody = New-Object System.Windows.Forms.RichTextBox
 $script:detailBody.ReadOnly = $true
 $script:detailBody.BorderStyle = 'None'
 $script:detailBody.BackColor = [System.Drawing.Color]::FromArgb(10,20,34)
-$script:detailBody.Font = [System.Drawing.Font]::new('Segoe UI', 9)
+$script:detailBody.Font = [System.Drawing.Font]::new('Segoe UI', 9.2)
 $script:detailBody.ForeColor = [System.Drawing.Color]::FromArgb(226,232,240)
 $script:detailBody.Dock = 'Fill'
 $script:detailBody.Text = 'Select a row to inspect GreenLake, Aruba Central, monitoring and audit state.'
@@ -4073,6 +4061,25 @@ function Get-ObjectPropertyString {
     return [string]$property.Value
 }
 
+function Clear-SearchPlaceholder {
+    if (-not $script:SearchPlaceholderActive) { return }
+    $script:SearchPlaceholderActive = $false
+    $script:txtSearch.Text = ''
+    $script:txtSearch.ForeColor = [System.Drawing.Color]::FromArgb(226,232,240)
+}
+
+function Set-SearchPlaceholder {
+    if (-not [string]::IsNullOrWhiteSpace($script:txtSearch.Text)) { return }
+    $script:SearchPlaceholderActive = $true
+    $script:txtSearch.Text = 'Search devices...'
+    $script:txtSearch.ForeColor = [System.Drawing.Color]::FromArgb(100,116,139)
+}
+
+function Get-SearchTerm {
+    if ($script:SearchPlaceholderActive) { return '' }
+    return $script:txtSearch.Text.Trim()
+}
+
 function Invoke-CurrentSearch {
     $script:SearchTimer.Stop()
     $base = @(Get-GridBaseObjects)
@@ -4121,7 +4128,7 @@ function Invoke-CurrentSearch {
     finally { $script:grid.ResumeLayout() }
 
     $script:lblRecordCount.Text = "Records: $($base.Count)"
-    Write-AuditLog DEBUG "Search/filter applied: view='$script:CurrentView'; term='$($script:txtSearch.Text.Trim())'; columnFilters=$($script:GridFilters.Count); results=$($base.Count)."
+    Write-AuditLog DEBUG "Search/filter applied: view='$script:CurrentView'; term='$(Get-SearchTerm)'; columnFilters=$($script:GridFilters.Count); results=$($base.Count)."
     try { Update-DetailPanelFromSelection } catch {}
 }
 
@@ -4129,9 +4136,21 @@ $script:SearchTimer.Add_Tick({
     Invoke-CurrentSearch
 })
 
+$script:txtSearch.Add_GotFocus({
+    Clear-SearchPlaceholder
+})
+
+$script:txtSearch.Add_LostFocus({
+    Set-SearchPlaceholder
+})
+
 $script:txtSearch.Add_TextChanged({
     # Wait until the user pauses typing before running the search.
     $script:SearchTimer.Stop()
+
+    if ($script:SearchPlaceholderActive) {
+        return
+    }
 
     if ([string]::IsNullOrWhiteSpace($script:txtSearch.Text)) {
         Invoke-CurrentSearch
@@ -4144,6 +4163,10 @@ $script:txtSearch.Add_TextChanged({
 $script:txtSearch.Add_KeyDown({
     param($sender, $eventArgs)
 
+    if ($script:SearchPlaceholderActive) {
+        Clear-SearchPlaceholder
+    }
+
     if ($eventArgs.KeyCode -eq [System.Windows.Forms.Keys]::Enter) {
         $eventArgs.SuppressKeyPress = $true
         Invoke-CurrentSearch
@@ -4154,6 +4177,8 @@ $script:btnShowAll.Add_Click({
     try {
         $script:SearchTimer.Stop()
         $script:txtSearch.Text = ''
+        $script:SearchPlaceholderActive = $false
+        Set-SearchPlaceholder
         $script:GridFilters.Clear()
         Show-View -View Audit -Title 'All Audit Results'
     }
@@ -4706,7 +4731,12 @@ function Set-ALIAControlTheme {
         $Control.AlternatingRowsDefaultCellStyle.BackColor=$t.GridAlt
         $Control.AlternatingRowsDefaultCellStyle.ForeColor=$t.Text
     }elseif($Control -is [System.Windows.Forms.TextBoxBase]){
-        $Control.BackColor=$t.Input; $Control.ForeColor=$t.Text
+        $Control.BackColor=$t.Input
+        if($Control -eq $script:txtSearch -and $script:SearchPlaceholderActive){
+            $Control.ForeColor=[System.Drawing.Color]::FromArgb(100,116,139)
+        }else{
+            $Control.ForeColor=$t.Text
+        }
         $Control.BorderStyle=[System.Windows.Forms.BorderStyle]::FixedSingle
     }elseif($Control -is [System.Windows.Forms.Button]){
         $Control.FlatStyle=[System.Windows.Forms.FlatStyle]::Flat
@@ -4795,7 +4825,7 @@ function Set-ALIAKpiIcons {
         $kpi=$item[0];$type=$item[1];$color=$item[2]
         if($null -ne $kpi -and $null -ne $kpi.Icon){
             if($null -eq $kpi.Icon.Image){
-                $kpi.Icon.Image=New-ALIAIconBitmap -Type $type -Color $color -Size 38
+                $kpi.Icon.Image=New-ALIAIconBitmap -Type $type -Color $color -Size 36
             }
             $kpi.Icon.BringToFront()
             $kpi.Icon.Tag=$kpi.Panel.Tag
@@ -4820,10 +4850,10 @@ function Set-ALIAKpiIcons {
 function Set-ALIAHealthIcons {
     try {
         if ($null -eq $healthTitleIconHost.Image) {
-            $healthTitleIconHost.Image = New-ALIAIconBitmap -Type Health -Color $script:DarkTheme.Critical -Size 24
+            $healthTitleIconHost.Image = New-ALIAIconBitmap -Type Health -Color $script:DarkTheme.Critical -Size 23
         }
         if ($null -eq $healthHeadlineIconHost.Image) {
-            $healthHeadlineIconHost.Image = New-ALIAIconBitmap -Type Health -Color $script:DarkTheme.Critical -Size 22
+            $healthHeadlineIconHost.Image = New-ALIAIconBitmap -Type Health -Color $script:DarkTheme.Critical -Size 21
         }
         $healthTitleIconHost.BringToFront()
         $healthHeadlineIconHost.BringToFront()
@@ -4839,6 +4869,7 @@ function Apply-ALIAWindowTheme {
 }
 
 Apply-ALIAWindowTheme
+try { Set-SearchPlaceholder } catch {}
 $script:DarkThemeTimer = New-Object System.Windows.Forms.Timer
 $script:DarkThemeTimer.Interval = 300
 $script:DarkThemeTimer.Add_Tick({ Apply-ALIAWindowTheme })
