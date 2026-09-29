@@ -2690,7 +2690,7 @@ function Apply-RootLayout {
         $connectionPanel.Height = 112
 
         $overview.Dock = [System.Windows.Forms.DockStyle]::Top
-        $overview.Height = 160
+        $overview.Height = 176
 
         $toolbar.Dock = [System.Windows.Forms.DockStyle]::Top
         $toolbar.Height = 54
@@ -3014,7 +3014,7 @@ $overview.Dock = 'Fill'
 $overview.Padding = [System.Windows.Forms.Padding]::new(14, 5, 14, 5)
 $overview.ColumnCount = 2
 $overview.RowCount = 1
-[void]$overview.ColumnStyles.Add([System.Windows.Forms.ColumnStyle]::new([System.Windows.Forms.SizeType]::Absolute, 310))
+[void]$overview.ColumnStyles.Add([System.Windows.Forms.ColumnStyle]::new([System.Windows.Forms.SizeType]::Absolute, 350))
 [void]$overview.ColumnStyles.Add([System.Windows.Forms.ColumnStyle]::new([System.Windows.Forms.SizeType]::Percent, 100))
 
 $healthCard = New-Object System.Windows.Forms.Panel
@@ -3101,9 +3101,32 @@ foreach($item in @(
     [void]$healthStats.Controls.Add($item[1],$item[2],1)
 }
 
+# Explicit health-card geometry: title row, headline row, then the four metrics.
+# Avoid Fill-docking overlap between healthStats and the headline/title controls.
+$healthTitle.Location = [System.Drawing.Point]::new(38,4)
+$healthTitle.Size = [System.Drawing.Size]::new(260,18)
+$script:healthHeadline.Location = [System.Drawing.Point]::new(38,28)
+$script:healthHeadline.Size = [System.Drawing.Size]::new(280,28)
+$healthStats.Dock = 'None'
+$healthStats.Location = [System.Drawing.Point]::new(8,59)
+$healthStats.Size = [System.Drawing.Size]::new(324,72)
+
 [void]$healthCard.Controls.Add($healthStats)
 [void]$healthCard.Controls.Add($script:healthHeadline)
 [void]$healthCard.Controls.Add($healthTitle)
+[void]$healthCard.Controls.Add($healthHeadlineIconHost)
+[void]$healthCard.Controls.Add($healthTitleIconHost)
+
+$healthCard.Add_Resize({
+    try {
+        $w = $this.ClientSize.Width
+        $h = $this.ClientSize.Height
+        $healthTitle.Width = [Math]::Max(160,$w-52)
+        $script:healthHeadline.Width = [Math]::Max(180,$w-50)
+        $healthStats.Location = [System.Drawing.Point]::new(8,59)
+        $healthStats.Size = [System.Drawing.Size]::new([Math]::Max(200,$w-16),[Math]::Max(58,$h-65))
+    } catch {}
+})
 
 foreach($healthMetric in @(
     @($healthyLabel, 'HealthHealthy', 'Healthy Audit Results'),
@@ -3140,7 +3163,8 @@ $kpiPanel.Dock = 'Fill'
 $kpiPanel.ColumnCount = 3
 $kpiPanel.RowCount = 2
 for($i=0;$i -lt 3;$i++){ [void]$kpiPanel.ColumnStyles.Add([System.Windows.Forms.ColumnStyle]::new([System.Windows.Forms.SizeType]::Percent,33.333)) }
-for($i=0;$i -lt 2;$i++){ [void]$kpiPanel.RowStyles.Add([System.Windows.Forms.RowStyle]::new([System.Windows.Forms.SizeType]::Percent,50)) }
+[void]$kpiPanel.RowStyles.Add([System.Windows.Forms.RowStyle]::new([System.Windows.Forms.SizeType]::Absolute, 82))
+[void]$kpiPanel.RowStyles.Add([System.Windows.Forms.RowStyle]::new([System.Windows.Forms.SizeType]::Absolute, 82))
 
 function New-KpiCard {
     param([string]$Caption,[System.Drawing.Color]$Accent)
@@ -3178,10 +3202,10 @@ function New-KpiCard {
 
     $trend = New-Object System.Windows.Forms.Label
     $trend.Text = ''
-    $trend.Font = [System.Drawing.Font]::new('Segoe UI', 7.2)
+    $trend.Font = [System.Drawing.Font]::new('Segoe UI', 7.5)
     $trend.ForeColor = [System.Drawing.Color]::FromArgb(148,163,184)
     $trend.AutoSize = $false
-    $trend.SetBounds(56,52,300,13)
+    $trend.SetBounds(56,55,300,16)
     $trend.AutoEllipsis = $true
     $trend.TextAlign = [System.Drawing.ContentAlignment]::MiddleLeft
 
@@ -3365,7 +3389,7 @@ $workspace.Orientation = [System.Windows.Forms.Orientation]::Vertical
 $workspace.Panel1MinSize = 0
 $workspace.Panel2MinSize = 0
 $workspace.SplitterDistance = 1
-$workspace.BackColor = [System.Drawing.Color]::FromArgb(226,232,240)
+$workspace.BackColor = [System.Drawing.Color]::FromArgb(38,61,86)
 
 function Position-Workspace {
     try {
@@ -3379,11 +3403,11 @@ function Position-Workspace {
         # width so WinForms can validate them safely.
         if ($width -ge 980) {
             $workspace.Panel1MinSize = 650
-            $workspace.Panel2MinSize = 300
+            $workspace.Panel2MinSize = 280
 
             $minimumDistance = 651
-            $maximumDistance = $width - 301
-            $preferredDistance = [int]($width * 0.72)
+            $maximumDistance = $width - 281
+            $preferredDistance = [int]($width * 0.82)
 
             $workspace.SplitterDistance = [Math]::Min(
                 $maximumDistance,
@@ -3392,8 +3416,8 @@ function Position-Workspace {
         }
         else {
             # Graceful fallback for small/RDP viewports.
-            $panel2Min = [Math]::Max(140, [int]($width * 0.25))
-            $panel1Min = [Math]::Max(260, $width - $panel2Min - 2)
+            $panel2Min = [Math]::Max(160, [int]($width * 0.18))
+            $panel1Min = [Math]::Max(300, $width - $panel2Min - 2)
 
             if (($panel1Min + $panel2Min) -ge $width) {
                 $panel1Min = [Math]::Max(220, $width - $panel2Min - 2)
@@ -3404,7 +3428,7 @@ function Position-Workspace {
 
             $minimumDistance = $panel1Min + 1
             $maximumDistance = $width - $panel2Min - 1
-            $preferredDistance = [int]($width * 0.68)
+            $preferredDistance = [int]($width * 0.78)
 
             if ($maximumDistance -gt $minimumDistance) {
                 $workspace.SplitterDistance = [Math]::Min(
@@ -3423,7 +3447,7 @@ $gridGroup = New-Object System.Windows.Forms.GroupBox
 $gridGroup.Text = ' Audit Results '
 $gridGroup.Font = $fontSection
 $gridGroup.Dock = 'Fill'
-$gridGroup.BackColor = [System.Drawing.Color]::White
+$gridGroup.BackColor = [System.Drawing.Color]::FromArgb(15,25,39)
 $gridGroup.Padding = [System.Windows.Forms.Padding]::new(3,5,3,3)
 
 $script:grid = New-Object System.Windows.Forms.DataGridView
