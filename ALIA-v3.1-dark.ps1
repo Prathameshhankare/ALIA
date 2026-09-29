@@ -93,14 +93,15 @@ public static class ALIANativeMethods
     private const int DWMWA_TEXT_COLOR = 36;
     private const uint WM_THEMECHANGED = 0x031A;
 
-    public static void SetDarkTitleBar(
-        IntPtr hwnd,
-        uint captionColor,
-        uint textColor,
-        uint borderColor)
+    public static void SetDarkTitleBar(IntPtr hwnd)
     {
         if (hwnd == IntPtr.Zero)
             return;
+
+        // Let Windows render the caption text/buttons for dark mode.
+        // Explicit caption/text COLORREF attributes are intentionally not set:
+        // they can produce incorrect caption text colors on some Windows builds.
+        SetWindowTheme(hwnd, "DarkMode_Explorer", null);
 
         int enabled = 1;
         DwmSetWindowAttribute(
@@ -108,30 +109,16 @@ public static class ALIANativeMethods
             DWMWA_USE_IMMERSIVE_DARK_MODE,
             ref enabled,
             sizeof(int));
-
-        DwmSetWindowAttribute(
-            hwnd,
-            DWMWA_CAPTION_COLOR,
-            ref captionColor,
-            sizeof(uint));
-
-        DwmSetWindowAttribute(
-            hwnd,
-            DWMWA_TEXT_COLOR,
-            ref textColor,
-            sizeof(uint));
-
-        DwmSetWindowAttribute(
-            hwnd,
-            DWMWA_BORDER_COLOR,
-            ref borderColor,
-            sizeof(uint));
     }
 
     public static void SetDarkScrollbars(IntPtr parentHwnd)
     {
         if (parentHwnd == IntPtr.Zero)
             return;
+
+        // Apply the Explorer dark theme to the parent first. This lets
+        // WinForms-owned scrollbar children inherit the dark scrollbar metrics.
+        SetWindowTheme(parentHwnd, "DarkMode_Explorer", null);
 
         EnumChildWindows(parentHwnd, delegate(IntPtr child, IntPtr state)
         {
@@ -146,6 +133,8 @@ public static class ALIANativeMethods
 
             return true;
         }, IntPtr.Zero);
+
+        SendMessage(parentHwnd, WM_THEMECHANGED, IntPtr.Zero, IntPtr.Zero);
     }
 }
 "@
@@ -4835,20 +4824,6 @@ Close-StartupSplash
 # Phase 3 - native Windows dark chrome
 # ---------------------------------------------------------------------------
 
-function ConvertTo-COLORREF {
-    param(
-        [Parameter(Mandatory)]
-        [System.Drawing.Color]$Color
-    )
-
-    # Win32 COLORREF layout is 0x00BBGGRR.
-    return [uint32](
-        [int]$Color.R -bor
-        ([int]$Color.G -shl 8) -bor
-        ([int]$Color.B -shl 16)
-    )
-}
-
 function Set-ALIANativeWindowTheme {
     try {
         if ($null -eq $script:frm -or $script:frm.IsDisposed) {
@@ -4859,15 +4834,7 @@ function Set-ALIANativeWindowTheme {
             return
         }
 
-        $caption = ConvertTo-COLORREF ([System.Drawing.Color]::FromArgb(15,23,42))
-        $text    = ConvertTo-COLORREF ([System.Drawing.Color]::FromArgb(226,232,240))
-        $border  = ConvertTo-COLORREF ([System.Drawing.Color]::FromArgb(38,61,86))
-
-        [ALIANativeMethods]::SetDarkTitleBar(
-            $script:frm.Handle,
-            $caption,
-            $text,
-            $border)
+        [ALIANativeMethods]::SetDarkTitleBar($script:frm.Handle)
     }
     catch {
         try { Write-AuditLog DEBUG "Native title bar theme could not be applied: $($_.Exception.Message)" } catch {}
