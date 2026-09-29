@@ -696,6 +696,8 @@ function Build-AuditResults {
             }
         }
 
+        $auditHealth = Get-AuditHealth -Status $auditStatus -LicenseEnd ([string]$gl.LicenseEnd)
+
         $results.Add([PSCustomObject]@{
             SerialNumber = [string]$gl.SerialNumber
             MACAddress = [string]$gl.MACAddress
@@ -714,6 +716,7 @@ function Build-AuditResults {
             ArubaInventoryPresent = if ($inInventory) { 'Yes' } else { 'No' }
             ArubaMonitoredPresent = if ($inMonitored) { 'Yes' } else { 'No' }
             ArubaStatus = $status
+            Health = $auditHealth
 
             ArubaInventorySerialNumber = if ($inventoryMatch) { [string]$inventoryMatch.SerialNumber } else { '' }
             ArubaInventoryMACAddress = if ($inventoryMatch) { [string]$inventoryMatch.MACAddress } else { '' }
@@ -1829,7 +1832,7 @@ function Get-ViewProperties {
                 'SerialNumber','MACAddress','GreenLakeDeviceType','Model','FirmwareVersion','DeviceName',
                 'LicenseTier','LicenseStart','LicenseEnd',
                 'ArubaInventoryPresent','ArubaMonitoredPresent',
-                'ArubaStatus',
+                'ArubaStatus','Health',
                 'ArubaInventoryDeviceName','ArubaInventorySiteName',
                 'ArubaMonitoredDeviceName','ArubaMonitoredSiteName',
                 'InventoryMatchMethod','MonitoringMatchMethod',
@@ -1872,7 +1875,7 @@ function Show-View {
         $properties = @(
             'SerialNumber','MACAddress','GreenLakeDeviceType','Model','FirmwareVersion','DeviceName',
             'LicenseTier','LicenseEnd','ArubaInventoryPresent',
-            'ArubaMonitoredPresent','ArubaStatus','AuditStatus','AuditReason'
+            'ArubaMonitoredPresent','ArubaStatus','Health','AuditStatus','AuditReason'
         )
     }
 
@@ -3198,10 +3201,15 @@ function Update-DetailPanelFromSelection {
     $central = V 'ArubaInventoryPresent'
     $monitored = V 'ArubaMonitoredPresent'
     $centralStatus = V 'ArubaStatus'
+    $health = V 'Health'
     $reason = V 'AuditReason'
 
     $script:detailTitle.Text = if (-not [string]::IsNullOrWhiteSpace($device)) { $device } elseif ($serial) { $serial } else { 'Device Details' }
-    $healthState = Get-AuditHealth -Status $status -LicenseEnd $licenseEnd
+    $healthState = if (-not [string]::IsNullOrWhiteSpace($health)) {
+        $health
+    } else {
+        Get-AuditHealth -Status $status -LicenseEnd $licenseEnd
+    }
     $health = $healthState
     $script:detailStatus.ForeColor = switch ($healthState) {
         'Critical' { [System.Drawing.Color]::FromArgb(185,28,28) }
@@ -3729,7 +3737,7 @@ function Invoke-CurrentSearch {
         $properties = @(
             'SerialNumber','MACAddress','GreenLakeDeviceType','Model','DeviceName',
             'LicenseTier','LicenseEnd','ArubaInventoryPresent',
-            'ArubaMonitoredPresent','ArubaStatus','AuditStatus','AuditReason'
+            'ArubaMonitoredPresent','ArubaStatus','Health','AuditStatus','AuditReason'
         )
     }
 
