@@ -2347,15 +2347,21 @@ function Show-View {
         }
 
         foreach ($row in $script:grid.Rows) {
+            $row.DefaultCellStyle.BackColor = if (($row.Index % 2) -eq 1) {
+                [System.Drawing.Color]::FromArgb(14,27,43)
+            } else {
+                [System.Drawing.Color]::FromArgb(11,22,36)
+            }
+            $row.DefaultCellStyle.ForeColor = [System.Drawing.Color]::FromArgb(226,232,240)
+            $row.DefaultCellStyle.SelectionBackColor = [System.Drawing.Color]::FromArgb(24,76,150)
+            $row.DefaultCellStyle.SelectionForeColor = [System.Drawing.Color]::White
             if ($script:grid.Columns.Contains('AuditStatus')) {
                 $licenseEndValue = if ($script:grid.Columns.Contains('LicenseEnd')) {
                     [string]$row.Cells['LicenseEnd'].Value
                 } else { '' }
-                $health = Get-AuditHealth -Status ([string]$row.Cells['AuditStatus'].Value) -LicenseEnd $licenseEndValue
-                switch ($health) {
-                    'Critical' { $row.DefaultCellStyle.BackColor = [System.Drawing.Color]::FromArgb(254,242,242) }
-                    'Warning'  { $row.DefaultCellStyle.BackColor = [System.Drawing.Color]::FromArgb(255,251,235) }
-                    default    { $row.DefaultCellStyle.BackColor = [System.Drawing.Color]::White }
+                switch (Get-AuditHealth -Status ([string]$row.Cells['AuditStatus'].Value) -LicenseEnd $licenseEndValue) {
+                    'Critical' { $row.DefaultCellStyle.BackColor = [System.Drawing.Color]::FromArgb(54,30,38) }
+                    'Warning'  { $row.DefaultCellStyle.BackColor = [System.Drawing.Color]::FromArgb(54,45,22) }
                 }
             }
         }
@@ -2608,15 +2614,15 @@ function Update-Dashboard {
     if ($script:healthHeadline) {
         if ($criticalCount -gt 0) {
             $script:healthHeadline.Text = 'ATTENTION REQUIRED'
-            $script:healthHeadline.ForeColor = [System.Drawing.Color]::FromArgb(185,28,28)
+            $script:healthHeadline.ForeColor = [System.Drawing.Color]::FromArgb(248,70,70)
         }
         elseif ($warningCount -gt 0) {
             $script:healthHeadline.Text = 'REVIEW RECOMMENDED'
-            $script:healthHeadline.ForeColor = [System.Drawing.Color]::FromArgb(161,98,7)
+            $script:healthHeadline.ForeColor = [System.Drawing.Color]::FromArgb(250,204,21)
         }
         else {
             $script:healthHeadline.Text = 'AUDIT HEALTHY'
-            $script:healthHeadline.ForeColor = [System.Drawing.Color]::FromArgb(21,128,61)
+            $script:healthHeadline.ForeColor = [System.Drawing.Color]::FromArgb(34,197,94)
         }
     }
 
@@ -2798,14 +2804,14 @@ function New-CredentialCardV31 {
     $group.Dock = 'Fill'
     $group.Margin = [System.Windows.Forms.Padding]::new(3, 0, 6, 0)
     $group.Padding = [System.Windows.Forms.Padding]::new(10, 5, 10, 5)
-    $group.BackColor = [System.Drawing.Color]::White
+    $group.BackColor = [System.Drawing.Color]::FromArgb(15,25,39)
     $group.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
 
     $layout = New-Object System.Windows.Forms.TableLayoutPanel
     $layout.Dock = 'Fill'
     $layout.ColumnCount = 3
     $layout.RowCount = 3
-    $layout.BackColor = [System.Drawing.Color]::White
+    $layout.BackColor = [System.Drawing.Color]::FromArgb(15,25,39)
     [void]$layout.ColumnStyles.Add([System.Windows.Forms.ColumnStyle]::new([System.Windows.Forms.SizeType]::Absolute, 90))
     [void]$layout.ColumnStyles.Add([System.Windows.Forms.ColumnStyle]::new([System.Windows.Forms.SizeType]::Percent, 100))
     [void]$layout.ColumnStyles.Add([System.Windows.Forms.ColumnStyle]::new([System.Windows.Forms.SizeType]::Absolute, 48))
@@ -2818,7 +2824,7 @@ function New-CredentialCardV31 {
     $name = New-Object System.Windows.Forms.Label
     $name.Text = $TitleText
     $name.Font = [System.Drawing.Font]::new('Segoe UI Semibold', 10.2)
-    $name.ForeColor = [System.Drawing.Color]::FromArgb(15,23,42)
+    $name.ForeColor = [System.Drawing.Color]::FromArgb(226,232,240)
     $name.Dock = 'Left'
     $name.AutoSize = $true
 
@@ -2838,7 +2844,7 @@ function New-CredentialCardV31 {
     $idLabel.Text = 'Client ID'
     $idLabel.Dock = 'Fill'
     $idLabel.TextAlign = [System.Drawing.ContentAlignment]::MiddleLeft
-    $idLabel.ForeColor = [System.Drawing.Color]::FromArgb(71,85,105)
+    $idLabel.ForeColor = [System.Drawing.Color]::FromArgb(148,163,184)
 
     $idBox = New-Object System.Windows.Forms.TextBox
     $idBox.Dock = 'Fill'
@@ -2855,7 +2861,7 @@ function New-CredentialCardV31 {
     $secretLabel.Text = 'Secret'
     $secretLabel.Dock = 'Fill'
     $secretLabel.TextAlign = [System.Drawing.ContentAlignment]::MiddleLeft
-    $secretLabel.ForeColor = [System.Drawing.Color]::FromArgb(71,85,105)
+    $secretLabel.ForeColor = [System.Drawing.Color]::FromArgb(148,163,184)
 
     $secretBox = New-Object System.Windows.Forms.TextBox
     $secretBox.Dock = 'Fill'
@@ -2913,17 +2919,18 @@ $actions.Padding = [System.Windows.Forms.Padding]::new(6, 3, 3, 3)
 $runPanel = New-Object System.Windows.Forms.Panel
 $runPanel.Dock = 'Top'
 $runPanel.Height = 55
-$runPanel.BackColor = [System.Drawing.Color]::FromArgb(15,118,110)
+$runPanel.BackColor = [System.Drawing.Color]::FromArgb(15,25,39)
 
 $script:btnRunAudit = New-Object System.Windows.Forms.Button
 $script:btnRunAudit.Text = 'RUN LICENSE AUDIT'
 $script:btnRunAudit.Dock = 'Fill'
 $script:btnRunAudit.FlatStyle = 'Flat'
 $script:btnRunAudit.FlatAppearance.BorderSize = 0
-$script:btnRunAudit.BackColor = [System.Drawing.Color]::FromArgb(15,118,110)
+$script:btnRunAudit.BackColor = [System.Drawing.Color]::FromArgb(0,200,83)
 $script:btnRunAudit.ForeColor = [System.Drawing.Color]::White
 $script:btnRunAudit.Font = [System.Drawing.Font]::new('Segoe UI Semibold', 11)
 $script:btnRunAudit.Cursor = [System.Windows.Forms.Cursors]::Hand
+$script:btnRunAudit.Tag = 'ALIA_PRIMARY'
 [void]$runPanel.Controls.Add($script:btnRunAudit)
 [void]$actions.Controls.Add($runPanel)
 
@@ -2931,7 +2938,7 @@ $runHint = New-Object System.Windows.Forms.Label
 $runHint.Text = 'Collect inventory, licensing and monitoring state'
 $runHint.Dock = 'Top'
 $runHint.Height = 22
-$runHint.ForeColor = [System.Drawing.Color]::FromArgb(71,85,105)
+$runHint.ForeColor = [System.Drawing.Color]::FromArgb(148,163,184)
 $runHint.Font = [System.Drawing.Font]::new('Segoe UI', 7.8)
 $runHint.TextAlign = [System.Drawing.ContentAlignment]::MiddleCenter
 [void]$actions.Controls.Add($runHint)
@@ -2960,8 +2967,11 @@ function New-SecondaryButton {
 }
 
 $script:btnTestConnections = New-SecondaryButton 'Test Connections' 120 ([System.Drawing.Color]::FromArgb(37,99,235))
+$script:btnTestConnections.Tag = 'ALIA_TEST'
 $script:btnExport = New-SecondaryButton 'Export' 65 ([System.Drawing.Color]::FromArgb(22,163,74))
+$script:btnExport.Tag = 'ALIA_EXPORT'
 $script:btnClear = New-SecondaryButton 'Clear' 55 ([System.Drawing.Color]::FromArgb(71,85,105))
+$script:btnClear.Tag = 'ALIA_CLEAR'
 $script:btnExport.Enabled = $false
 [void]$secondary.Controls.Add($script:btnTestConnections)
 [void]$secondary.Controls.Add($script:btnExport)
@@ -3009,24 +3019,40 @@ $overview.RowCount = 1
 
 $healthCard = New-Object System.Windows.Forms.Panel
 $healthCard.Dock = 'Fill'
-$healthCard.BackColor = [System.Drawing.Color]::White
-$healthCard.BorderStyle = 'FixedSingle'
-$healthCard.Padding = [System.Windows.Forms.Padding]::new(14,7,14,7)
+$healthCard.BackColor = [System.Drawing.Color]::FromArgb(15,25,39)
+$healthCard.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
+$healthCard.Padding = [System.Windows.Forms.Padding]::new(10,5,10,6)
+
+$healthTitleIconHost = New-Object System.Windows.Forms.PictureBox
+$healthTitleIconHost.Size = [System.Drawing.Size]::new(24,24)
+$healthTitleIconHost.Location = [System.Drawing.Point]::new(8,2)
+$healthTitleIconHost.SizeMode = [System.Windows.Forms.PictureBoxSizeMode]::CenterImage
+$healthTitleIconHost.BackColor = [System.Drawing.Color]::Transparent
+$healthTitleIconHost.Tag = 'HEALTH_TITLE_ICON'
+[void]$healthCard.Controls.Add($healthTitleIconHost)
+
+$healthHeadlineIconHost = New-Object System.Windows.Forms.PictureBox
+$healthHeadlineIconHost.Size = [System.Drawing.Size]::new(24,24)
+$healthHeadlineIconHost.Location = [System.Drawing.Point]::new(8,28)
+$healthHeadlineIconHost.SizeMode = [System.Windows.Forms.PictureBoxSizeMode]::CenterImage
+$healthHeadlineIconHost.BackColor = [System.Drawing.Color]::Transparent
+$healthHeadlineIconHost.Tag = 'HEALTH_HEADLINE_ICON'
+[void]$healthCard.Controls.Add($healthHeadlineIconHost)
 
 $healthTitle = New-Object System.Windows.Forms.Label
 $healthTitle.Text = 'AUDIT HEALTH'
 $healthTitle.Font = [System.Drawing.Font]::new('Segoe UI Semibold', 8.5)
-$healthTitle.ForeColor = [System.Drawing.Color]::FromArgb(100,116,139)
-$healthTitle.Dock = 'Top'
-$healthTitle.Height = 18
+$healthTitle.ForeColor = [System.Drawing.Color]::FromArgb(148,163,184)
+$healthTitle.AutoSize = $false
+$healthTitle.SetBounds(38,4,220,18)
 
 $script:healthHeadline = New-Object System.Windows.Forms.Label
 $script:healthHeadline.Text = 'READY TO AUDIT'
-$script:healthHeadline.Font = [System.Drawing.Font]::new('Segoe UI Semibold', 12.5)
+$script:healthHeadline.Font = [System.Drawing.Font]::new('Segoe UI Semibold', 13)
 $script:healthHeadline.AutoEllipsis = $true
-$script:healthHeadline.ForeColor = [System.Drawing.Color]::FromArgb(51,65,85)
-$script:healthHeadline.Dock = 'Top'
-$script:healthHeadline.Height = 28
+$script:healthHeadline.ForeColor = [System.Drawing.Color]::FromArgb(248,70,70)
+$script:healthHeadline.AutoSize = $false
+$script:healthHeadline.SetBounds(38,28,245,28)
 
 $script:healthDetail = New-Object System.Windows.Forms.Label
 $script:healthDetail.Text = 'No audit results yet'
@@ -3060,10 +3086,10 @@ $warningLabel = New-MetricLabel 'Warning' ([System.Drawing.Color]::FromArgb(100,
 $criticalLabel = New-MetricLabel 'Critical' ([System.Drawing.Color]::FromArgb(100,116,139))
 $coverageLabel = New-MetricLabel 'Coverage' ([System.Drawing.Color]::FromArgb(100,116,139))
 
-$script:healthHealthy = New-MetricLabel '0' ([System.Drawing.Color]::FromArgb(22,163,74)) 13
-$script:healthWarning = New-MetricLabel '0' ([System.Drawing.Color]::FromArgb(202,138,4)) 13
-$script:healthCritical = New-MetricLabel '0' ([System.Drawing.Color]::FromArgb(220,38,38)) 13
-$script:healthCoverage = New-MetricLabel '0%' ([System.Drawing.Color]::FromArgb(37,99,235)) 11
+$script:healthHealthy = New-MetricLabel '0' ([System.Drawing.Color]::FromArgb(34,197,94)) 13
+$script:healthWarning = New-MetricLabel '0' ([System.Drawing.Color]::FromArgb(250,204,21)) 13
+$script:healthCritical = New-MetricLabel '0' ([System.Drawing.Color]::FromArgb(248,70,70)) 13
+$script:healthCoverage = New-MetricLabel '0%' ([System.Drawing.Color]::FromArgb(59,130,246)) 11
 
 foreach($item in @(
     @($healthyLabel,$script:healthHealthy,0),
@@ -3121,50 +3147,50 @@ function New-KpiCard {
     $p = New-Object System.Windows.Forms.Panel
     $p.Dock = 'Fill'
     $p.Margin = [System.Windows.Forms.Padding]::new(4,0,0,4)
-    $p.Padding = [System.Windows.Forms.Padding]::new(10,4,10,3)
-    $p.BackColor = [System.Drawing.Color]::White
-    $p.BorderStyle = 'FixedSingle'
-    $p.Tag = [PSCustomObject]@{ Caption = $Caption; Accent = $Accent }
+    $p.Padding = [System.Windows.Forms.Padding]::new(8,4,10,3)
+    $p.BackColor = [System.Drawing.Color]::FromArgb(15,25,39)
+    $p.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
 
-    # KPI labels are positioned explicitly so an embedded vector icon can sit
-    # to the left without changing the card's existing dimensions.
+    $iconHost = New-Object System.Windows.Forms.PictureBox
+    $iconHost.Size = [System.Drawing.Size]::new(38,38)
+    $iconHost.Location = [System.Drawing.Point]::new(10,9)
+    $iconHost.SizeMode = [System.Windows.Forms.PictureBoxSizeMode]::CenterImage
+    $iconHost.BackColor = [System.Drawing.Color]::Transparent
+    $iconHost.Tag = $Accent
+    [void]$p.Controls.Add($iconHost)
+
     $cap = New-Object System.Windows.Forms.Label
     $cap.Text = $Caption
-    $cap.Font = [System.Drawing.Font]::new('Segoe UI', 8.2)
-    $cap.ForeColor = [System.Drawing.Color]::FromArgb(100,116,139)
+    $cap.Font = [System.Drawing.Font]::new('Segoe UI', 8.5)
+    $cap.ForeColor = [System.Drawing.Color]::FromArgb(203,213,225)
     $cap.AutoSize = $false
-    $cap.SetBounds(45,4,165,18)
+    $cap.SetBounds(56,4,300,19)
     $cap.TextAlign = [System.Drawing.ContentAlignment]::MiddleLeft
     $cap.AutoEllipsis = $true
 
     $val = New-Object System.Windows.Forms.Label
     $val.Text = '0'
-    $val.Font = [System.Drawing.Font]::new('Segoe UI Semibold', 18)
-    $val.ForeColor = [System.Drawing.Color]::FromArgb(15,23,42)
+    $val.Font = [System.Drawing.Font]::new('Segoe UI Semibold', 19)
+    $val.ForeColor = [System.Drawing.Color]::FromArgb(226,232,240)
     $val.AutoSize = $false
-    $val.SetBounds(45,22,165,29)
+    $val.SetBounds(56,22,300,30)
     $val.TextAlign = [System.Drawing.ContentAlignment]::MiddleLeft
 
     $trend = New-Object System.Windows.Forms.Label
     $trend.Text = ''
-    $trend.Font = [System.Drawing.Font]::new('Segoe UI', 7.0)
-    $trend.ForeColor = [System.Drawing.Color]::FromArgb(100,116,139)
+    $trend.Font = [System.Drawing.Font]::new('Segoe UI', 7.2)
+    $trend.ForeColor = [System.Drawing.Color]::FromArgb(148,163,184)
     $trend.AutoSize = $false
-    $trend.SetBounds(45,51,165,13)
+    $trend.SetBounds(56,52,300,13)
     $trend.AutoEllipsis = $true
     $trend.TextAlign = [System.Drawing.ContentAlignment]::MiddleLeft
-
-    $accentBar = New-Object System.Windows.Forms.Panel
-    $accentBar.Dock = 'Left'
-    $accentBar.Width = 4
-    $accentBar.BackColor = $Accent
 
     [void]$p.Controls.Add($trend)
     [void]$p.Controls.Add($val)
     [void]$p.Controls.Add($cap)
-    [void]$p.Controls.Add($accentBar)
+    [void]$p.Controls.Add($iconHost)
 
-    return [PSCustomObject]@{ Panel=$p; Caption=$cap; Value=$val; Trend=$trend; Icon=$null }
+    return [PSCustomObject]@{ Panel=$p; Caption=$cap; Value=$val; Trend=$trend; Icon=$iconHost; Accent=$Accent }
 }
 
 $script:kpiGL = New-KpiCard 'GreenLake Inventory' ([System.Drawing.Color]::FromArgb(37,99,235))
@@ -3199,11 +3225,6 @@ function Add-KpiTileClick {
         $control.Cursor = [System.Windows.Forms.Cursors]::Hand
         $control.Add_Click($handler)
     }
-    if ($null -ne $Kpi.Icon) {
-        $Kpi.Icon.Tag = $tag
-        $Kpi.Icon.Cursor = [System.Windows.Forms.Cursors]::Hand
-        $Kpi.Icon.Add_Click($handler)
-    }
 }
 
 Add-KpiTileClick -Kpi $script:kpiGL -View 'GreenLake' -Title 'HPE GreenLake Inventory'
@@ -3226,10 +3247,10 @@ Add-KpiTileClick -Kpi $script:kpiExpired -View 'Expired' -Title 'Expired License
 $toolbar = New-Object System.Windows.Forms.Panel
 $toolbar.Dock = 'Fill'
 $toolbar.Padding = [System.Windows.Forms.Padding]::new(14,3,14,3)
-$toolbar.BackColor = [System.Drawing.Color]::FromArgb(241,245,249)
+$toolbar.BackColor = [System.Drawing.Color]::FromArgb(7,15,28)
 
 $script:btnShowAll = New-Object System.Windows.Forms.Button
-$script:btnShowAll.Text = 'All'
+$script:btnShowAll.Text = 'All  ▾'
 $script:btnShowAll.Width = 55
 $script:btnShowAll.Height = 28
 $script:btnShowAll.FlatStyle = 'Flat'
@@ -3255,6 +3276,20 @@ $script:txtSearch.Anchor = 'Top,Left'
 $searchTip = New-Object System.Windows.Forms.ToolTip
 $searchTip.SetToolTip($script:txtSearch, 'Search across all visible reconciliation fields')
 [void]$toolbar.Controls.Add($script:txtSearch)
+if (-not ('ALIA.NativeMethods' -as [type])) {
+    Add-Type @"
+using System;
+using System.Runtime.InteropServices;
+namespace ALIA {
+    public static class NativeMethods {
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+        public static extern IntPtr SendMessage(IntPtr hWnd, uint Msg, IntPtr wParam, string lParam);
+    }
+}
+"@
+}
+$script:txtSearch.Handle | Out-Null
+[ALIA.NativeMethods]::SendMessage($script:txtSearch.Handle, 0x1501, [IntPtr]1, 'Search devices...') | Out-Null
 
 $gridFilterHint = New-Object System.Windows.Forms.Label
 $gridFilterHint.Text = 'Click a column header to sort  •  Right-click a column header to filter'
@@ -3293,7 +3328,7 @@ $script:lblViewTitle.Text = 'All Audit Results'
 $script:lblViewTitle.Font = [System.Drawing.Font]::new('Segoe UI Semibold', 11.5)
 $script:lblViewTitle.AutoSize = $true
 $script:lblViewTitle.Location = [System.Drawing.Point]::new(0,4)
-$script:lblViewTitle.ForeColor = [System.Drawing.Color]::FromArgb(15,23,42)
+$script:lblViewTitle.ForeColor = [System.Drawing.Color]::FromArgb(226,232,240)
 [void]$resultsHeader.Controls.Add($script:lblViewTitle)
 
 $script:lblRecordCount = New-Object System.Windows.Forms.Label
@@ -3405,18 +3440,18 @@ $script:grid.StandardTab = $true
 $script:grid.AutoGenerateColumns = $true
 $script:grid.AutoSizeColumnsMode = 'DisplayedCells'
 $script:grid.EnableHeadersVisualStyles = $false
-$script:grid.BackgroundColor = [System.Drawing.Color]::White
-$script:grid.BorderStyle = 'None'
-$script:grid.GridColor = [System.Drawing.Color]::FromArgb(226,232,240)
-$script:grid.ColumnHeadersDefaultCellStyle.BackColor = [System.Drawing.Color]::FromArgb(15,23,42)
-$script:grid.ColumnHeadersDefaultCellStyle.ForeColor = [System.Drawing.Color]::White
+$script:grid.BackgroundColor = [System.Drawing.Color]::FromArgb(11,22,36)
+$script:grid.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
+$script:grid.GridColor = [System.Drawing.Color]::FromArgb(38,61,86)
+$script:grid.ColumnHeadersDefaultCellStyle.BackColor = [System.Drawing.Color]::FromArgb(20,35,54)
+$script:grid.ColumnHeadersDefaultCellStyle.ForeColor = [System.Drawing.Color]::FromArgb(226,232,240)
 $script:grid.ColumnHeadersDefaultCellStyle.Font = New-Object System.Drawing.Font('Segoe UI Semibold', 8.8)
 $script:grid.ColumnHeadersHeight = 30
 $script:grid.DefaultCellStyle.Font = $fontSmall
-$script:grid.DefaultCellStyle.SelectionBackColor = [System.Drawing.Color]::FromArgb(219,234,254)
-$script:grid.DefaultCellStyle.SelectionForeColor = [System.Drawing.Color]::FromArgb(15,23,42)
-$script:grid.AlternatingRowsDefaultCellStyle.BackColor = [System.Drawing.Color]::FromArgb(248,250,252)
-$script:grid.RowTemplate.Height = 27
+$script:grid.DefaultCellStyle.SelectionBackColor = [System.Drawing.Color]::FromArgb(24,76,150)
+$script:grid.DefaultCellStyle.SelectionForeColor = [System.Drawing.Color]::White
+$script:grid.AlternatingRowsDefaultCellStyle.BackColor = [System.Drawing.Color]::FromArgb(14,27,43)
+$script:grid.RowTemplate.Height = 26
 [void]$gridGroup.Controls.Add($script:grid)
 [void]$workspace.Panel1.Controls.Add($gridGroup)
 
@@ -3424,23 +3459,23 @@ $detailGroup = New-Object System.Windows.Forms.GroupBox
 $detailGroup.Text = ' Device Details '
 $detailGroup.Font = $fontSection
 $detailGroup.Dock = 'Fill'
-$detailGroup.BackColor = [System.Drawing.Color]::White
+$detailGroup.BackColor = [System.Drawing.Color]::FromArgb(15,25,39)
 $detailGroup.Padding = [System.Windows.Forms.Padding]::new(10,8,10,8)
 
 $detailPanel = New-Object System.Windows.Forms.Panel
 $detailPanel.Dock = 'Fill'
 $detailPanel.AutoScroll = $false
-$detailPanel.BackColor = [System.Drawing.Color]::White
+$detailPanel.BackColor = [System.Drawing.Color]::FromArgb(15,25,39)
 
 $detailHeader = New-Object System.Windows.Forms.Panel
 $detailHeader.Dock = 'Top'
 $detailHeader.Height = 58
-$detailHeader.BackColor = [System.Drawing.Color]::White
+$detailHeader.BackColor = [System.Drawing.Color]::FromArgb(15,25,39)
 
 $script:detailTitle = New-Object System.Windows.Forms.Label
 $script:detailTitle.Text = 'Select a device'
 $script:detailTitle.Font = [System.Drawing.Font]::new('Segoe UI Semibold', 15)
-$script:detailTitle.ForeColor = [System.Drawing.Color]::FromArgb(15,23,42)
+$script:detailTitle.ForeColor = [System.Drawing.Color]::FromArgb(226,232,240)
 $script:detailTitle.Location = [System.Drawing.Point]::new(6,4)
 $script:detailTitle.Size = [System.Drawing.Size]::new(320,32)
 $script:detailTitle.Anchor = 'Top,Left,Right'
@@ -3460,8 +3495,9 @@ $script:detailStatus.AutoEllipsis = $true
 $script:detailBody = New-Object System.Windows.Forms.RichTextBox
 $script:detailBody.ReadOnly = $true
 $script:detailBody.BorderStyle = 'None'
-$script:detailBody.BackColor = [System.Drawing.Color]::White
+$script:detailBody.BackColor = [System.Drawing.Color]::FromArgb(10,20,34)
 $script:detailBody.Font = [System.Drawing.Font]::new('Segoe UI', 9)
+$script:detailBody.ForeColor = [System.Drawing.Color]::FromArgb(226,232,240)
 $script:detailBody.Dock = 'Fill'
 $script:detailBody.Text = 'Select a row to inspect GreenLake, Aruba Central, monitoring and audit state.'
 $script:detailBody.WordWrap = $true
@@ -4030,12 +4066,21 @@ function Invoke-CurrentSearch {
         if ($script:grid.Columns.Contains('SerialNumber')) { $script:grid.Columns['SerialNumber'].Frozen = $true }
         if ($script:grid.Columns.Contains('MACAddress')) { $script:grid.Columns['MACAddress'].Frozen = $true }
         foreach ($row in $script:grid.Rows) {
+            $row.DefaultCellStyle.BackColor = if (($row.Index % 2) -eq 1) {
+                [System.Drawing.Color]::FromArgb(14,27,43)
+            } else {
+                [System.Drawing.Color]::FromArgb(11,22,36)
+            }
+            $row.DefaultCellStyle.ForeColor = [System.Drawing.Color]::FromArgb(226,232,240)
+            $row.DefaultCellStyle.SelectionBackColor = [System.Drawing.Color]::FromArgb(24,76,150)
+            $row.DefaultCellStyle.SelectionForeColor = [System.Drawing.Color]::White
             if ($script:grid.Columns.Contains('AuditStatus')) {
-                $licenseEndValue = if ($script:grid.Columns.Contains('LicenseEnd')) { [string]$row.Cells['LicenseEnd'].Value } else { '' }
+                $licenseEndValue = if ($script:grid.Columns.Contains('LicenseEnd')) {
+                    [string]$row.Cells['LicenseEnd'].Value
+                } else { '' }
                 switch (Get-AuditHealth -Status ([string]$row.Cells['AuditStatus'].Value) -LicenseEnd $licenseEndValue) {
-                    'Critical' { $row.DefaultCellStyle.BackColor = [System.Drawing.Color]::FromArgb(254,242,242) }
-                    'Warning'  { $row.DefaultCellStyle.BackColor = [System.Drawing.Color]::FromArgb(255,251,235) }
-                    default    { $row.DefaultCellStyle.BackColor = [System.Drawing.Color]::White }
+                    'Critical' { $row.DefaultCellStyle.BackColor = [System.Drawing.Color]::FromArgb(54,30,38) }
+                    'Warning'  { $row.DefaultCellStyle.BackColor = [System.Drawing.Color]::FromArgb(54,45,22) }
                 }
             }
         }
@@ -4611,234 +4656,126 @@ $script:DarkTheme = @{
 function Set-ALIAControlTheme {
     param([System.Windows.Forms.Control]$Control)
     if ($null -eq $Control -or $Control.IsDisposed) { return }
-    $t = $script:DarkTheme
-
-    if ($Control -is [System.Windows.Forms.Form]) {
-        $Control.BackColor = $t.Window; $Control.ForeColor = $t.Text
-    }
-    elseif ($Control -is [System.Windows.Forms.DataGridView]) {
-        $Control.BackgroundColor = $t.Grid; $Control.GridColor = $t.Border
-        $Control.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
-        $Control.EnableHeadersVisualStyles = $false
-        $Control.ColumnHeadersDefaultCellStyle.BackColor = $t.Header
-        $Control.ColumnHeadersDefaultCellStyle.ForeColor = $t.Text
-        $Control.ColumnHeadersDefaultCellStyle.SelectionBackColor = $t.Header
-        $Control.ColumnHeadersDefaultCellStyle.SelectionForeColor = $t.Text
-        $Control.DefaultCellStyle.BackColor = $t.Grid
-        $Control.DefaultCellStyle.ForeColor = $t.Text
-        $Control.DefaultCellStyle.SelectionBackColor = $t.Selected
-        $Control.DefaultCellStyle.SelectionForeColor = [System.Drawing.Color]::White
-        $Control.AlternatingRowsDefaultCellStyle.BackColor = $t.GridAlt
-        $Control.AlternatingRowsDefaultCellStyle.ForeColor = $t.Text
-        $Control.RowHeadersDefaultCellStyle.BackColor = $t.Header
-        $Control.RowHeadersDefaultCellStyle.ForeColor = $t.Muted
-        $Control.RowHeadersVisible = $false
-    }
-    elseif ($Control -is [System.Windows.Forms.TextBoxBase]) {
-        $Control.BackColor = $t.Input; $Control.ForeColor = $t.Text
-        $Control.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
-    }
-    elseif ($Control -is [System.Windows.Forms.ComboBox]) {
-        $Control.BackColor = $t.Input; $Control.ForeColor = $t.Text
-        $Control.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
-    }
-    elseif ($Control -is [System.Windows.Forms.Button]) {
-        $Control.BackColor = $t.Panel2; $Control.ForeColor = $t.Text
-        $Control.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
-        $Control.FlatAppearance.BorderColor = $t.Border
-        $Control.FlatAppearance.MouseOverBackColor = $t.Header
-        $Control.FlatAppearance.MouseDownBackColor = $t.Selected
-    }
-    elseif ($Control -is [System.Windows.Forms.CheckBox] -or $Control -is [System.Windows.Forms.RadioButton]) {
-        $Control.BackColor = $t.Panel; $Control.ForeColor = $t.Text
-    }
-    elseif ($Control -is [System.Windows.Forms.GroupBox]) {
-        $Control.BackColor = $t.Panel; $Control.ForeColor = $t.Text
-    }
-    elseif ($Control -is [System.Windows.Forms.Label]) {
-        if ($Control.ForeColor.ToArgb() -eq [System.Drawing.Color]::Black.ToArgb() -or
-            $Control.ForeColor.ToArgb() -eq [System.Drawing.SystemColors]::ControlText.ToArgb()) {
-            $Control.ForeColor = $t.Text
+    $t=$script:DarkTheme
+    if($Control -is [System.Windows.Forms.Form]){
+        $Control.BackColor=$t.Window; $Control.ForeColor=$t.Text
+    }elseif($Control -is [System.Windows.Forms.DataGridView]){
+        $Control.BackgroundColor=$t.Grid; $Control.GridColor=$t.Border
+        $Control.BorderStyle=[System.Windows.Forms.BorderStyle]::FixedSingle
+        $Control.EnableHeadersVisualStyles=$false
+        $Control.ColumnHeadersDefaultCellStyle.BackColor=$t.Header
+        $Control.ColumnHeadersDefaultCellStyle.ForeColor=$t.Text
+        $Control.ColumnHeadersDefaultCellStyle.SelectionBackColor=$t.Header
+        $Control.ColumnHeadersDefaultCellStyle.SelectionForeColor=$t.Text
+        $Control.DefaultCellStyle.BackColor=$t.Grid
+        $Control.DefaultCellStyle.ForeColor=$t.Text
+        $Control.DefaultCellStyle.SelectionBackColor=$t.Selected
+        $Control.DefaultCellStyle.SelectionForeColor=[System.Drawing.Color]::White
+        $Control.AlternatingRowsDefaultCellStyle.BackColor=$t.GridAlt
+        $Control.AlternatingRowsDefaultCellStyle.ForeColor=$t.Text
+    }elseif($Control -is [System.Windows.Forms.TextBoxBase]){
+        $Control.BackColor=$t.Input; $Control.ForeColor=$t.Text
+        $Control.BorderStyle=[System.Windows.Forms.BorderStyle]::FixedSingle
+    }elseif($Control -is [System.Windows.Forms.Button]){
+        $Control.FlatStyle=[System.Windows.Forms.FlatStyle]::Flat
+        $Control.FlatAppearance.BorderColor=$t.Border
+        $Control.FlatAppearance.MouseOverBackColor=$t.Header
+        $Control.FlatAppearance.MouseDownBackColor=$t.Selected
+        switch([string]$Control.Tag){
+            'ALIA_PRIMARY' { $Control.BackColor=[System.Drawing.Color]::FromArgb(0,200,83); $Control.ForeColor=[System.Drawing.Color]::White; $Control.FlatAppearance.BorderSize=0 }
+            'ALIA_TEST' { $Control.BackColor=[System.Drawing.Color]::FromArgb(37,99,235); $Control.ForeColor=[System.Drawing.Color]::White }
+            'ALIA_EXPORT' { $Control.BackColor=[System.Drawing.Color]::FromArgb(22,163,74); $Control.ForeColor=[System.Drawing.Color]::White }
+            'ALIA_CLEAR' { $Control.BackColor=[System.Drawing.Color]::FromArgb(71,85,105); $Control.ForeColor=[System.Drawing.Color]::White }
+            default { $Control.BackColor=$t.Panel2; $Control.ForeColor=$t.Text }
         }
-        $Control.BackColor = [System.Drawing.Color]::Transparent
-    }
-    elseif ($Control -is [System.Windows.Forms.Panel] -or
+    }elseif($Control -is [System.Windows.Forms.GroupBox]){
+        $Control.BackColor=$t.Panel; $Control.ForeColor=$t.Text
+    }elseif($Control -is [System.Windows.Forms.Label]){
+        $argb=$Control.ForeColor.ToArgb()
+        if($argb -eq [System.Drawing.Color]::FromArgb(15,23,42).ToArgb() -or $argb -eq [System.Drawing.Color]::FromArgb(51,65,85).ToArgb()){
+            $Control.ForeColor=$t.Text
+        }elseif($argb -eq [System.Drawing.Color]::FromArgb(71,85,105).ToArgb()){
+            $Control.ForeColor=$t.Muted
+        }
+        $Control.BackColor=[System.Drawing.Color]::Transparent
+    }elseif($Control -is [System.Windows.Forms.Panel] -or
             $Control -is [System.Windows.Forms.TableLayoutPanel] -or
             $Control -is [System.Windows.Forms.FlowLayoutPanel] -or
-            $Control -is [System.Windows.Forms.SplitContainer]) {
-        $Control.BackColor = $t.Panel; $Control.ForeColor = $t.Text
+            $Control -is [System.Windows.Forms.SplitContainer]){
+        $Control.BackColor=$t.Panel; $Control.ForeColor=$t.Text
+    }elseif($Control -is [System.Windows.Forms.RichTextBox]){
+        $Control.BackColor=$t.Input; $Control.ForeColor=$t.Text
     }
-    elseif ($Control -is [System.Windows.Forms.RichTextBox]) {
-        $Control.BackColor = $t.Input; $Control.ForeColor = $t.Text
-    }
-    elseif ($Control -is [System.Windows.Forms.ListView]) {
-        $Control.BackColor = $t.Grid; $Control.ForeColor = $t.Text
-    }
-
-    foreach ($child in @($Control.Controls)) { Set-ALIAControlTheme -Control $child }
+    foreach($child in @($Control.Controls)){ Set-ALIAControlTheme -Control $child }
 }
 
 function New-ALIAIconBitmap {
     param(
-        [Parameter(Mandatory)][ValidateSet('Inventory','Database','Monitor','License','Warning','Clock','Health')][string]$Type,
+        [Parameter(Mandatory)]
+        [ValidateSet('Inventory','Database','Monitor','License','Warning','Clock','Health')]
+        [string]$Type,
         [Parameter(Mandatory)][System.Drawing.Color]$Color,
-        [int]$Size = 30
+        [int]$Size = 34
     )
-
-    $bmp = New-Object System.Drawing.Bitmap($Size,$Size,[System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
-    $g = [System.Drawing.Graphics]::FromImage($bmp)
-    $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
-    $g.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
-    $g.CompositingQuality = [System.Drawing.Drawing2D.CompositingQuality]::HighQuality
+    $bmp=New-Object System.Drawing.Bitmap($Size,$Size,[System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
+    $g=[System.Drawing.Graphics]::FromImage($bmp)
+    $g.SmoothingMode=[System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
+    $g.PixelOffsetMode=[System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
+    $g.CompositingQuality=[System.Drawing.Drawing2D.CompositingQuality]::HighQuality
     $g.Clear([System.Drawing.Color]::Transparent)
-
-    $pen = New-Object System.Drawing.Pen($Color,[Math]::Max(1.8,$Size/12.0))
-    $pen.StartCap = [System.Drawing.Drawing2D.LineCap]::Round
-    $pen.EndCap = [System.Drawing.Drawing2D.LineCap]::Round
-    $pen.LineJoin = [System.Drawing.Drawing2D.LineJoin]::Round
-    $brush = New-Object System.Drawing.SolidBrush($Color)
-    $fill = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(35,$Color.R,$Color.G,$Color.B))
-    $rect = [System.Drawing.RectangleF]::new(2,2,$Size-4,$Size-4)
-
-    switch ($Type) {
-        'Inventory' {
-            # Network/server inventory icon: rack with three slots.
-            $g.DrawRectangle($pen, 4,4,$Size-8,$Size-8)
-            $y1=[int]($Size*0.30); $y2=[int]($Size*0.50); $y3=[int]($Size*0.70)
-            foreach($y in @($y1,$y2,$y3)) {
-                $g.DrawLine($pen, 6,$y,$Size-7,$y)
-                $g.FillEllipse($brush,$Size-10,$y-2,4,4)
-            }
+    $pen=New-Object System.Drawing.Pen($Color,[Math]::Max(1.8,$Size/12.0))
+    $pen.StartCap=[System.Drawing.Drawing2D.LineCap]::Round; $pen.EndCap=[System.Drawing.Drawing2D.LineCap]::Round; $pen.LineJoin=[System.Drawing.Drawing2D.LineJoin]::Round
+    $brush=New-Object System.Drawing.SolidBrush($Color)
+    $fill=New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(35,$Color.R,$Color.G,$Color.B))
+    $rect=[System.Drawing.RectangleF]::new(2,2,$Size-4,$Size-4)
+    switch($Type){
+        'Inventory'{
+            $g.DrawRectangle($pen,4,4,$Size-8,$Size-8)
+            foreach($y in @([int]($Size*.30),[int]($Size*.50),[int]($Size*.70))){$g.DrawLine($pen,6,$y,$Size-7,$y);$g.FillEllipse($brush,$Size-10,$y-2,4,4)}
         }
-        'Database' {
-            $top = [System.Drawing.RectangleF]::new(5,4,$Size-10,7)
-            $body = [System.Drawing.RectangleF]::new(5,7,$Size-10,$Size-13)
-            $g.FillEllipse($fill,$top); $g.DrawEllipse($pen,$top)
-            $g.DrawLine($pen,5,7,5,$Size-7); $g.DrawLine($pen,$Size-5,7,$Size-5,$Size-7)
-            $bottomY=$Size-7
-            $g.DrawArc($pen,5,$bottomY-4,$Size-10,8,0,180)
-            $g.DrawArc($pen,5,9,$Size-10,8,0,180)
+        'Database'{
+            $top=[System.Drawing.RectangleF]::new(5,4,$Size-10,7);$g.FillEllipse($fill,$top);$g.DrawEllipse($pen,$top)
+            $g.DrawLine($pen,5,7,5,$Size-7);$g.DrawLine($pen,$Size-5,7,$Size-5,$Size-7);$g.DrawArc($pen,5,$Size-11,$Size-10,8,0,180);$g.DrawArc($pen,5,9,$Size-10,8,0,180)
         }
-        'Monitor' {
-            $g.FillRectangle($fill,4,5,$Size-8,$Size-11)
-            $g.DrawRectangle($pen,4,5,$Size-8,$Size-11)
-            $g.DrawLine($pen,$Size/2, $Size-6, $Size/2, $Size-2)
-            $g.DrawLine($pen,$Size/2-6,$Size-2,$Size/2+6,$Size-2)
+        'Monitor'{
+            $g.FillRectangle($fill,4,5,$Size-8,$Size-11);$g.DrawRectangle($pen,4,5,$Size-8,$Size-11);$g.DrawLine($pen,$Size/2,$Size-6,$Size/2,$Size-2);$g.DrawLine($pen,$Size/2-6,$Size-2,$Size/2+6,$Size-2)
         }
-        'License' {
-            $path = New-Object System.Drawing.Drawing2D.GraphicsPath
-            $path.AddRectangle([System.Drawing.RectangleF]::new(5,3,$Size-10,$Size-6))
-            $g.FillPath($fill,$path); $g.DrawPath($pen,$path); $path.Dispose()
-            $g.DrawLine($pen,8,10,$Size-9,10)
-            $g.DrawLine($pen,8,15,$Size-11,15)
-            $g.DrawLine($pen,8,20,$Size-14,20)
-            $g.DrawLine($pen,$Size-10,$Size-8,$Size-6,$Size-4)
+        'License'{
+            $path=New-Object System.Drawing.Drawing2D.GraphicsPath;$path.AddRectangle([System.Drawing.RectangleF]::new(5,3,$Size-10,$Size-6));$g.FillPath($fill,$path);$g.DrawPath($pen,$path);$path.Dispose()
+            $g.DrawLine($pen,8,10,$Size-9,10);$g.DrawLine($pen,8,15,$Size-11,15);$g.DrawLine($pen,8,20,$Size-14,20);$g.FillEllipse($brush,$Size-13,$Size-10,7,7)
         }
-        'Warning' {
-            $pts = [System.Drawing.PointF[]]@(
-                [System.Drawing.PointF]::new($Size/2,3),
-                [System.Drawing.PointF]::new($Size-3,$Size-4),
-                [System.Drawing.PointF]::new(3,$Size-4)
-            )
-            $g.FillPolygon($fill,$pts); $g.DrawPolygon($pen,$pts)
-            $g.DrawLine($pen,$Size/2,9,$Size/2,17)
-            $g.FillEllipse($brush,$Size/2-1.5,21,3,3)
+        'Warning'{
+            $pts=[System.Drawing.PointF[]]@([System.Drawing.PointF]::new($Size/2,3),[System.Drawing.PointF]::new($Size-3,$Size-4),[System.Drawing.PointF]::new(3,$Size-4))
+            $g.FillPolygon($fill,$pts);$g.DrawPolygon($pen,$pts);$g.DrawLine($pen,$Size/2,9,$Size/2,17);$g.FillEllipse($brush,$Size/2-1.5,21,3,3)
         }
-        'Clock' {
-            $g.FillEllipse($fill,$rect); $g.DrawEllipse($pen,$rect)
-            $cx=$Size/2; $cy=$Size/2
-            $g.DrawLine($pen,$cx,$cy,$cx,$cy-7)
-            $g.DrawLine($pen,$cx,$cy,$cx+6,$cy+3)
-        }
-        'Health' {
-            $pts = [System.Drawing.PointF[]]@(
-                [System.Drawing.PointF]::new($Size/2,3),
-                [System.Drawing.PointF]::new($Size-3,$Size-4),
-                [System.Drawing.PointF]::new(3,$Size-4)
-            )
-            $g.FillPolygon($fill,$pts); $g.DrawPolygon($pen,$pts)
-            $g.DrawLine($pen,$Size/2,9,$Size/2,17)
-            $g.FillEllipse($brush,$Size/2-1.5,21,3,3)
+        'Clock'{$g.FillEllipse($fill,$rect);$g.DrawEllipse($pen,$rect);$cx=$Size/2;$cy=$Size/2;$g.DrawLine($pen,$cx,$cy,$cx,$cy-7);$g.DrawLine($pen,$cx,$cy,$cx+6,$cy+3)}
+        'Health'{
+            $pts=[System.Drawing.PointF[]]@([System.Drawing.PointF]::new($Size/2,3),[System.Drawing.PointF]::new($Size-3,$Size-4),[System.Drawing.PointF]::new(3,$Size-4))
+            $g.FillPolygon($fill,$pts);$g.DrawPolygon($pen,$pts);$g.DrawLine($pen,$Size/2,9,$Size/2,17);$g.FillEllipse($brush,$Size/2-1.5,21,3,3)
         }
     }
-
-    $pen.Dispose(); $brush.Dispose(); $fill.Dispose(); $g.Dispose()
-    return $bmp
+    $pen.Dispose();$brush.Dispose();$fill.Dispose();$g.Dispose();return $bmp
 }
 
-function Set-ALIAKpiIcon {
-    param(
-        [Parameter(Mandatory)][psobject]$Kpi,
-        [Parameter(Mandatory)][ValidateSet('Inventory','Database','Monitor','License','Warning','Clock')][string]$Type,
-        [Parameter(Mandatory)][System.Drawing.Color]$Color
-    )
-    if ($Kpi.Icon -and $Kpi.Icon.Image) { try { $Kpi.Icon.Image.Dispose() } catch {} }
-    if ($null -eq $Kpi.Icon) {
-        $pic = New-Object System.Windows.Forms.PictureBox
-        $pic.Size = [System.Drawing.Size]::new(30,30)
-        $pic.Location = [System.Drawing.Point]::new(10,10)
-        $pic.SizeMode = [System.Windows.Forms.PictureBoxSizeMode]::CenterImage
-        $pic.BackColor = [System.Drawing.Color]::Transparent
-        $pic.Cursor = [System.Windows.Forms.Cursors]::Hand
-        $pic.Tag = $Kpi.Panel.Tag
-        [void]$Kpi.Panel.Controls.Add($pic)
-        $pic.BringToFront()
-        $Kpi.Icon = $pic
-    }
-    $Kpi.Icon.Image = New-ALIAIconBitmap -Type $Type -Color $Color -Size 28
-    $Kpi.Icon.Tag = $Kpi.Panel.Tag
-    $Kpi.Icon.Cursor = [System.Windows.Forms.Cursors]::Hand
-    # PictureBox is a child control and does not bubble clicks to the panel.
-    # Forward the click to the same view handler used by the card.
-    $Kpi.Icon.Add_Click({
-        try {
-            $selection = $this.Tag
-            $script:GridFilters.Clear()
-            Show-View -View ([string]$selection.View) -Title ([string]$selection.Title)
-        } catch {
-            $message = Get-SafeErrorMessage $_
-            Show-ErrorDialog -Message $message -Title 'Dashboard Tile Error'
-        }
-    })
-}
-
-function Set-ALIAHealthIcon {
-    param([Parameter(Mandatory)][System.Windows.Forms.Control]$HealthCard)
-    try {
-        $pic = New-Object System.Windows.Forms.PictureBox
-        $pic.Size = [System.Drawing.Size]::new(24,24)
-        $pic.Location = [System.Drawing.Point]::new(10,5)
-        $pic.SizeMode = [System.Windows.Forms.PictureBoxSizeMode]::CenterImage
-        $pic.BackColor = [System.Drawing.Color]::Transparent
-        $pic.Image = New-ALIAIconBitmap -Type Health -Color ([System.Drawing.Color]::FromArgb(248,70,70)) -Size 22
-        [void]$HealthCard.Controls.Add($pic)
-        $pic.BringToFront()
-        foreach ($c in @($HealthCard.Controls)) {
-            if ($c -is [System.Windows.Forms.Label] -and [string]$c.Text -eq 'AUDIT HEALTH') {
-                $c.Location = [System.Drawing.Point]::new(38,5)
-                $c.Width = [Math]::Max(100,$HealthCard.ClientSize.Width-50)
-                $c.Height = 18
-                $c.Dock = 'None'
-                break
+function Set-ALIAKpiIcons {
+    $items=@(@($script:kpiGL,'Inventory',$script:DarkTheme.Blue),@($script:kpiCentral,'Database',$script:DarkTheme.Purple),@($script:kpiMonitored,'Monitor',$script:DarkTheme.Cyan),@($script:kpiLicensed,'License',$script:DarkTheme.Healthy),@($script:kpiIssues,'Warning',$script:DarkTheme.Critical),@($script:kpiExpired,'Clock',$script:DarkTheme.Warning))
+    foreach($item in $items){
+        $kpi=$item[0];$type=$item[1];$color=$item[2]
+        if($null -ne $kpi -and $null -ne $kpi.Icon){
+            if($kpi.Icon.Image){try{$kpi.Icon.Image.Dispose()}catch{}}
+            $kpi.Icon.Image=New-ALIAIconBitmap -Type $type -Color $color -Size 34
+            $kpi.Icon.BringToFront();$kpi.Icon.Tag=$kpi.Panel.Tag;$kpi.Icon.Cursor=[System.Windows.Forms.Cursors]::Hand
+            if(-not $kpi.Icon.Tag.PSObject.Properties['IconHandlerAttached']){
+                $kpi.Icon.Add_Click({
+                    try{$selection=$this.Tag;$script:GridFilters.Clear();Show-View -View ([string]$selection.View) -Title ([string]$selection.Title)}catch{Show-ErrorDialog -Message (Get-SafeErrorMessage $_) -Title 'Dashboard Tile Error'}
+                })
             }
         }
-    } catch {}
+    }
 }
 
-function Invoke-ALIAIconPass {
-    param([System.Windows.Forms.Form]$Form)
-    try {
-        # Icons are real vector-drawn bitmaps embedded in the PowerShell script,
-        # not Unicode glyphs, fonts, external PNGs or external resources.
-        if ($script:kpiGL -and $null -eq $script:kpiGL.Icon) {
-            Set-ALIAKpiIcon $script:kpiGL Inventory $script:DarkTheme.Blue
-            Set-ALIAKpiIcon $script:kpiCentral Database $script:DarkTheme.Purple
-            Set-ALIAKpiIcon $script:kpiMonitored Monitor $script:DarkTheme.Cyan
-            Set-ALIAKpiIcon $script:kpiLicensed License $script:DarkTheme.Healthy
-            Set-ALIAKpiIcon $script:kpiIssues Warning $script:DarkTheme.Critical
-            Set-ALIAKpiIcon $script:kpiExpired Clock $script:DarkTheme.Warning
-        }
-    } catch {}
+function Set-ALIAHealthIcons {
+    try{$healthTitleIconHost.Image=New-ALIAIconBitmap -Type Health -Color $script:DarkTheme.Critical -Size 22;$healthHeadlineIconHost.Image=New-ALIAIconBitmap -Type Health -Color $script:DarkTheme.Critical -Size 20;$healthTitleIconHost.BringToFront();$healthHeadlineIconHost.BringToFront()}catch{}
 }
 
 function Apply-ALIAWindowTheme {
@@ -4847,7 +4784,6 @@ function Apply-ALIAWindowTheme {
     }
 }
 
-Set-ALIAHealthIcon -HealthCard $healthCard
 Apply-ALIAWindowTheme
 $script:DarkThemeTimer = New-Object System.Windows.Forms.Timer
 $script:DarkThemeTimer.Interval = 300
