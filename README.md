@@ -4,90 +4,164 @@
 
 **ALIA (Aruba License Inventory Audit)** is an enterprise-oriented Windows PowerShell application for reconciling **HPE GreenLake device inventory and licensing** with **Aruba Central inventory and monitoring state**.
 
-The application is designed to help infrastructure and network teams identify devices whose GreenLake licensing and Aruba Central presence do not agree.
+ALIA is designed for infrastructure and network teams that need a single operational view of licensing, inventory presence, monitoring state, and reconciliation exceptions.
+
+## v3.1 Preview
+
+![ALIA v3.1 Audit Workspace preview](docs/ALIA-v3.1-preview.svg)
+
+The v3.1 workspace uses a dark enterprise-style Windows Forms interface with a dashboard summary, audit health, KPI cards, searchable and filterable audit results, and a device detail pane.
+
+> The preview uses representative audit values for presentation; live counts are produced by the audit run.
 
 ---
 
-## What ALIA Does
+## What's new in v3.1
 
-ALIA currently provides the following workflow:
+v3.1 is the redesigned **Audit Workspace** while retaining the existing v3.0 API and reconciliation engine.
+
+### Audit workspace
+
+- Audit Health summary with **Healthy / Warning / Critical** counts
+- Reconciliation **Coverage** metric
+- Six compact KPI cards:
+  - GreenLake Inventory
+  - Central Inventory
+  - Central Monitored
+  - Licensed Devices
+  - Exceptions
+  - Expired Licenses
+- Audit-over-audit trend indicators on KPI cards
+- Primary **Run License Audit** workflow
+- GreenLake and Aruba Central connection cards with connection state and secret show/hide controls
+- Responsive enterprise layout
+- Dark Windows application theme with native dark title-bar handling
+
+### Audit results
+
+The main audit grid provides:
+
+- Full-row, read-only reconciliation results
+- Frozen identity columns
+- Click-to-sort column headers
+- Right-click column-header filtering
+- Multi-value per-column filters
+- Clear-all column filters
+- Visual indication of filtered columns
+- Global device search
+- Quick **All / raw reconciliation** view
+- Device-type and reconciliation views
+- Device detail pane showing GreenLake, Aruba Central, monitoring, licensing, and audit state
+- Copy Cell / Row / Serial / MAC actions
+
+### Search and export
+
+The search box starts with \`Search devices...\` and uses a debounce interval so the grid does not refresh on every keystroke while a user is still typing.
+
+**Export** operates on the **current audit view**, so active view/filter/search state is preserved instead of exporting the entire unfiltered dataset.
+
+### Audit history and diagnostics
+
+- Collapsible audit log
+- Detailed audit logging
+- Persistent audit history under the current user's \`LocalApplicationData\`
+- Audit History dialog with previous-run metrics
+- Status bar with:
+  - Last audit
+  - Duration
+  - Coverage
+- Progress/status feedback during API collection and reconciliation
+
+### Keyboard shortcuts
+
+| Shortcut | Action |
+|---|---|
+| \`F5\` | Run License Audit |
+| \`Ctrl+L\` | Toggle Audit Log |
+
+---
+
+## What ALIA does
+
+ALIA currently provides this workflow:
 
 1. Test connectivity to HPE GreenLake and Aruba Central.
-2. Retrieve the HPE GreenLake device inventory.
+2. Retrieve HPE GreenLake device inventory.
 3. Retrieve Aruba Central device inventory.
 4. Retrieve Aruba Central monitored-device information.
-5. Match devices primarily by **serial number** and secondarily by **MAC address**.
+5. Normalize and match devices primarily by **serial number** and secondarily by **MAC address**.
 6. Reconcile GreenLake licensing against Aruba Central inventory and monitoring state.
-7. Highlight licensing and monitoring exceptions through dashboard views.
-8. Display inventory totals and device-type counts for:
-   - Access Points
-   - Switches
-   - Gateways
-   - Other devices
-9. Provide detailed audit logging.
-10. Provide search/filtering and CSV export of the current audit view.
+7. Classify reconciliation conditions and exceptions.
+8. Present summary metrics and device-level audit results.
+9. Preserve audit history and detailed operational logs.
+10. Allow searching, filtering and CSV export of the current audit view.
 
 ---
 
-## Reconciliation Model
+## Reconciliation model
 
-ALIA combines information from three logical data sets:
+ALIA combines three logical datasets:
 
-```text
+\`\`\`text
                  HPE GreenLake
                       │
-                      │ Device Inventory
+                      │ Device inventory + licensing
                       ▼
               ┌───────────────┐
               │      ALIA     │
               │ Reconciliation│
               └───────────────┘
                  ▲     ▲     │
-                 │     │     │ Monitoring
+                 │     │     │ Monitoring state
        Inventory │     │     ▼
                  │     │  Audit Results
           Aruba Central
-```
+\`\`\`
 
-The audit can identify conditions such as:
+The audit can identify conditions including:
 
 - GreenLake licensed devices
 - GreenLake devices without a license
 - Expired GreenLake licenses
 - Licensed devices not provisioned in Central
-- Licensed devices not present in the monitored-device data
-- Central devices that are not monitored
-- GreenLake-unlicensed devices that are monitored in Central
+- Licensed devices not present in Central monitored-device data
+- Central inventory devices that are not monitored
+- GreenLake-unlicensed devices that appear in monitored data
+- Other reconciliation mismatches surfaced by the audit engine
 
-The dashboard counters provide a quick operational summary, while the audit grid provides device-level detail.
+The dashboard provides the operational summary; the audit grid provides device-level evidence and the device detail pane explains the selected record.
 
 ---
 
 ## Dashboard
 
-The application provides dashboard counters for:
+The v3.1 dashboard exposes these primary counters:
 
-| Dashboard Item | Purpose |
+| Dashboard item | Purpose |
 |---|---|
 | GreenLake Inventory | Total devices returned from GreenLake |
-| Central Inventory | Total devices returned from Central inventory |
-| Central Monitored | Total monitored devices returned from Central |
-| GL - Licensed Devices | GreenLake devices with an active license |
-| GL - Without License | GreenLake devices without a license |
-| GL - Expired License | GreenLake devices with an expired license |
-| Licensed - Not Provisioned | Licensed GreenLake devices not found in Central inventory |
-| Licensed - Not in Monitored | Licensed devices not found in monitored-device data |
-| Central - Not Monitored | Central inventory devices not found in monitored-device data |
-| GL Unlicensed - Monitored | GreenLake-unlicensed devices that appear in monitored data |
-| Access Points | GreenLake AP count, with Central comparison |
-| Switches | GreenLake switch count, with Central comparison |
-| Gateways | GreenLake gateway count, with Central comparison |
+| Central Inventory | Total devices returned from Aruba Central inventory |
+| Central Monitored | Total devices returned from Central monitored-device data |
+| Licensed Devices | GreenLake devices with license information according to the audit |
+| Exceptions | Devices requiring reconciliation attention |
+| Expired Licenses | Devices identified with expired licensing |
+
+The Audit Health panel summarizes:
+
+| Metric | Meaning |
+|---|---|
+| Healthy | Records classified as healthy by the audit engine |
+| Warning | Records requiring attention but not classified as critical |
+| Critical | Records requiring critical attention |
+| Coverage | Reconciliation coverage percentage |
+
+Live counts are produced by each audit run and should not be treated as fixed application values.
 
 ---
 
 ## Requirements
 
-The current application targets:
+ALIA v3.1 targets:
 
 - Windows
 - **Windows PowerShell 5.1**
@@ -101,14 +175,14 @@ The script is also documented as compatible with **PowerShell ISE**.
 
 ## Running ALIA
 
-Run the PowerShell script from a Windows PowerShell 5.1 session:
+Run the canonical v3.1 source from Windows PowerShell 5.1:
 
-```powershell
+\`\`\`powershell
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-.\ALIA-v3.1.ps1
-```
+.\\ALIA-v3.1.ps1
+\`\`\`
 
-The application prompts for the required **Client ID** and **Client Secret** values at runtime.
+Credentials are entered at runtime through the GUI.
 
 > Do not place client secrets directly into the PowerShell source code.
 
@@ -116,36 +190,35 @@ The application prompts for the required **Client ID** and **Client Secret** val
 
 ## Building the Windows EXE
 
-The repository includes a production EXE builder:
+The repository includes the production v3.1 EXE builder:
 
-```text
-Build-ALIA-v3.1.ps1
-```
-
-The builder uses **PS2EXE** to compile the canonical `ALIA-v3.1.ps1` source into a 64-bit, GUI-only Windows executable with DPI-aware metadata and an embedded application icon.
-
-Run it from **Windows PowerShell 5.1**:
-
-```powershell
+\`\`\`powershell
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-.\Build-ALIA-v3.1.ps1
-```
+.\\Build-ALIA-v3.1.ps1
+\`\`\`
 
-If PS2EXE is not installed, the builder installs it for the current user automatically.
+The builder:
 
-The resulting executable is created here:
+- Uses **PS2EXE**
+- Packages the canonical \`ALIA-v3.1.ps1\` source
+- Produces a 64-bit GUI-only Windows executable
+- Enables DPI-aware metadata
+- Generates and embeds the application icon
+- Places the output under \`dist\`
 
-```text
-dist\ALIA-v3.1.exe
-```
+Output:
 
-The `dist` directory and generated executable files are excluded from Git through `.gitignore`. The builder itself is version-controlled so a reproducible EXE can be generated from the repository source.
+\`\`\`text
+dist\\ALIA-v3.1.exe
+\`\`\`
+
+The \`dist\` directory and generated executables are excluded from Git.
 
 ---
 
-## Credential and Security Handling
+## Security and credential handling
 
-ALIA is designed so that API credentials are supplied at runtime.
+ALIA is designed so that service credentials are supplied at runtime.
 
 According to the application implementation:
 
@@ -153,47 +226,67 @@ According to the application implementation:
 - Credentials are not written to the audit log.
 - Credentials are not exported to CSV.
 - API endpoints are configured internally by the application.
-- Application audit logs are written to the `Logs` directory next to the application/script location when possible.
+- Audit logs are written to the \`Logs\` directory next to the application/script location when possible.
 
-Before deploying ALIA in a production environment, review the script and the configured API endpoints against your organization's security and change-management requirements.
+Before production deployment, review the configured endpoints, credentials handling, logging behavior, and change-management requirements against your organization's security standards.
 
 ---
 
-## Project Structure
+## Project structure
 
-```text
+\`\`\`text
 ALIA/
-├── ALIA-v3.1.ps1          # Canonical v3.1 Windows PowerShell application
-├── Build-ALIA-v3.1.ps1    # Production v3.1 EXE builder using PS2EXE
+├── ALIA-v3.1.ps1          # Canonical v3.1 application
+├── Build-ALIA-v3.1.ps1    # Production v3.1 EXE builder
+├── CHANGELOG-v3.1.md      # v3.1 release notes
+├── docs/
+│   └── ALIA-v3.1-preview.svg
 ├── ALIA-v3.0.ps1          # Retained legacy v3.0 application
 ├── Build-ALIA-v3.0.ps1    # Retained legacy v3.0 builder
-├── CHANGELOG-v3.1.md      # v3.1 release notes
-├── README.md              # Project documentation
-├── LICENSE                # GPL-3.0 license
-└── .gitignore             # Repository exclusions
-```
+├── README.md
+├── LICENSE
+└── .gitignore
+\`\`\`
 
 Generated EXE/build output and runtime audit logs are intentionally excluded from Git.
 
 ---
 
-## Version
+## Version and release status
 
-**Current application version:** `v3.1.0`
+**Current application version:** \`v3.1.0\`
 
-The canonical v3.1 application source is `ALIA-v3.1.ps1`. The v3.0 source and builder are retained in the repository as the legacy application line.
+The canonical v3.1 source is \`ALIA-v3.1.ps1\`.
 
-The current v3.x release includes the redesigned dashboard layout, GreenLake/Central reconciliation workflow, audit views, logging, search and CSV export functionality.
+The v3.0 source and builder remain in the repository as the legacy application line for comparison and rollback.
+
+The \`v3.1-gui-redesign\` branch contains the finalized v3.1 workspace and associated packaging/validation changes.
 
 ---
 
-## Development Notes
+## Validation
 
-ALIA is implemented as a single PowerShell/Windows Forms application so it can be deployed in environments where installing a separate runtime or application framework is undesirable.
+The v3.1 GitHub Actions validation workflow checks:
 
-The application uses background execution/runspace handling for longer inventory operations so the GUI can remain responsive during API collection and reconciliation.
+- PowerShell syntax
+- Error-severity PSScriptAnalyzer findings
+- Required GUI features
+- Grid sorting/filtering features
+- Required v3.1 dark UI/native chrome functions
+- Production EXE build
+- EXE existence and non-zero output size
 
-The dashboard and audit grid are intended to support operational review rather than replace the authoritative licensing or inventory systems.
+The latest validation run on the finalized branch completed successfully for syntax validation, static analysis, GUI smoke tests, EXE build, and EXE verification.
+
+---
+
+## Development notes
+
+ALIA remains a single PowerShell/Windows Forms application so it can be deployed in environments where installing a separate application runtime is undesirable.
+
+Long-running inventory and reconciliation operations use background execution/runspace handling so the GUI can remain responsive during API collection.
+
+The dashboard and audit grid are intended to support operational review and reconciliation; they do not replace the authoritative HPE GreenLake or Aruba Central systems.
 
 ---
 
@@ -201,7 +294,7 @@ The dashboard and audit grid are intended to support operational review rather t
 
 GitHub:
 
-`https://github.com/PrathameshHankare/ALIA`
+\`https://github.com/PrathameshHankare/ALIA\`
 
 ---
 
@@ -215,25 +308,4 @@ Network & Security Engineering
 
 ## License
 
-ALIA is distributed under the **GNU General Public License v3.0**. See [`LICENSE`](LICENSE) for the complete license text.
-
-
-## ALIA v3.1 Workspace
-
-The v3.1 application is the current redesigned ALIA workspace on the `v3.1-gui-redesign` branch.
-
-Highlights include audit health, reconciliation coverage, compact KPI cards, audit-over-audit trends, quick views, advanced filters, problems-only mode, a read-only audit grid, device detail inspection, collapsible diagnostics, audit history, and a responsive enterprise layout with dark Windows UI treatment.
-
-Run:
-
-```powershell
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-.\ALIA-v3.1.ps1
-```
-
-Build the production EXE:
-
-```powershell
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-.\Build-ALIA-v3.1.ps1
-```
+ALIA is distributed under the **GNU General Public License v3.0**. See [LICENSE](LICENSE) for the complete license text.
