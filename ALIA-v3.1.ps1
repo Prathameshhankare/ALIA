@@ -230,7 +230,7 @@ $script:AuditResults = @()
 $script:CentralNotMonitoredCache = $null
 $script:GLUnlicensedCentralMonitoredCache = $null
 $script:LicensedNotInMonitoredCache = $null
-$script:UpdatingAuditStatusFilter = $false
+$script:GridFilters = @{}
 $script:CurrentView = 'Audit'
 $script:CurrentViewTitle = 'All Audit Results'
 
@@ -1842,68 +1842,116 @@ function Get-ViewProperties {
     }
 }
 
-function Update-AuditStatusFilterOptions {
-    param(
-        [AllowNull()]
-        [object[]]$Objects
-    )
+function Get-GridBaseObjects {
+    param([AllowNull()][string]$ExcludeColumn = '')
 
-    if ($null -eq $script:cmbAuditStatus -or
-        $null -eq $script:AuditStatusFilterMap) {
-        return
+    if ($script:CurrentView -eq 'Issues') {
+        $base = @($script:AuditResults | Where-Object {
+            (Get-AuditHealth -Status (Get-ObjectPropertyString -Object $_ -PropertyName 'AuditStatus') -LicenseEnd (Get-ObjectPropertyString -Object $_ -PropertyName 'LicenseEnd')) -ne 'Healthy'
+        })
+    }
+    else {
+        $base = @(Get-ViewObjects -View $script:CurrentView)
     }
 
-    $presentStatuses = @{}
-    foreach ($object in @($Objects)) {
-        $status = Get-ObjectPropertyString -Object $object -PropertyName 'AuditStatus'
-        if (-not [string]::IsNullOrWhiteSpace($status)) {
-            $presentStatuses[$status] = $true
-        }
+    $term = $script:txtSearch.Text.Trim()
+    if (-not [string]::IsNullOrWhiteSpace($term)) {
+        $escapedTerm = [regex]::Escape($term)
+        $base = @($base | Where-Object {
+            $values = $_.PSObject.Properties | ForEach-Object { [string]$_.Value } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+            ($values -join ' | ') -match "(?i)$escapedTerm"
+        })
     }
 
-    $currentFilter = [string]$script:CurrentFilterAuditStatus
-    $availableDisplayNames = New-Object System.Collections.Generic.List[string]
-
-    foreach ($entry in $script:AuditStatusFilterMap.GetEnumerator()) {
-        if ($entry.Value -eq 'All' -or $presentStatuses.ContainsKey([string]$entry.Value)) {
-            [void]$availableDisplayNames.Add([string]$entry.Key)
+    foreach ($propertyName in @($script:GridFilters.Keys)) {
+        if (-not [string]::IsNullOrWhiteSpace($ExcludeColumn) -and $propertyName -eq $ExcludeColumn) { continue }
+        $allowedValues = @($script:GridFilters[$propertyName])
+        if ($allowedValues.Count -gt 0) {
+            $base = @($base | Where-Object {
+                $value = Get-ObjectPropertyString -Object $_ -PropertyName $propertyName
+                $allowedValues -contains $value
+            })
         }
     }
+    return @($base)
+}
 
-    $script:UpdatingAuditStatusFilter = $true
-    try {
-        $script:cmbAuditStatus.BeginUpdate()
-        $script:cmbAuditStatus.Items.Clear()
-
-        foreach ($displayName in $availableDisplayNames) {
-            [void]$script:cmbAuditStatus.Items.Add($displayName)
-        }
-
-        $selectedIndex = 0
-        if ($currentFilter -ne 'All') {
-            for ($i = 0; $i -lt $script:cmbAuditStatus.Items.Count; $i++) {
-                $displayName = [string]$script:cmbAuditStatus.Items[$i]
-                if ([string]$script:AuditStatusFilterMap[$displayName] -eq $currentFilter) {
-                    $selectedIndex = $i
-                    break
-                }
-            }
-        }
-
-        $script:cmbAuditStatus.SelectedIndex = $selectedIndex
-        $script:cmbAuditStatus.Enabled = ($availableDisplayNames.Count -gt 1)
-
-        if (-not $script:cmbAuditStatus.Enabled) {
-            $script:CurrentFilterAuditStatus = 'All'
+function Update-GridFilterIndicators {
+    foreach ($column in $script:grid.Columns) {
+        $propertyName = [string]$column.DataPropertyName
+        if ([string]::IsNullOrWhiteSpace($propertyName)) { $propertyName = [string]$column.Name }
+        if ($script:GridFilters.ContainsKey($propertyName)) {
+            $column.HeaderCell.Style.BackColor = [System.Drawing.Color]::FromArgb(30,64,175)
+            $column.HeaderCell.Style.ForeColor = [System.Drawing.Color]::White
         }
         else {
-            $script:CurrentFilterAuditStatus = [string]$script:AuditStatusFilterMap[[string]$script:cmbAuditStatus.SelectedItem]
+            $column.HeaderCell.Style.BackColor = [System.Drawing.Color]::FromArgb(15,23,42)
+            $column.HeaderCell.Style.ForeColor = [System.Drawing.Color]::White
         }
     }
-    finally {
-        $script:cmbAuditStatus.EndUpdate()
-        $script:UpdatingAuditStatusFilter = $false
+}
+
+function New-GridColumnFilterMenu {
+    param([Parameter(Mandatory)][int]$ColumnIndex)
+
+    $column = $script:grid.Columns[$ColumnIndex]
+    $propertyName = [string]$column.DataPropertyName
+    if ([string]::IsNullOrWhiteSpace($propertyName)) { $propertyName = [string]$column.Name }
+
+    $menu = New-Object System.Windows.Forms.ContextMenuStrip
+    $sortAsc = $menu.Items.Add("Sort '$($column.HeaderText)' A → Z")
+    $sortAsc.Add_Click({ $script:grid.Sort($column, [System.ComponentModel.ListSortDirection]::Ascending) })
+    $sortDesc = $menu.Items.Add("Sort '$($column.HeaderText)' Z → A")
+    $sortDesc.Add_Click({ $script:grid.Sort($column, [System.ComponentModel.ListSortDirection]::Descending) })
+    [void]$menu.Items.Add('-')
+
+    $clearColumn = $menu.Items.Add('Clear Filter for This Column')
+    $clearColumn.Enabled = $script:GridFilters.ContainsKey($propertyName)
+    $clearColumn.Add_Click({
+        if ($script:GridFilters.ContainsKey($propertyName)) { $script:GridFilters.Remove($propertyName) }
+        Invoke-CurrentSearch
+    })
+
+    $clearAll = $menu.Items.Add('Clear All Column Filters')
+    $clearAll.Add_Click({ $script:GridFilters.Clear(); Invoke-CurrentSearch })
+    [void]$menu.Items.Add('-')
+
+    $candidateObjects = @(Get-GridBaseObjects -ExcludeColumn $propertyName)
+    $uniqueValues = @($candidateObjects | ForEach-Object { Get-ObjectPropertyString -Object $_ -PropertyName $propertyName } | Sort-Object -Unique)
+    if ($uniqueValues.Count -eq 0) {
+        $empty = $menu.Items.Add('(No values in current view)')
+        $empty.Enabled = $false
+        return $menu
     }
+
+    $label = $menu.Items.Add("Filter by '$($column.HeaderText)'")
+    $label.Enabled = $false
+    $valueItems = New-Object System.Collections.Generic.List[object]
+    $selectedValues = if ($script:GridFilters.ContainsKey($propertyName)) { @($script:GridFilters[$propertyName]) } else { @($uniqueValues) }
+
+    foreach ($value in $uniqueValues) {
+        $displayValue = if ([string]::IsNullOrWhiteSpace($value)) { '(Blank)' } else { $value }
+        $item = New-Object System.Windows.Forms.ToolStripMenuItem
+        $item.Text = $displayValue
+        $item.CheckOnClick = $true
+        $item.Checked = ($selectedValues -contains $value)
+        $item.Tag = $value
+        [void]$valueItems.Add($item)
+        [void]$menu.Items.Add($item)
+    }
+
+    [void]$menu.Items.Add('-')
+    $apply = $menu.Items.Add('Apply Filter')
+    $apply.Font = [System.Drawing.Font]::new('Segoe UI Semibold', 8.5)
+    $apply.Add_Click({
+        $checkedValues = @($valueItems | Where-Object { $_.Checked } | ForEach-Object { [string]$_.Tag })
+        if ($checkedValues.Count -eq 0 -or $checkedValues.Count -eq $uniqueValues.Count) {
+            if ($script:GridFilters.ContainsKey($propertyName)) { $script:GridFilters.Remove($propertyName) }
+        }
+        else { $script:GridFilters[$propertyName] = @($checkedValues) }
+        Invoke-CurrentSearch
+    })
+    return $menu
 }
 
 function Show-View {
@@ -1916,16 +1964,7 @@ function Show-View {
         $script:SearchTimer.Stop()
     }
 
-    $script:CurrentFilterAuditStatus = 'All'
-    if ($null -ne $script:cmbAuditStatus) {
-        $script:UpdatingAuditStatusFilter = $true
-        try {
-            $script:cmbAuditStatus.SelectedIndex = 0
-        }
-        finally {
-            $script:UpdatingAuditStatusFilter = $false
-        }
-    }
+    $script:GridFilters.Clear()
 
     if ($script:txtSearch -and $script:txtSearch.Text.Trim().Length -gt 0) {
         $script:txtSearch.Text = ''
@@ -1944,8 +1983,6 @@ function Show-View {
     else {
         $objects = @(Get-ViewObjects -View $View)
     }
-
-    Update-AuditStatusFilterOptions -Objects $objects
 
     $properties = @(Get-ViewProperties -View $View)
     if ($View -eq 'Issues') {
@@ -2725,9 +2762,7 @@ foreach($healthMetric in @(
     $healthMetric[0].Add_Click({
         param($sender)
         try {
-            $script:CurrentFilterDeviceType = 'All'
-            $script:CurrentFilterHealth = 'All'
-            if ($null -ne $script:cmbAuditStatus) { $script:cmbAuditStatus.SelectedIndex = 0 }
+            $script:GridFilters.Clear()
             $selection = $sender.Tag
             Show-View -View ([string]$selection.View) -Title ([string]$selection.Title)
             Invoke-CurrentSearch
@@ -2810,10 +2845,7 @@ function Add-KpiTileClick {
 
     $handler = {
         try {
-            if ($null -ne $script:cmbAuditStatus -and
-                [string]$this.Tag.View -notin @('Audit','Issues','HealthHealthy','HealthWarning','HealthCritical')) {
-                $script:cmbAuditStatus.SelectedIndex = 0
-            }
+            $script:GridFilters.Clear()
             Show-View -View $this.Tag.View -Title $this.Tag.Title
         }
         catch {
@@ -2873,92 +2905,31 @@ $allTip.SetToolTip($script:btnShowAll, 'Show the raw reconciliation with all aud
 
 $script:txtSearch = New-Object System.Windows.Forms.TextBox
 $script:txtSearch.Font = [System.Drawing.Font]::new('Segoe UI', 8.8)
-$script:txtSearch.Width = 190
+$script:txtSearch.Width = 240
 $script:txtSearch.Height = 28
 $script:txtSearch.Text = ''
 $script:txtSearch.Anchor = 'Top,Left'
 $searchTip = New-Object System.Windows.Forms.ToolTip
-$searchTip.SetToolTip($script:txtSearch, 'Search serial, MAC, model, device name or site')
+$searchTip.SetToolTip($script:txtSearch, 'Search across all visible reconciliation fields')
 [void]$toolbar.Controls.Add($script:txtSearch)
 
-# Audit Status is a single dropdown instead of nine status buttons.  The
-# displayed text stays concise while the internal value remains the exact
-# reconciliation status used by the audit engine.
-$script:AuditStatusFilterMap = [ordered]@{
-    'All Audit Statuses'                              = 'All'
-    'Licensed — Not in Central'                      = 'LICENSED - NOT IN CENTRAL INVENTORY'
-    'Licensed — Not Monitored'                       = 'LICENSED - NOT MONITORED'
-    'Licensed — Monitored — Online'                  = 'LICENSED - MONITORED - ONLINE'
-    'Licensed — Monitored — Offline'                 = 'LICENSED - MONITORED - OFFLINE'
-    'Licensed — Monitored — Status Unknown'          = 'LICENSED - MONITORED - STATUS UNKNOWN'
-    'Unlicensed — Not in Central'                    = 'UNLICENSED - NOT IN CENTRAL'
-    'Unlicensed — Central Inventory — Not Monitored' = 'UNLICENSED - IN CENTRAL INVENTORY - NOT MONITORED'
-    'Unlicensed — Monitored'                         = 'UNLICENSED - MONITORED'
-}
-
-$script:cmbAuditStatus = New-Object System.Windows.Forms.ComboBox
-$script:cmbAuditStatus.DropDownStyle = 'DropDownList'
-[void]$script:cmbAuditStatus.Items.AddRange(@($script:AuditStatusFilterMap.Keys))
-$script:cmbAuditStatus.SelectedIndex = 0
-$script:cmbAuditStatus.Width = 285
-$script:cmbAuditStatus.Height = 28
-$script:cmbAuditStatus.DropDownWidth = 360
-$script:cmbAuditStatus.MaxDropDownItems = 10
-$script:cmbAuditStatus.Anchor = 'Top,Left'
-$auditStatusTip = New-Object System.Windows.Forms.ToolTip
-$auditStatusTip.SetToolTip($script:cmbAuditStatus, 'Filter audit results by Audit Status')
-[void]$toolbar.Controls.Add($script:cmbAuditStatus)
-
-$script:cmbHealth = New-Object System.Windows.Forms.ComboBox
-$script:cmbHealth.DropDownStyle = 'DropDownList'
-[void]$script:cmbHealth.Items.AddRange(@('All','Healthy','Warning','Critical'))
-$script:cmbHealth.SelectedIndex = 0
-$script:cmbHealth.Width = 90
-$script:cmbHealth.Height = 28
-$script:cmbHealth.Anchor = 'Top,Left'
-$healthTip = New-Object System.Windows.Forms.ToolTip
-$healthTip.SetToolTip($script:cmbHealth, 'Filter by ALIA audit health')
-[void]$toolbar.Controls.Add($script:cmbHealth)
-
-$script:cmbDeviceType = New-Object System.Windows.Forms.ComboBox
-$script:cmbDeviceType.DropDownStyle = 'DropDownList'
-[void]$script:cmbDeviceType.Items.AddRange(@('All','Access Point','Switch','Gateway','Other'))
-$script:cmbDeviceType.SelectedIndex = 0
-$script:cmbDeviceType.Width = 100
-$script:cmbDeviceType.Height = 28
-$script:cmbDeviceType.Anchor = 'Top,Left'
-$deviceTypeTip = New-Object System.Windows.Forms.ToolTip
-$deviceTypeTip.SetToolTip($script:cmbDeviceType, 'Filter by device type')
-[void]$toolbar.Controls.Add($script:cmbDeviceType)
-
-$script:btnResetFilters = New-Object System.Windows.Forms.Button
-$script:btnResetFilters.Text = 'Reset'
-$script:btnResetFilters.Width = 55
-$script:btnResetFilters.Height = 28
-$script:btnResetFilters.FlatStyle = 'Flat'
-$script:btnResetFilters.FlatAppearance.BorderSize = 1
-$script:btnResetFilters.BackColor = [System.Drawing.Color]::White
-$script:btnResetFilters.ForeColor = [System.Drawing.Color]::FromArgb(51,65,85)
-$script:btnResetFilters.Font = [System.Drawing.Font]::new('Segoe UI', 8)
-$script:btnResetFilters.Anchor = 'Top,Left'
-[void]$toolbar.Controls.Add($script:btnResetFilters)
+$gridFilterHint = New-Object System.Windows.Forms.Label
+$gridFilterHint.Text = 'Click a column header to sort  •  Right-click a column header to filter'
+$gridFilterHint.Font = [System.Drawing.Font]::new('Segoe UI', 8.0)
+$gridFilterHint.ForeColor = [System.Drawing.Color]::FromArgb(100,116,139)
+$gridFilterHint.AutoSize = $true
+$gridFilterHint.Anchor = 'Top,Right'
+[void]$toolbar.Controls.Add($gridFilterHint)
 
 function Position-Toolbar {
     try {
         $left = 14
         $script:btnShowAll.Left = $left
         $script:txtSearch.Left = $script:btnShowAll.Right + 8
-        $script:cmbAuditStatus.Left = $script:txtSearch.Right + 8
-        $script:cmbHealth.Left = $script:cmbAuditStatus.Right + 8
-        $script:cmbDeviceType.Left = $script:cmbHealth.Right + 8
-        $script:btnResetFilters.Left = $script:cmbDeviceType.Right + 8
-
+        $gridFilterHint.Left = [Math]::Max($script:txtSearch.Right + 16, $toolbar.ClientSize.Width - $gridFilterHint.Width - 14)
         $script:btnShowAll.Top = 1
         $script:txtSearch.Top = 1
-        $script:cmbAuditStatus.Top = 1
-        $script:cmbHealth.Top = 1
-        $script:cmbDeviceType.Top = 1
-        $script:btnResetFilters.Top = 1
+        $gridFilterHint.Top = 6
     } catch {}
 }
 $toolbar.Add_Resize({ Position-Toolbar })
@@ -3269,6 +3240,13 @@ $copyMac.Add_Click({
 $showDetails.Add_Click({ Update-DetailPanelFromSelection })
 $script:grid.ContextMenuStrip = $cellMenu
 
+$script:grid.Add_CellContextMenuStripNeeded({
+    param($sender,$e)
+    if ($e.RowIndex -eq -1 -and $e.ColumnIndex -ge 0) {
+        $e.ContextMenuStrip = New-GridColumnFilterMenu -ColumnIndex $e.ColumnIndex
+    }
+})
+
 $script:grid.Add_CellMouseDown({
     param($sender,$e)
     if ($e.Button -eq [System.Windows.Forms.MouseButtons]::Right -and $e.RowIndex -ge 0) {
@@ -3522,26 +3500,7 @@ $script:btnHistory.Add_Click({
     }
 })
 
-$script:CurrentFilterDeviceType = 'All'
-$script:CurrentFilterHealth = 'All'
-$script:CurrentFilterAuditStatus = 'All'
-
-$script:btnResetFilters.Add_Click({
-    $script:txtSearch.Text = ''
-    $script:cmbAuditStatus.SelectedIndex = 0
-    $script:CurrentFilterAuditStatus = 'All'
-    $script:cmbHealth.SelectedIndex = 0
-    $script:cmbDeviceType.SelectedIndex = 0
-    Invoke-CurrentSearch
-})
-
-$script:cmbAuditStatus.Add_SelectedIndexChanged({
-    if (-not $script:UpdatingAuditStatusFilter) {
-        Invoke-CurrentSearch
-    }
-})
-$script:cmbHealth.Add_SelectedIndexChanged({ Invoke-CurrentSearch })
-$script:cmbDeviceType.Add_SelectedIndexChanged({ Invoke-CurrentSearch })
+$script:GridFilters = @{}
 
 $resultsHeader.Visible = $true
 
@@ -3693,71 +3652,17 @@ function Get-ObjectPropertyString {
 
 function Invoke-CurrentSearch {
     $script:SearchTimer.Stop()
-
-    if ($script:CurrentView -eq 'Issues') {
-        $base = @($script:AuditResults | Where-Object {
-            (Get-AuditHealth -Status (Get-ObjectPropertyString -Object $_ -PropertyName 'AuditStatus')) -ne 'Healthy'
-        })
-    }
-    else {
-        $base = @(Get-ViewObjects -View $script:CurrentView)
-    }
-
-    $term = $script:txtSearch.Text.Trim()
-    if (-not [string]::IsNullOrWhiteSpace($term)) {
-        $escapedTerm = [regex]::Escape($term)
-        $base = @(
-            $base | Where-Object {
-                $values = $_.PSObject.Properties |
-                    ForEach-Object { [string]$_.Value } |
-                    Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
-                $blob = $values -join ' | '
-                $blob -match "(?i)$escapedTerm"
-            }
-        )
-    }
-
-    $auditStatusDisplay = [string]$script:cmbAuditStatus.SelectedItem
-    $auditStatusFilter = if ($script:AuditStatusFilterMap.Contains($auditStatusDisplay)) {
-        [string]$script:AuditStatusFilterMap[$auditStatusDisplay]
-    } else {
-        'All'
-    }
-    $script:CurrentFilterAuditStatus = $auditStatusFilter
-
-    $healthFilter = [string]$script:cmbHealth.SelectedItem
-    $deviceFilter = [string]$script:cmbDeviceType.SelectedItem
-
-    if ($auditStatusFilter -ne 'All') {
-        $base = @($base | Where-Object {
-            (Get-ObjectPropertyString -Object $_ -PropertyName 'AuditStatus') -eq $auditStatusFilter
-        })
-    }
-
-    if ($healthFilter -ne 'All') {
-        $base = @($base | Where-Object {
-            (Get-AuditHealth -Status (Get-ObjectPropertyString -Object $_ -PropertyName 'AuditStatus')) -eq $healthFilter
-        })
-    }
-
-    if ($deviceFilter -ne 'All') {
-        $base = @($base | Where-Object {
-            (Get-ObjectPropertyString -Object $_ -PropertyName 'GreenLakeDeviceType') -eq $deviceFilter -or
-            (Get-ObjectPropertyString -Object $_ -PropertyName 'NormalizedDeviceType') -eq $deviceFilter
-        })
-    }
+    $base = @(Get-GridBaseObjects)
 
     $properties = @(Get-ViewProperties -View $script:CurrentView)
     if ($script:CurrentView -eq 'Issues') {
         $properties = @(
-            'SerialNumber','MACAddress','GreenLakeDeviceType','Model','DeviceName',
-            'LicenseTier','LicenseEnd','ArubaInventoryPresent',
-            'ArubaMonitoredPresent','ArubaStatus','Health','AuditStatus','AuditReason'
+            'SerialNumber','MACAddress','GreenLakeDeviceType','Model','FirmwareVersion','DeviceName',
+            'LicenseTier','LicenseEnd','ArubaInventoryPresent','ArubaMonitoredPresent','ArubaStatus','Health','AuditStatus','AuditReason'
         )
     }
 
     $searchTable = New-DataTableFromObjects -Items $base -Properties $properties
-
     $script:grid.SuspendLayout()
     try {
         $script:grid.DataSource = $null
@@ -3771,24 +3676,23 @@ function Invoke-CurrentSearch {
         if ($script:grid.Columns.Contains('MACAddress')) { $script:grid.Columns['MACAddress'].Frozen = $true }
         foreach ($row in $script:grid.Rows) {
             if ($script:grid.Columns.Contains('AuditStatus')) {
-                $licenseEndValue = if ($script:grid.Columns.Contains('LicenseEnd')) {
-                    [string]$row.Cells['LicenseEnd'].Value
-                } else { '' }
+                $licenseEndValue = if ($script:grid.Columns.Contains('LicenseEnd')) { [string]$row.Cells['LicenseEnd'].Value } else { '' }
                 switch (Get-AuditHealth -Status ([string]$row.Cells['AuditStatus'].Value) -LicenseEnd $licenseEndValue) {
                     'Critical' { $row.DefaultCellStyle.BackColor = [System.Drawing.Color]::FromArgb(254,242,242) }
                     'Warning'  { $row.DefaultCellStyle.BackColor = [System.Drawing.Color]::FromArgb(255,251,235) }
+                    default    { $row.DefaultCellStyle.BackColor = [System.Drawing.Color]::White }
                 }
             }
         }
+        Update-GridFilterIndicators
     }
-    finally {
-        $script:grid.ResumeLayout()
-    }
+    finally { $script:grid.ResumeLayout() }
 
     $script:lblRecordCount.Text = "Records: $($base.Count)"
-    Write-AuditLog DEBUG "Search/filter applied: view='$script:CurrentView'; term='$term'; health='$healthFilter'; device='$deviceFilter'; results=$($base.Count)."
+    Write-AuditLog DEBUG "Search/filter applied: view='$script:CurrentView'; term='$($script:txtSearch.Text.Trim())'; columnFilters=$($script:GridFilters.Count); results=$($base.Count)."
     try { Update-DetailPanelFromSelection } catch {}
 }
+
 $script:SearchTimer.Add_Tick({
     Invoke-CurrentSearch
 })
@@ -3817,30 +3721,8 @@ $script:txtSearch.Add_KeyDown({
 $script:btnShowAll.Add_Click({
     try {
         $script:SearchTimer.Stop()
-
         $script:txtSearch.Text = ''
-        $script:CurrentFilterAuditStatus = 'All'
-        $script:CurrentFilterHealth = 'All'
-        $script:CurrentFilterDeviceType = 'All'
-
-        if ($null -ne $script:cmbAuditStatus) {
-            $script:UpdatingAuditStatusFilter = $true
-            try {
-                $script:cmbAuditStatus.SelectedIndex = 0
-            }
-            finally {
-                $script:UpdatingAuditStatusFilter = $false
-            }
-        }
-        if ($null -ne $script:cmbHealth) {
-            $script:cmbHealth.SelectedIndex = 0
-        }
-        if ($null -ne $script:cmbDeviceType) {
-            $script:cmbDeviceType.SelectedIndex = 0
-        }
-
-        # Audit view is the raw GreenLake-to-Aruba reconciliation dataset.
-        # Show-View('Audit') preserves the full reconciliation column set.
+        $script:GridFilters.Clear()
         Show-View -View Audit -Title 'All Audit Results'
     }
     catch {
@@ -3849,7 +3731,6 @@ $script:btnShowAll.Add_Click({
         Show-ErrorDialog -Message $message -Title 'Audit Results Error'
     }
 })
-
 
 
 # ---------------------------------------------------------------------------
@@ -4062,16 +3943,7 @@ $script:btnClear.Add_Click({
     $script:LicensedNotInMonitoredCache = $null
     $script:CurrentView = 'Audit'
     $script:CurrentViewTitle = 'All Audit Results'
-
-    $script:CurrentFilterAuditStatus = 'All'
-    $script:UpdatingAuditStatusFilter = $true
-    try {
-        $script:cmbAuditStatus.SelectedIndex = 0
-    }
-    finally {
-        $script:UpdatingAuditStatusFilter = $false
-    }
-    Update-AuditStatusFilterOptions -Objects @()
+    $script:GridFilters.Clear()
 
     $script:txtSearch.Text = ''
     $script:grid.DataSource = $null
