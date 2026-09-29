@@ -3244,6 +3244,16 @@ $script:frm.Add_Resize({
     } catch {}
 })
 
+$script:frm.Add_Shown({
+    try {
+        Position-Workspace
+        Position-Header
+        Position-Toolbar
+        Position-ViewHeader
+        Position-ProgressBar
+    } catch {}
+})
+
 Position-Header
 Position-Toolbar
 Position-ViewHeader
