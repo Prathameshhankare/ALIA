@@ -43,10 +43,13 @@ if (-not ('ALIANativeMethods' -as [type])) {
     Add-Type -TypeDefinition @"
 using System;
 using System.Runtime.InteropServices;
+using System.Text;
 
 public static class ALIANativeMethods
 {
     private delegate bool EnumChildProc(IntPtr hWnd, IntPtr lParam);
+    private delegate int SetPreferredAppModeDelegate(int mode);
+    private delegate int FlushMenuThemesDelegate();
 
     [DllImport("dwmapi.dll")]
     private static extern int DwmSetWindowAttribute(
@@ -55,18 +58,19 @@ public static class ALIANativeMethods
         ref int pvAttribute,
         int cbAttribute);
 
-    [DllImport("dwmapi.dll")]
-    private static extern int DwmSetWindowAttribute(
-        IntPtr hwnd,
-        int dwAttribute,
-        ref uint pvAttribute,
-        int cbAttribute);
-
     [DllImport("uxtheme.dll", CharSet = CharSet.Unicode, ExactSpelling = true)]
     private static extern int SetWindowTheme(
         IntPtr hwnd,
         string pszSubAppName,
         string pszSubIdList);
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern IntPtr GetModuleHandle(string lpModuleName);
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Ansi, SetLastError = true)]
+    private static extern IntPtr GetProcAddress(
+        IntPtr hModule,
+        IntPtr lpProcName);
 
     [DllImport("user32.dll")]
     private static extern bool EnumChildWindows(
@@ -77,7 +81,7 @@ public static class ALIANativeMethods
     [DllImport("user32.dll")]
     private static extern int GetClassName(
         IntPtr hWnd,
-        System.Text.StringBuilder lpClassName,
+        StringBuilder lpClassName,
         int nMaxCount);
 
     [DllImport("user32.dll")]
@@ -87,28 +91,76 @@ public static class ALIANativeMethods
         IntPtr wParam,
         IntPtr lParam);
 
+    private const int DWMWA_USE_IMMERSIVE_DARK_MODE_OLD = 19;
     private const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
-    private const int DWMWA_BORDER_COLOR = 34;
-    private const int DWMWA_CAPTION_COLOR = 35;
-    private const int DWMWA_TEXT_COLOR = 36;
     private const uint WM_THEMECHANGED = 0x031A;
 
-    public static void SetDarkTitleBar(IntPtr hwnd)
+    private const int PreferredAppMode_AllowDark = 1;
+    private const int PreferredAppMode_ForceDark = 2;
+
+    public static void EnableDarkTitleBar(IntPtr hwnd)
     {
         if (hwnd == IntPtr.Zero)
             return;
 
-        // Let Windows render the caption text/buttons for dark mode.
-        // Explicit caption/text COLORREF attributes are intentionally not set:
-        // they can produce incorrect caption text colors on some Windows builds.
-        SetWindowTheme(hwnd, "DarkMode_Explorer", null);
-
         int enabled = 1;
+
+        // Windows 11 / current Windows.
         DwmSetWindowAttribute(
             hwnd,
             DWMWA_USE_IMMERSIVE_DARK_MODE,
             ref enabled,
             sizeof(int));
+
+        // Windows 10 compatibility: the attribute was exposed as 19
+        // before the value settled on 20.
+        DwmSetWindowAttribute(
+            hwnd,
+            DWMWA_USE_IMMERSIVE_DARK_MODE_OLD,
+            ref enabled,
+            sizeof(int));
+    }
+
+    public static void EnableDarkAppMode()
+    {
+        try
+        {
+            IntPtr uxtheme = GetModuleHandle("uxtheme.dll");
+            if (uxtheme == IntPtr.Zero)
+                return;
+
+            IntPtr preferred = GetProcAddress(
+                uxtheme,
+                new IntPtr(135));
+
+            if (preferred != IntPtr.Zero)
+            {
+                var setMode = (SetPreferredAppModeDelegate)
+                    Marshal.GetDelegateForFunctionPointer(
+                        preferred,
+                        typeof(SetPreferredAppModeDelegate));
+
+                setMode(PreferredAppMode_ForceDark);
+            }
+
+            IntPtr flush = GetProcAddress(
+                uxtheme,
+                new IntPtr(136));
+
+            if (flush != IntPtr.Zero)
+            {
+                var flushThemes = (FlushMenuThemesDelegate)
+                    Marshal.GetDelegateForFunctionPointer(
+                        flush,
+                        typeof(FlushMenuThemesDelegate));
+
+                flushThemes();
+            }
+        }
+        catch
+        {
+            // Optional Windows theme API. Failure should never stop ALIA.
+        }
     }
 
     public static void SetDarkScrollbars(IntPtr parentHwnd)
@@ -116,16 +168,17 @@ public static class ALIANativeMethods
         if (parentHwnd == IntPtr.Zero)
             return;
 
-        // Apply the Explorer dark theme to the parent first. This lets
-        // WinForms-owned scrollbar children inherit the dark scrollbar metrics.
         SetWindowTheme(parentHwnd, "DarkMode_Explorer", null);
 
         EnumChildWindows(parentHwnd, delegate(IntPtr child, IntPtr state)
         {
-            var className = new System.Text.StringBuilder(64);
+            var className = new StringBuilder(64);
             GetClassName(child, className, className.Capacity);
 
-            if (string.Equals(className.ToString(), "ScrollBar", StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(
+                className.ToString(),
+                "ScrollBar",
+                StringComparison.OrdinalIgnoreCase))
             {
                 SetWindowTheme(child, "DarkMode_Explorer", "ScrollBar");
                 SendMessage(child, WM_THEMECHANGED, IntPtr.Zero, IntPtr.Zero);
@@ -4834,7 +4887,7 @@ function Set-ALIANativeWindowTheme {
             return
         }
 
-        [ALIANativeMethods]::SetDarkTitleBar($script:frm.Handle)
+        [ALIANativeMethods]::EnableDarkTitleBar($script:frm.Handle)
     }
     catch {
         try { Write-AuditLog DEBUG "Native title bar theme could not be applied: $($_.Exception.Message)" } catch {}
@@ -4851,6 +4904,7 @@ function Set-ALIADataGridScrollbars {
             return
         }
 
+        [ALIANativeMethods]::EnableDarkAppMode()
         [ALIANativeMethods]::SetDarkScrollbars($script:grid.Handle)
     }
     catch {
@@ -4859,6 +4913,7 @@ function Set-ALIADataGridScrollbars {
 }
 
 function Apply-ALIAWindowChrome {
+    try { [ALIANativeMethods]::EnableDarkAppMode() } catch {}
     Set-ALIANativeWindowTheme
     Set-ALIADataGridScrollbars
 }
