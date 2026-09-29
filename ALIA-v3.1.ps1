@@ -1341,21 +1341,53 @@ try {
         Write-WorkerRecord 'Progress' 'INFO' 'Starting license audit...' 0
 
         Write-WorkerRecord 'Log' 'INFO' 'Authenticating to HPE GreenLake...' 0
-        $glToken = Get-Token `
+        try {
+            $glToken = Get-Token `
             -Platform 'HPE GreenLake' `
             -TokenUrl $GLTokenUrl `
             -ClientId $GLClientId `
             -ClientSecret $GLClientSecret
+        }
+        catch {
+            $message = Get-SafeMessage $_
+            Write-WorkerRecord 'Connection' 'ERROR' 'HPE GreenLake connection failed.' 0 @{
+                Platform = 'GreenLake'
+                State = 'Failed'
+                Message = $message
+            }
+            throw
+        }
 
+        Write-WorkerRecord 'Connection' 'SUCCESS' 'HPE GreenLake connection established.' 10 @{
+            Platform = 'GreenLake'
+            State = 'Connected'
+            Message = 'Connected'
+        }
         Write-WorkerRecord 'Progress' 'INFO' 'HPE GreenLake authentication successful.' 10
 
         Write-WorkerRecord 'Log' 'INFO' 'Authenticating to Aruba Central...' 0
-        $arubaToken = Get-Token `
+        try {
+            $arubaToken = Get-Token `
             -Platform 'Aruba Central' `
             -TokenUrl $ArubaTokenUrl `
             -ClientId $ArubaClientId `
             -ClientSecret $ArubaClientSecret
+        }
+        catch {
+            $message = Get-SafeMessage $_
+            Write-WorkerRecord 'Connection' 'ERROR' 'Aruba Central connection failed.' 0 @{
+                Platform = 'ArubaCentral'
+                State = 'Failed'
+                Message = $message
+            }
+            throw
+        }
 
+        Write-WorkerRecord 'Connection' 'SUCCESS' 'Aruba Central connection established.' 15 @{
+            Platform = 'ArubaCentral'
+            State = 'Connected'
+            Message = 'Connected'
+        }
         Write-WorkerRecord 'Progress' 'INFO' 'Aruba Central authentication successful.' 15
 
         $greenLake = Get-GreenLakeInventory -AccessToken $glToken
@@ -3790,6 +3822,8 @@ $script:btnRunAudit.Add_Click({
         $script:OperationMode = 'RunAudit'
         $script:AuditStartTime = Get-Date
         $script:progressBar.Visible = $true
+        Set-ConnectionIndicator -Platform GreenLake -State Testing -Message 'Testing...'
+        Set-ConnectionIndicator -Platform ArubaCentral -State Testing -Message 'Testing...'
         $script:GreenLakeInventory = @()
         $script:ArubaInventory = @()
         $script:ArubaMonitoredInventory = @()
@@ -3937,6 +3971,12 @@ $script:WorkerTimer.Add_Tick({
         if ($record.RecordType -eq 'Log') {
             Write-AuditLog -Level $record.Level -Message $record.Message
         }
+        elseif ($record.RecordType -eq 'Connection') {
+            $connectionData = $record.Data
+            if ($connectionData) {
+                Set-ConnectionIndicator -Platform ([string]$connectionData.Platform) -State ([string]$connectionData.State) -Message ([string]$connectionData.Message)
+            }
+        }
         elseif ($record.RecordType -eq 'Progress') {
             if ($script:OperationMode -eq 'RunAudit') {
                 Update-Progress -Percent $record.Percent -Text $record.Message
@@ -3964,6 +4004,12 @@ $script:WorkerTimer.Add_Tick({
 
             if ($record.RecordType -eq 'Log') {
                 Write-AuditLog -Level $record.Level -Message $record.Message
+            }
+            elseif ($record.RecordType -eq 'Connection') {
+                $connectionData = $record.Data
+                if ($connectionData) {
+                    Set-ConnectionIndicator -Platform ([string]$connectionData.Platform) -State ([string]$connectionData.State) -Message ([string]$connectionData.Message)
+                }
             }
             elseif ($record.RecordType -eq 'Progress' -and
                     $script:OperationMode -eq 'RunAudit') {
