@@ -1894,6 +1894,8 @@ function Update-GridFilterIndicators {
 function Show-GridColumnFilterDialog {
     param([Parameter(Mandatory)][int]$ColumnIndex)
 
+    $dialog = $null
+
     try {
         if ($ColumnIndex -lt 0 -or $ColumnIndex -ge $script:grid.Columns.Count) {
             return
@@ -2096,6 +2098,7 @@ function New-GridColumnFilterMenu {
     $sortAsc = $menu.Items.Add("Sort '$($column.HeaderText)' A → Z")
     $sortAsc.Tag = $ColumnIndex
     $sortAsc.Add_Click({
+        param($sender, $eventArgs)
         $index = [int]$sender.Tag
         if ($index -ge 0 -and $index -lt $script:grid.Columns.Count) {
             $script:grid.Sort(
@@ -2108,6 +2111,7 @@ function New-GridColumnFilterMenu {
     $sortDesc = $menu.Items.Add("Sort '$($column.HeaderText)' Z → A")
     $sortDesc.Tag = $ColumnIndex
     $sortDesc.Add_Click({
+        param($sender, $eventArgs)
         $index = [int]$sender.Tag
         if ($index -ge 0 -and $index -lt $script:grid.Columns.Count) {
             $script:grid.Sort(
@@ -2122,6 +2126,7 @@ function New-GridColumnFilterMenu {
     $filter = $menu.Items.Add("Filter '$($column.HeaderText)'...")
     $filter.Tag = $ColumnIndex
     $filter.Add_Click({
+        param($sender, $eventArgs)
         Show-GridColumnFilterDialog -ColumnIndex ([int]$sender.Tag)
     })
 
@@ -2129,6 +2134,7 @@ function New-GridColumnFilterMenu {
     $clearColumn.Tag = $propertyName
     $clearColumn.Enabled = $script:GridFilters.ContainsKey($propertyName)
     $clearColumn.Add_Click({
+        param($sender, $eventArgs)
         $name = [string]$sender.Tag
         try {
             if ($script:GridFilters.ContainsKey($name)) {
@@ -2145,6 +2151,7 @@ function New-GridColumnFilterMenu {
 
     $clearAll = $menu.Items.Add('Clear All Column Filters')
     $clearAll.Add_Click({
+        param($sender, $eventArgs)
         try {
             $script:GridFilters.Clear()
             Invoke-CurrentSearch
