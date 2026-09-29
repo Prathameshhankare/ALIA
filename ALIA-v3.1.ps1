@@ -2117,9 +2117,15 @@ function Update-Dashboard {
         -not [string]::IsNullOrWhiteSpace((Get-ObjectPropertyString -Object $_ -PropertyName 'FirmwareVersion'))
     }).Count
 
-    $healthyCount = @($script:AuditResults | Where-Object { (Get-AuditHealth -Status ([string]$_.AuditStatus)) -eq 'Healthy' }).Count
-    $warningCount = @($script:AuditResults | Where-Object { (Get-AuditHealth -Status ([string]$_.AuditStatus)) -eq 'Warning' }).Count
-    $criticalCount = @($script:AuditResults | Where-Object { (Get-AuditHealth -Status ([string]$_.AuditStatus)) -eq 'Critical' }).Count
+    $healthyCount = @($script:AuditResults | Where-Object {
+        (Get-AuditHealth -Status ([string]$_.AuditStatus) -LicenseEnd ([string]$_.LicenseEnd)) -eq 'Healthy'
+    }).Count
+    $warningCount = @($script:AuditResults | Where-Object {
+        (Get-AuditHealth -Status ([string]$_.AuditStatus) -LicenseEnd ([string]$_.LicenseEnd)) -eq 'Warning'
+    }).Count
+    $criticalCount = @($script:AuditResults | Where-Object {
+        (Get-AuditHealth -Status ([string]$_.AuditStatus) -LicenseEnd ([string]$_.LicenseEnd)) -eq 'Critical'
+    }).Count
 
     if ($script:kpiGL) { $script:kpiGL.Value.Text = [string]$glCount }
     if ($script:kpiCentral) { $script:kpiCentral.Value.Text = [string]$centralCount }
@@ -2145,10 +2151,6 @@ function Update-Dashboard {
             $script:healthHeadline.Text = 'AUDIT HEALTHY'
             $script:healthHeadline.ForeColor = [System.Drawing.Color]::FromArgb(21,128,61)
         }
-    }
-
-    if ($script:healthDetail) {
-        $script:healthDetail.Text = "Exceptions $issueCount | Coverage $coverage% | Offline $offlineCount | Not monitored $notMonitoredCount"
     }
 
     if ($script:kpiIssues -and $script:kpiIssues.Trend) { Update-KpiTrend -Label $script:kpiIssues.Trend -Current $issueCount -Metric 'IssueCount' }
@@ -2607,9 +2609,36 @@ foreach($item in @(
 }
 
 [void]$healthCard.Controls.Add($healthStats)
-[void]$healthCard.Controls.Add($script:healthDetail)
 [void]$healthCard.Controls.Add($script:healthHeadline)
 [void]$healthCard.Controls.Add($healthTitle)
+
+foreach($healthMetric in @(
+    @($healthyLabel, 'HealthHealthy', 'Healthy Audit Results'),
+    @($script:healthHealthy, 'HealthHealthy', 'Healthy Audit Results'),
+    @($warningLabel, 'HealthWarning', 'Warning Audit Results'),
+    @($script:healthWarning, 'HealthWarning', 'Warning Audit Results'),
+    @($criticalLabel, 'HealthCritical', 'Critical Audit Results'),
+    @($script:healthCritical, 'HealthCritical', 'Critical Audit Results')
+)){
+    $healthMetric[0].Cursor = [System.Windows.Forms.Cursors]::Hand
+    $healthMetric[0].Tag = [PSCustomObject]@{
+        View = $healthMetric[1]
+        Title = $healthMetric[2]
+    }
+    $healthMetric[0].Add_Click({
+        param($sender)
+        try {
+            $selection = $sender.Tag
+            Show-View -View ([string]$selection.View) -Title ([string]$selection.Title)
+            Invoke-CurrentSearch
+        }
+        catch {
+            $message = Get-SafeErrorMessage $_
+            Write-AuditLog ERROR "Health view failed: $message"
+            Show-ErrorDialog -Message $message -Title 'Health View Error'
+        }
+    })
+})
 
 $kpiPanel = New-Object System.Windows.Forms.TableLayoutPanel
 $kpiPanel.Dock = 'Fill'
