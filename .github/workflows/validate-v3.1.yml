@@ -58,7 +58,7 @@ jobs:
 
           $requiredFeatures = @(
             'AUDIT HEALTH',
-            'Problems only',
+            'Healthy Audit Results',
             'Device Details',
             'Audit History',
             'Coverage',
