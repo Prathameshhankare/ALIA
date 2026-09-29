@@ -1725,6 +1725,16 @@ function Get-ViewObjects {
         'Unlicensed' { return @($script:AuditResults | Where-Object { [string]::IsNullOrWhiteSpace($_.LicenseTier) }) }
         'NotInInventory' { return @($script:AuditResults | Where-Object { $_.AuditStatus -eq 'LICENSED - NOT IN CENTRAL INVENTORY' }) }
         'NotMonitored' { return @($script:AuditResults | Where-Object { $_.AuditStatus -eq 'LICENSED - NOT MONITORED' }) }
+
+        # Dedicated quick views for each ALIA reconciliation status.
+        'StatusLicensedNotInCentral'   { return @($script:AuditResults | Where-Object { $_.AuditStatus -eq 'LICENSED - NOT IN CENTRAL INVENTORY' }) }
+        'StatusLicensedNotMonitored'   { return @($script:AuditResults | Where-Object { $_.AuditStatus -eq 'LICENSED - NOT MONITORED' }) }
+        'StatusLicensedOnline'          { return @($script:AuditResults | Where-Object { $_.AuditStatus -eq 'LICENSED - MONITORED - ONLINE' }) }
+        'StatusLicensedOffline'         { return @($script:AuditResults | Where-Object { $_.AuditStatus -eq 'LICENSED - MONITORED - OFFLINE' }) }
+        'StatusLicensedUnknown'         { return @($script:AuditResults | Where-Object { $_.AuditStatus -eq 'LICENSED - MONITORED - STATUS UNKNOWN' }) }
+        'StatusUnlicensedNotInCentral'  { return @($script:AuditResults | Where-Object { $_.AuditStatus -eq 'UNLICENSED - NOT IN CENTRAL' }) }
+        'StatusUnlicensedNotMonitored'  { return @($script:AuditResults | Where-Object { $_.AuditStatus -eq 'UNLICENSED - IN CENTRAL INVENTORY - NOT MONITORED' }) }
+        'StatusUnlicensedMonitored'     { return @($script:AuditResults | Where-Object { $_.AuditStatus -eq 'UNLICENSED - MONITORED' }) }
         'LicensedNotInMonitored' {
             if ($null -ne $script:LicensedNotInMonitoredCache) {
                 return @($script:LicensedNotInMonitoredCache)
@@ -2208,7 +2218,7 @@ function Apply-RootLayout {
         $overview.Height = 160
 
         $toolbar.Dock = [System.Windows.Forms.DockStyle]::Top
-        $toolbar.Height = 54
+        $toolbar.Height = 88
 
         $logHost.Dock = [System.Windows.Forms.DockStyle]::Bottom
         $logHost.Height = if ($script:LogPanelOpen) { 194 } else { 34 }
@@ -2710,53 +2720,58 @@ $toolbar.Padding = [System.Windows.Forms.Padding]::new(14,3,14,3)
 $toolbar.BackColor = [System.Drawing.Color]::FromArgb(241,245,249)
 
 function New-QuickViewButton {
-    param([string]$Text,[string]$Tag)
+    param([string]$Text,[string]$Tag,[int]$Width = 138)
+
     $b = New-Object System.Windows.Forms.Button
     $b.Text = $Text
     $b.Tag = $Tag
-    $b.Width = switch ($Tag) {
-        'Audit'        { 70 }
-        'Issues'       { 76 }
-        'Licensed'     { 82 }
-        'Unlicensed'   { 88 }
-        'NotMonitored' { 125 }
-        'Inventory'    { 82 }
-        default        { 82 }
-    }
+    $b.Width = $Width
     $b.Height = 28
-    $b.Margin = [System.Windows.Forms.Padding]::new(0,0,4,0)
+    $b.Margin = [System.Windows.Forms.Padding]::new(0,0,4,4)
     $b.FlatStyle = 'Flat'
     $b.FlatAppearance.BorderSize = 1
     $b.BackColor = [System.Drawing.Color]::White
     $b.ForeColor = [System.Drawing.Color]::FromArgb(51,65,85)
-    $b.Font = [System.Drawing.Font]::new('Segoe UI Semibold', 8.2)
+    $b.Font = [System.Drawing.Font]::new('Segoe UI Semibold', 7.8)
     $b.TextAlign = [System.Drawing.ContentAlignment]::MiddleCenter
     $b.Cursor = [System.Windows.Forms.Cursors]::Hand
+
     return $b
 }
 
 $quickPanel = New-Object System.Windows.Forms.FlowLayoutPanel
 $quickPanel.Dock = 'Left'
-$quickPanel.Width = 650
-$quickPanel.WrapContents = $false
+$quickPanel.Width = 575
+$quickPanel.Height = 82
+$quickPanel.WrapContents = $true
 $quickPanel.FlowDirection = 'LeftToRight'
+$quickPanel.AutoScroll = $false
+$quickPanel.Padding = [System.Windows.Forms.Padding]::Empty
 
 $titleMap = @{
-    Audit='All Audit Results'
-    Issues='Exceptions Requiring Review'
-    Licensed='GreenLake Licensed Devices'
-    Unlicensed='GreenLake Devices Without License'
-    NotMonitored='Licensed Devices Not in Central Monitoring'
-    GreenLake='HPE GreenLake Inventory'
+    Audit = 'All Audit Results'
+
+    StatusLicensedNotInCentral  = 'Licensed - Not in Central Inventory'
+    StatusLicensedNotMonitored  = 'Licensed - Not Monitored'
+    StatusLicensedOnline        = 'Licensed - Monitored - Online'
+    StatusLicensedOffline       = 'Licensed - Monitored - Offline'
+    StatusLicensedUnknown       = 'Licensed - Monitored - Status Unknown'
+
+    StatusUnlicensedNotInCentral = 'Unlicensed - Not in Central'
+    StatusUnlicensedNotMonitored = 'Unlicensed - Central Inventory - Not Monitored'
+    StatusUnlicensedMonitored    = 'Unlicensed - Monitored'
 }
 
 foreach($qb in @(
-    (New-QuickViewButton 'All' 'Audit'),
-    (New-QuickViewButton 'Issues' 'Issues'),
-    (New-QuickViewButton 'Licensed' 'Licensed'),
-    (New-QuickViewButton 'Unlicensed' 'Unlicensed'),
-    (New-QuickViewButton 'Not Monitored' 'NotMonitored'),
-    (New-QuickViewButton 'Inventory' 'GreenLake')
+    (New-QuickViewButton 'All' 'Audit' 58),
+    (New-QuickViewButton 'Licensed - Not in Central' 'StatusLicensedNotInCentral'),
+    (New-QuickViewButton 'Licensed - Not Monitored' 'StatusLicensedNotMonitored'),
+    (New-QuickViewButton 'Licensed - Online' 'StatusLicensedOnline'),
+    (New-QuickViewButton 'Licensed - Offline' 'StatusLicensedOffline'),
+    (New-QuickViewButton 'Licensed - Unknown' 'StatusLicensedUnknown'),
+    (New-QuickViewButton 'Unlicensed - Not in Central' 'StatusUnlicensedNotInCentral'),
+    (New-QuickViewButton 'Unlicensed - Not Monitored' 'StatusUnlicensedNotMonitored'),
+    (New-QuickViewButton 'Unlicensed - Monitored' 'StatusUnlicensedMonitored')
 )){
     $qb.Add_Click({
         param($sender)
