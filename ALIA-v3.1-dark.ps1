@@ -4762,13 +4762,24 @@ function Set-ALIAKpiIcons {
     foreach($item in $items){
         $kpi=$item[0];$type=$item[1];$color=$item[2]
         if($null -ne $kpi -and $null -ne $kpi.Icon){
-            if($kpi.Icon.Image){try{$kpi.Icon.Image.Dispose()}catch{}}
-            $kpi.Icon.Image=New-ALIAIconBitmap -Type $type -Color $color -Size 34
-            $kpi.Icon.BringToFront();$kpi.Icon.Tag=$kpi.Panel.Tag;$kpi.Icon.Cursor=[System.Windows.Forms.Cursors]::Hand
-            if(-not $kpi.Icon.Tag.PSObject.Properties['IconHandlerAttached']){
+            if($null -eq $kpi.Icon.Image){
+                $kpi.Icon.Image=New-ALIAIconBitmap -Type $type -Color $color -Size 34
+            }
+            $kpi.Icon.BringToFront()
+            $kpi.Icon.Tag=$kpi.Panel.Tag
+            $kpi.Icon.Cursor=[System.Windows.Forms.Cursors]::Hand
+
+            if($kpi.Icon.AccessibleName -ne 'ALIA_ICON_HANDLER'){
                 $kpi.Icon.Add_Click({
-                    try{$selection=$this.Tag;$script:GridFilters.Clear();Show-View -View ([string]$selection.View) -Title ([string]$selection.Title)}catch{Show-ErrorDialog -Message (Get-SafeErrorMessage $_) -Title 'Dashboard Tile Error'}
+                    try{
+                        $selection=$this.Tag
+                        $script:GridFilters.Clear()
+                        Show-View -View ([string]$selection.View) -Title ([string]$selection.Title)
+                    }catch{
+                        Show-ErrorDialog -Message (Get-SafeErrorMessage $_) -Title 'Dashboard Tile Error'
+                    }
                 })
+                $kpi.Icon.AccessibleName='ALIA_ICON_HANDLER'
             }
         }
     }
@@ -4780,8 +4791,10 @@ function Set-ALIAHealthIcons {
 
 function Apply-ALIAWindowTheme {
     foreach ($form in [System.Windows.Forms.Application]::OpenForms) {
-        try { Set-ALIAControlTheme -Control $form; Invoke-ALIAIconPass -Form $form } catch {}
+        try { Set-ALIAControlTheme -Control $form } catch {}
     }
+    try { Set-ALIAKpiIcons } catch {}
+    try { Set-ALIAHealthIcons } catch {}
 }
 
 Apply-ALIAWindowTheme
