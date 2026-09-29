@@ -2156,6 +2156,15 @@ function Position-RootLayout {
         $h = $root.ClientSize.Height
         if ($w -lt 1 -or $h -lt 1) { return }
 
+        # The root sections are positioned explicitly.  Their original
+        # Dock='Fill' settings would override SetBounds during the next
+        # WinForms layout pass and collapse the sections into each other.
+        foreach($section in @($header,$connectionPanel,$overview,$toolbar,$workspaceHost,$logHost)){
+            if ($null -ne $section -and -not $section.IsDisposed) {
+                $section.Dock = 'None'
+            }
+        }
+
         $headerHeight = 78
         $connectionHeight = 112
         $overviewHeight = 160
@@ -2163,11 +2172,11 @@ function Position-RootLayout {
         $logHeight = if ($script:LogPanelOpen) { 194 } else { 34 }
 
         $workspaceHeight = $h - $headerHeight - $connectionHeight - $overviewHeight - $toolbarHeight - $logHeight
-        if ($workspaceHeight -lt 140) {
+        if ($workspaceHeight -lt 160) {
             $overviewHeight = 145
             $workspaceHeight = $h - $headerHeight - $connectionHeight - $overviewHeight - $toolbarHeight - $logHeight
         }
-        if ($workspaceHeight -lt 100) {
+        if ($workspaceHeight -lt 120) {
             $connectionHeight = 96
             $workspaceHeight = $h - $headerHeight - $connectionHeight - $overviewHeight - $toolbarHeight - $logHeight
         }
@@ -2179,6 +2188,8 @@ function Position-RootLayout {
         $toolbar.SetBounds(0,$y,$w,$toolbarHeight); $y += $toolbarHeight
         $workspaceHost.SetBounds(0,$y,$w,[Math]::Max(0,$workspaceHeight)); $y += [Math]::Max(0,$workspaceHeight)
         $logHost.SetBounds(0,$y,$w,$logHeight)
+
+        $root.PerformLayout()
     } catch {}
 }
 
@@ -2200,7 +2211,7 @@ $subtitle.Text = 'Aruba License Inventory Audit  |  GreenLake + Aruba Central re
 $subtitle.ForeColor = [System.Drawing.Color]::FromArgb(148,163,184)
 $subtitle.Font = [System.Drawing.Font]::new('Segoe UI', 10)
 $subtitle.AutoSize = $true
-$subtitle.Location = [System.Drawing.Point]::new(26, 45)
+$subtitle.Location = [System.Drawing.Point]::new(112, 45)
 [void]$header.Controls.Add($subtitle)
 
 $headerStatus = New-Object System.Windows.Forms.Label
@@ -2605,7 +2616,7 @@ function New-QuickViewButton {
 
 $quickPanel = New-Object System.Windows.Forms.FlowLayoutPanel
 $quickPanel.Dock = 'Left'
-$quickPanel.Width = 525
+$quickPanel.Width = 540
 $quickPanel.WrapContents = $false
 $quickPanel.FlowDirection = 'LeftToRight'
 
