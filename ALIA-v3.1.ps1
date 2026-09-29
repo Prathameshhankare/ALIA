@@ -2956,7 +2956,6 @@ $script:detailBody.Anchor = 'Top,Left,Right'
 # making quick-view changes appear to do nothing.
 [void]$workspaceHost.Controls.Add($resultsHeader,0,0)
 [void]$workspaceHost.Controls.Add($workspace,0,1)
-[void]$workspaceHost.Controls.Add($progressPanel,0,2)
 
 function Update-DetailPanelFromSelection {
     if ($null -eq $script:grid -or $null -eq $script:grid.CurrentRow) {
@@ -3106,6 +3105,7 @@ function Position-ProgressBar {
     } catch {}
 }
 $progressPanel.Add_Resize({ Position-ProgressBar })
+[void]$workspaceHost.Controls.Add($progressPanel,0,2)
 
 $script:btnToggleLog = New-Object System.Windows.Forms.Button
 $script:btnToggleLog.Text = 'Show Audit Log ▾'
