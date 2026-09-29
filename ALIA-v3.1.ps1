@@ -2500,7 +2500,8 @@ $healthTitle.Height = 18
 
 $script:healthHeadline = New-Object System.Windows.Forms.Label
 $script:healthHeadline.Text = 'READY TO AUDIT'
-$script:healthHeadline.Font = [System.Drawing.Font]::new('Segoe UI Semibold', 13.5)
+$script:healthHeadline.Font = [System.Drawing.Font]::new('Segoe UI Semibold', 12.5)
+$script:healthHeadline.AutoEllipsis = $true
 $script:healthHeadline.ForeColor = [System.Drawing.Color]::FromArgb(51,65,85)
 $script:healthHeadline.Dock = 'Top'
 $script:healthHeadline.Height = 28
@@ -2540,7 +2541,7 @@ $coverageLabel = New-MetricLabel 'Coverage' ([System.Drawing.Color]::FromArgb(10
 $script:healthHealthy = New-MetricLabel '0' ([System.Drawing.Color]::FromArgb(22,163,74)) 13
 $script:healthWarning = New-MetricLabel '0' ([System.Drawing.Color]::FromArgb(202,138,4)) 13
 $script:healthCritical = New-MetricLabel '0' ([System.Drawing.Color]::FromArgb(220,38,38)) 13
-$script:healthCoverage = New-MetricLabel '0%' ([System.Drawing.Color]::FromArgb(37,99,235)) 13
+$script:healthCoverage = New-MetricLabel '0%' ([System.Drawing.Color]::FromArgb(37,99,235)) 11
 
 foreach($item in @(
     @($healthyLabel,$script:healthHealthy,0),
@@ -2937,12 +2938,16 @@ $script:detailTitle.Font = [System.Drawing.Font]::new('Segoe UI Semibold', 15)
 $script:detailTitle.ForeColor = [System.Drawing.Color]::FromArgb(15,23,42)
 $script:detailTitle.Location = [System.Drawing.Point]::new(6,6)
 $script:detailTitle.Size = [System.Drawing.Size]::new(320,32)
+$script:detailTitle.Anchor = 'Top,Left,Right'
+$script:detailTitle.AutoEllipsis = $true
 
 $script:detailStatus = New-Object System.Windows.Forms.Label
 $script:detailStatus.Text = ''
 $script:detailStatus.Font = [System.Drawing.Font]::new('Segoe UI Semibold', 8.8)
 $script:detailStatus.Location = [System.Drawing.Point]::new(6,38)
 $script:detailStatus.Size = [System.Drawing.Size]::new(320,22)
+$script:detailStatus.Anchor = 'Top,Left,Right'
+$script:detailStatus.AutoEllipsis = $true
 
 $script:detailBody = New-Object System.Windows.Forms.RichTextBox
 $script:detailBody.ReadOnly = $true
@@ -2952,7 +2957,9 @@ $script:detailBody.Font = [System.Drawing.Font]::new('Segoe UI', 9)
 $script:detailBody.Location = [System.Drawing.Point]::new(6,64)
 $script:detailBody.Size = [System.Drawing.Size]::new(350,420)
 $script:detailBody.Text = 'Select a row to inspect GreenLake, Aruba Central, monitoring and audit state.'
-$script:detailBody.Anchor = 'Top,Left,Right'
+$script:detailBody.Anchor = 'Top,Bottom,Left,Right'
+$script:detailBody.WordWrap = $true
+$script:detailBody.ScrollBars = [System.Windows.Forms.RichTextBoxScrollBars]::Vertical
 [void]$detailPanel.Controls.Add($script:detailBody)
 [void]$detailPanel.Controls.Add($script:detailStatus)
 [void]$detailPanel.Controls.Add($script:detailTitle)
@@ -3208,41 +3215,45 @@ function Show-AuditHistoryDialog {
     $form = New-Object System.Windows.Forms.Form
     $form.Text = 'ALIA - Audit History'
     $form.StartPosition = 'CenterParent'
-    $form.Size = [System.Drawing.Size]::new(930,520)
+    $form.Size = [System.Drawing.Size]::new(1000,560)
+    $form.MinimumSize = [System.Drawing.Size]::new(900,460)
     $form.BackColor = [System.Drawing.Color]::FromArgb(241,245,249)
 
     $history = @(Get-AuditHistory)
-    $table = New-Object System.Data.DataTable
-    foreach($c in @('Date','Duration','GreenLake','Central','Monitored','Licensed','Exceptions','Expired','Coverage')) {
-        [void]$table.Columns.Add($c)
-    }
+
+    $list = New-Object System.Windows.Forms.ListView
+    $list.Dock = 'Fill'
+    $list.View = [System.Windows.Forms.View]::Details
+    $list.FullRowSelect = $true
+    $list.GridLines = $true
+    $list.HideSelection = $false
+    $list.MultiSelect = $false
+    $list.Font = [System.Drawing.Font]::new('Segoe UI', 9)
+
+    [void]$list.Columns.Add('Date', 165)
+    [void]$list.Columns.Add('Duration', 95)
+    [void]$list.Columns.Add('GreenLake', 90)
+    [void]$list.Columns.Add('Central', 90)
+    [void]$list.Columns.Add('Monitored', 90)
+    [void]$list.Columns.Add('Licensed', 90)
+    [void]$list.Columns.Add('Exceptions', 95)
+    [void]$list.Columns.Add('Expired', 80)
+    [void]$list.Columns.Add('Coverage', 90)
 
     foreach($h in $history){
-        $row=$table.NewRow()
-        $row['Date']=[string]$h.Timestamp
-        $row['Duration']=[string]$h.Duration
-        $row['GreenLake']=[string]$h.GreenLakeCount
-        $row['Central']=[string]$h.CentralCount
-        $row['Monitored']=[string]$h.MonitoredCount
-        $row['Licensed']=[string]$h.LicensedCount
-        $row['Exceptions']=[string]$h.IssueCount
-        $row['Expired']=[string]$h.ExpiredCount
-        $row['Coverage']="$([string]$h.CoveragePercent)%"
-        [void]$table.Rows.Add($row)
+        $item = New-Object System.Windows.Forms.ListViewItem([string]$h.Timestamp)
+        [void]$item.SubItems.Add([string]$h.Duration)
+        [void]$item.SubItems.Add([string]$h.GreenLakeCount)
+        [void]$item.SubItems.Add([string]$h.CentralCount)
+        [void]$item.SubItems.Add([string]$h.MonitoredCount)
+        [void]$item.SubItems.Add([string]$h.LicensedCount)
+        [void]$item.SubItems.Add([string]$h.IssueCount)
+        [void]$item.SubItems.Add([string]$h.ExpiredCount)
+        [void]$item.SubItems.Add("$([string]$h.CoveragePercent)%")
+        [void]$list.Items.Add($item)
     }
 
-    $grid = New-Object System.Windows.Forms.DataGridView
-    $grid.Dock='Fill'
-    $grid.ReadOnly=$true
-    $grid.RowHeadersVisible=$false
-    $grid.AllowUserToAddRows=$false
-    $grid.AutoSizeColumnsMode='Fill'
-    $grid.EnableHeadersVisualStyles=$false
-    $grid.ColumnHeadersDefaultCellStyle.BackColor=[System.Drawing.Color]::FromArgb(15,23,42)
-    $grid.ColumnHeadersDefaultCellStyle.ForeColor=[System.Drawing.Color]::White
-    $grid.DataSource=$table
-    [void]$form.Controls.Add($grid)
-
+    [void]$form.Controls.Add($list)
     $form.ShowDialog($script:frm) | Out-Null
 }
 
