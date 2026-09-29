@@ -77,10 +77,10 @@ public static class ALIANativeMethods
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     private static extern IntPtr GetModuleHandle(string lpModuleName);
 
-    [DllImport("kernel32.dll", CharSet = CharSet.Ansi, SetLastError = true)]
+    [DllImport("kernel32.dll", CharSet = CharSet.Ansi, ExactSpelling = true, SetLastError = true)]
     private static extern IntPtr GetProcAddress(
         IntPtr hModule,
-        IntPtr lpProcName);
+        string lpProcName);
 
     [DllImport("user32.dll")]
     private static extern bool EnumChildWindows(
@@ -93,22 +93,6 @@ public static class ALIANativeMethods
         IntPtr hWnd,
         StringBuilder lpClassName,
         int nMaxCount);
-
-    [DllImport("user32.dll", SetLastError = true)]
-    private static extern bool SetWindowPos(
-        IntPtr hWnd,
-        IntPtr hWndInsertAfter,
-        int X,
-        int Y,
-        int cx,
-        int cy,
-        uint uFlags);
-
-    private const uint SWP_NOSIZE = 0x0001;
-    private const uint SWP_NOMOVE = 0x0002;
-    private const uint SWP_NOZORDER = 0x0004;
-    private const uint SWP_NOACTIVATE = 0x0010;
-    private const uint SWP_FRAMECHANGED = 0x0020;
 
     [DllImport("user32.dll")]
     private static extern IntPtr SendMessage(
@@ -171,7 +155,7 @@ public static class ALIANativeMethods
 
             IntPtr proc = GetProcAddress(
                 user32,
-                Marshal.StringToHGlobalAnsi("SetWindowCompositionAttribute"));
+                "SetWindowCompositionAttribute");
 
             if (proc == IntPtr.Zero)
                 return null;
@@ -230,7 +214,7 @@ public static class ALIANativeMethods
 
             IntPtr preferred = GetProcAddress(
                 uxtheme,
-                new IntPtr(135));
+                "#135");
 
             if (preferred != IntPtr.Zero)
             {
@@ -244,7 +228,7 @@ public static class ALIANativeMethods
 
             IntPtr refresh = GetProcAddress(
                 uxtheme,
-                new IntPtr(104));
+                "#104");
 
             if (refresh != IntPtr.Zero)
             {
@@ -258,7 +242,7 @@ public static class ALIANativeMethods
 
             IntPtr flush = GetProcAddress(
                 uxtheme,
-                new IntPtr(136));
+                "#136");
 
             if (flush != IntPtr.Zero)
             {
@@ -288,7 +272,7 @@ public static class ALIANativeMethods
 
             IntPtr proc = GetProcAddress(
                 uxtheme,
-                new IntPtr(133));
+                "#133");
 
             if (proc == IntPtr.Zero)
                 return;
