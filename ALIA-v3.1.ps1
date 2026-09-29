@@ -2030,16 +2030,14 @@ function Show-GridColumnFilterDialog {
         $btnCancel.Text = 'Cancel'
         $btnCancel.Width = 78
         $btnCancel.Height = 28
-        $btnCancel.Anchor = 'Bottom,Right'
-        $btnCancel.Left = 226
+        $btnCancel.Anchor = 'Top,Right'
         $btnCancel.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
 
         $btnApply = New-Object System.Windows.Forms.Button
         $btnApply.Text = 'Apply Filter'
         $btnApply.Width = 92
         $btnApply.Height = 28
-        $btnApply.Anchor = 'Bottom,Right'
-        $btnApply.Left = 310
+        $btnApply.Anchor = 'Top,Right'
         $btnApply.DialogResult = [System.Windows.Forms.DialogResult]::OK
 
         [void]$buttonPanel.Controls.Add($btnSelectAll)
@@ -2047,6 +2045,21 @@ function Show-GridColumnFilterDialog {
         [void]$buttonPanel.Controls.Add($btnCancel)
         [void]$buttonPanel.Controls.Add($btnApply)
         [void]$dialog.Controls.Add($buttonPanel)
+
+        function Position-FilterDialogButtons {
+            try {
+                $right = $buttonPanel.ClientSize.Width - $buttonPanel.Padding.Right
+                $btnApply.Left = $right - $btnApply.Width
+                $btnApply.Top = 8
+
+                $btnCancel.Left = $btnApply.Left - 8 - $btnCancel.Width
+                $btnCancel.Top = 8
+            }
+            catch {}
+        }
+
+        $buttonPanel.Add_Resize({ Position-FilterDialogButtons })
+        Position-FilterDialogButtons
 
         $dialog.AcceptButton = $btnApply
         $dialog.CancelButton = $btnCancel
