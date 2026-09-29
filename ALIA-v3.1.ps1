@@ -642,10 +642,6 @@ function Build-AuditResults {
         $inInventory = $null -ne $inventoryMatch
         $inMonitored = $null -ne $monitoringMatch
 
-        $provisioned = if ($inventoryMatch) {
-            Convert-ToBooleanString $inventoryMatch.IsProvisioned
-        } else { '' }
-
         $status = if ($monitoringMatch) { [string]$monitoringMatch.Status } else { '' }
         $health = Get-CentralHealthState -Status $status
         $licensed = -not [string]::IsNullOrWhiteSpace([string]$gl.LicenseTier)
@@ -655,13 +651,9 @@ function Build-AuditResults {
                 $auditStatus = 'LICENSED - NOT IN CENTRAL INVENTORY'
                 $auditReason = 'Licensed in GreenLake but serial/MAC was not found in Aruba Central inventory.'
             }
-            elseif ($provisioned -eq 'No') {
-                $auditStatus = 'LICENSED - IN INVENTORY - NOT PROVISIONED'
-                $auditReason = 'Device is present in Aruba Central inventory but is not provisioned.'
-            }
             elseif (-not $inMonitored) {
-                $auditStatus = 'LICENSED - PROVISIONED - NOT MONITORED'
-                $auditReason = 'Device is provisioned in inventory but is not present in Aruba Central monitored-device list.'
+                $auditStatus = 'LICENSED - NOT MONITORED'
+                $auditReason = 'Device is present in Aruba Central inventory but is not present in Aruba Central monitored-device list.'
             }
             elseif ($health -eq 'Offline') {
                 $auditStatus = 'LICENSED - MONITORED - OFFLINE'
@@ -703,7 +695,6 @@ function Build-AuditResults {
             SubscriptionCount = [int]$gl.SubscriptionCount
 
             ArubaInventoryPresent = if ($inInventory) { 'Yes' } else { 'No' }
-            ArubaProvisioned = $provisioned
             ArubaMonitoredPresent = if ($inMonitored) { 'Yes' } else { 'No' }
             ArubaStatus = $status
             ArubaHealth = $health
@@ -1729,8 +1720,7 @@ function Get-ViewObjects {
         'Licensed' { return @($script:AuditResults | Where-Object { -not [string]::IsNullOrWhiteSpace($_.LicenseTier) }) }
         'Unlicensed' { return @($script:AuditResults | Where-Object { [string]::IsNullOrWhiteSpace($_.LicenseTier) }) }
         'NotInInventory' { return @($script:AuditResults | Where-Object { $_.AuditStatus -eq 'LICENSED - NOT IN CENTRAL INVENTORY' }) }
-        'NotProvisioned' { return @($script:AuditResults | Where-Object { $_.AuditStatus -eq 'LICENSED - IN INVENTORY - NOT PROVISIONED' }) }
-        'NotMonitored' { return @($script:AuditResults | Where-Object { $_.AuditStatus -eq 'LICENSED - PROVISIONED - NOT MONITORED' }) }
+        'NotMonitored' { return @($script:AuditResults | Where-Object { $_.AuditStatus -eq 'LICENSED - NOT MONITORED' }) }
         'LicensedNotInMonitored' {
             if ($null -ne $script:LicensedNotInMonitoredCache) {
                 return @($script:LicensedNotInMonitoredCache)
@@ -1773,7 +1763,7 @@ function Get-ViewProperties {
         'ArubaInventory' {
             return @(
                 'SerialNumber','MACAddress','NormalizedDeviceType','Model',
-                'FirmwareVersion','DeviceName','SiteName','IsProvisioned',
+                'FirmwareVersion','DeviceName','SiteName',
                 'DeviceGroupName','DeviceFunction','Deployment','DeviceIp','ClusterName'
             )
         }
@@ -1781,7 +1771,7 @@ function Get-ViewProperties {
         'CentralNotMonitored' {
             return @(
                 'SerialNumber','MACAddress','NormalizedDeviceType','Model',
-                'DeviceName','SiteName','IsProvisioned','DeviceGroupName',
+                'DeviceName','SiteName','DeviceGroupName',
                 'DeviceFunction','Deployment','DeviceIp','ClusterName'
             )
         }
@@ -1807,7 +1797,7 @@ function Get-ViewProperties {
             return @(
                 'SerialNumber','MACAddress','GreenLakeDeviceType','Model','FirmwareVersion','DeviceName',
                 'LicenseTier','LicenseStart','LicenseEnd',
-                'ArubaInventoryPresent','ArubaProvisioned','ArubaMonitoredPresent',
+                'ArubaInventoryPresent','ArubaMonitoredPresent',
                 'ArubaStatus','ArubaHealth',
                 'ArubaInventoryDeviceName','ArubaInventorySiteName',
                 'ArubaMonitoredDeviceName','ArubaMonitoredSiteName',
@@ -1850,7 +1840,7 @@ function Show-View {
     if ($View -eq 'Issues') {
         $properties = @(
             'SerialNumber','MACAddress','GreenLakeDeviceType','Model','FirmwareVersion','DeviceName',
-            'LicenseTier','LicenseEnd','ArubaInventoryPresent','ArubaProvisioned',
+            'LicenseTier','LicenseEnd','ArubaInventoryPresent',
             'ArubaMonitoredPresent','ArubaStatus','ArubaHealth','AuditStatus','AuditReason'
         )
     }
@@ -1985,7 +1975,6 @@ function New-DashboardTile {
             ArubaMonitored = 'Aruba Central Monitored Devices'
             Licensed = 'GreenLake Licensed Devices'
             Unlicensed = 'GreenLake Devices Without License'
-            NotProvisioned = 'Licensed Devices Not Provisioned'
             LicensedNotInMonitored = 'Licensed Devices Not in Aruba Central Monitored List'
             AccessPoint = 'Access Point Audit Results'
             Switch = 'Switch Audit Results'
@@ -2042,8 +2031,7 @@ function Get-AuditHealth {
         'LICENSED - NOT IN CENTRAL INVENTORY' { return 'Critical' }
         'LICENSED - MONITORED - OFFLINE'      { return 'Critical' }
         'EXPIRED'                             { return 'Critical' }
-        'LICENSED - IN INVENTORY - NOT PROVISIONED' { return 'Warning' }
-        'LICENSED - PROVISIONED - NOT MONITORED'   { return 'Warning' }
+        'LICENSED - NOT MONITORED'            { return 'Warning' }
         'LICENSED - MONITORED - STATUS UNKNOWN'    { return 'Warning' }
         'UNLICENSED - IN CENTRAL INVENTORY'         { return 'Warning' }
         default { return 'Healthy' }
@@ -2106,8 +2094,7 @@ function Update-Dashboard {
     $licensedCount = @($script:AuditResults | Where-Object { -not [string]::IsNullOrWhiteSpace($_.LicenseTier) }).Count
     $unlicensedCount = @($script:AuditResults | Where-Object { [string]::IsNullOrWhiteSpace($_.LicenseTier) }).Count
     $expiredCount = @(Get-ViewObjects -View 'Expired').Count
-    $notProvisionedCount = @($script:AuditResults | Where-Object { $_.AuditStatus -eq 'LICENSED - IN INVENTORY - NOT PROVISIONED' }).Count
-    $notMonitoredCount = @($script:AuditResults | Where-Object { $_.AuditStatus -eq 'LICENSED - PROVISIONED - NOT MONITORED' }).Count
+    $notMonitoredCount = @($script:AuditResults | Where-Object { $_.AuditStatus -eq 'LICENSED - NOT MONITORED' }).Count
     $offlineCount = @($script:AuditResults | Where-Object { $_.AuditStatus -eq 'LICENSED - MONITORED - OFFLINE' }).Count
     $issueCount = Get-AuditIssueCount
     $coverage = Get-AuditCoveragePercent
@@ -3086,7 +3073,6 @@ function Update-DetailPanelFromSelection {
     $license = V 'LicenseTier'
     $licenseEnd = V 'LicenseEnd'
     $central = V 'ArubaInventoryPresent'
-    $provisioned = V 'ArubaProvisioned'
     $monitored = V 'ArubaMonitoredPresent'
     $centralStatus = V 'ArubaStatus'
     $health = V 'ArubaHealth'
@@ -3117,7 +3103,6 @@ License End     : $licenseEnd
 ARUBA CENTRAL
 ────────────────────────────────────
 Inventory       : $central
-Provisioned     : $provisioned
 Monitored       : $monitored
 Firmware        : $(V 'FirmwareVersion')
 Central Status  : $centralStatus
@@ -3652,7 +3637,7 @@ function Invoke-CurrentSearch {
     if ($script:CurrentView -eq 'Issues') {
         $properties = @(
             'SerialNumber','MACAddress','GreenLakeDeviceType','Model','DeviceName',
-            'LicenseTier','LicenseEnd','ArubaInventoryPresent','ArubaProvisioned',
+            'LicenseTier','LicenseEnd','ArubaInventoryPresent',
             'ArubaMonitoredPresent','ArubaStatus','ArubaHealth','AuditStatus','AuditReason'
         )
     }
@@ -4111,8 +4096,7 @@ $script:WorkerTimer.Add_Tick({
         Update-Dashboard
 
         $notInInventory = @($script:AuditResults | Where-Object { $_.AuditStatus -eq 'LICENSED - NOT IN CENTRAL INVENTORY' }).Count
-        $notProvisioned = @($script:AuditResults | Where-Object { $_.AuditStatus -eq 'LICENSED - IN INVENTORY - NOT PROVISIONED' }).Count
-        $notMonitored = @($script:AuditResults | Where-Object { $_.AuditStatus -eq 'LICENSED - PROVISIONED - NOT MONITORED' }).Count
+        $notMonitored = @($script:AuditResults | Where-Object { $_.AuditStatus -eq 'LICENSED - NOT MONITORED' }).Count
         $offline = @($script:AuditResults | Where-Object { $_.AuditStatus -eq 'LICENSED - MONITORED - OFFLINE' }).Count
         $licensedNotInMonitoredCount = @($script:LicensedNotInMonitoredCache).Count
         Write-AuditLog INFO "Licensed devices absent from Aruba Central monitored list: $licensedNotInMonitoredCount"
@@ -4124,8 +4108,8 @@ $script:WorkerTimer.Add_Tick({
 
         Show-View -View Audit -Title 'All Audit Results'
 
-        if (($notInInventory + $notProvisioned + $notMonitored + $offline + $licensedNotInMonitoredCount) -gt 0) {
-            Write-AuditLog WARNING "Licensed-device exceptions: NotInInventory=$notInInventory; NotProvisioned=$notProvisioned; NotMonitored=$notMonitored; LicensedNotInMonitored=$licensedNotInMonitoredCount; Offline=$offline."
+        if (($notInInventory + $notMonitored + $offline + $licensedNotInMonitoredCount) -gt 0) {
+            Write-AuditLog WARNING "Licensed-device exceptions: NotInInventory=$notInInventory; NotMonitored=$notMonitored; LicensedNotInMonitored=$licensedNotInMonitoredCount; Offline=$offline."
         }
         else {
             Write-AuditLog SUCCESS 'No licensed-device exceptions were identified.'
