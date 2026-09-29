@@ -230,7 +230,6 @@ $script:AuditResults = @()
 $script:CentralNotMonitoredCache = $null
 $script:GLUnlicensedCentralMonitoredCache = $null
 $script:LicensedNotInMonitoredCache = $null
-$script:StatusButtons = @{}
 $script:CurrentView = 'Audit'
 $script:CurrentViewTitle = 'All Audit Results'
 
@@ -2158,29 +2157,6 @@ function Update-Dashboard {
     if ($script:healthWarning) { $script:healthWarning.Text = [string]$warningCount }
     if ($script:healthCritical) { $script:healthCritical.Text = [string]$criticalCount }
     if ($script:healthCoverage) { $script:healthCoverage.Text = "$coverage%" }
-    if ($null -ne $script:StatusButtons -and $script:StatusButtons.Count -gt 0) {
-        $statusCounts = @{
-            StatusLicensedNotInCentral = @($script:AuditResults | Where-Object { $_.AuditStatus -eq 'LICENSED - NOT IN CENTRAL INVENTORY' }).Count
-            StatusLicensedNotMonitored = @($script:AuditResults | Where-Object { $_.AuditStatus -eq 'LICENSED - NOT MONITORED' }).Count
-            StatusLicensedOnline = @($script:AuditResults | Where-Object { $_.AuditStatus -eq 'LICENSED - MONITORED - ONLINE' }).Count
-            StatusLicensedOffline = @($script:AuditResults | Where-Object { $_.AuditStatus -eq 'LICENSED - MONITORED - OFFLINE' }).Count
-            StatusLicensedUnknown = @($script:AuditResults | Where-Object { $_.AuditStatus -eq 'LICENSED - MONITORED - STATUS UNKNOWN' }).Count
-            StatusUnlicensedNotInCentral = @($script:AuditResults | Where-Object { $_.AuditStatus -eq 'UNLICENSED - NOT IN CENTRAL' }).Count
-            StatusUnlicensedNotMonitored = @($script:AuditResults | Where-Object { $_.AuditStatus -eq 'UNLICENSED - IN CENTRAL INVENTORY - NOT MONITORED' }).Count
-            StatusUnlicensedMonitored = @($script:AuditResults | Where-Object { $_.AuditStatus -eq 'UNLICENSED - MONITORED' }).Count
-        }
-
-        foreach($statusTag in $statusCounts.Keys){
-            if ($script:StatusButtons.ContainsKey($statusTag)) {
-                $script:StatusButtons[$statusTag].Visible = ($statusCounts[$statusTag] -gt 0)
-            }
-        }
-
-        if ($script:StatusButtons.ContainsKey('Audit')) {
-            $script:StatusButtons['Audit'].Visible = $true
-        }
-    }
-
     if ($script:healthHeadline) {
         if ($criticalCount -gt 0) {
             $script:healthHeadline.Text = 'ATTENTION REQUIRED'
@@ -2673,6 +2649,7 @@ foreach($healthMetric in @(
         try {
             $script:CurrentFilterDeviceType = 'All'
             $script:CurrentFilterHealth = 'All'
+            if ($null -ne $script:cmbAuditStatus) { $script:cmbAuditStatus.SelectedIndex = 0 }
             $selection = $sender.Tag
             Show-View -View ([string]$selection.View) -Title ([string]$selection.Title)
             Invoke-CurrentSearch
@@ -2755,6 +2732,10 @@ function Add-KpiTileClick {
 
     $handler = {
         try {
+            if ($null -ne $script:cmbAuditStatus -and
+                [string]$this.Tag.View -notin @('Audit','Issues','HealthHealthy','HealthWarning','HealthCritical')) {
+                $script:cmbAuditStatus.SelectedIndex = 0
+            }
             Show-View -View $this.Tag.View -Title $this.Tag.Title
         }
         catch {
@@ -2794,135 +2775,6 @@ $toolbar.Dock = 'Fill'
 $toolbar.Padding = [System.Windows.Forms.Padding]::new(14,3,14,3)
 $toolbar.BackColor = [System.Drawing.Color]::FromArgb(241,245,249)
 
-function New-QuickViewButton {
-    param([string]$Text,[string]$Tag,[int]$Width = 112)
-
-    $b = New-Object System.Windows.Forms.Button
-    $b.Text = $Text
-    $b.Tag = $Tag
-    $b.Width = $Width
-    $b.Height = 28
-    $b.Margin = [System.Windows.Forms.Padding]::new(0,0,4,4)
-    $b.FlatStyle = 'Flat'
-    $b.FlatAppearance.BorderSize = 1
-    $b.BackColor = [System.Drawing.Color]::White
-    $b.ForeColor = [System.Drawing.Color]::FromArgb(51,65,85)
-    $b.Font = [System.Drawing.Font]::new('Segoe UI Semibold', 8.0)
-    $b.TextAlign = [System.Drawing.ContentAlignment]::MiddleCenter
-    $b.Cursor = [System.Windows.Forms.Cursors]::Hand
-    $b.UseMnemonic = $false
-    $b.AutoEllipsis = $false
-    $b.Padding = [System.Windows.Forms.Padding]::new(4,0,4,0)
-
-    return $b
-}
-
-$quickPanel = New-Object System.Windows.Forms.FlowLayoutPanel
-$quickPanel.Dock = 'Left'
-$quickPanel.Width = 1120
-$quickPanel.Height = 34
-$quickPanel.WrapContents = $false
-$quickPanel.FlowDirection = 'LeftToRight'
-$quickPanel.AutoScroll = $false
-$quickPanel.Padding = [System.Windows.Forms.Padding]::Empty
-
-$script:StatusButtons = @{}
-
-$titleMap = @{
-    Audit = 'All Audit Results'
-
-    StatusLicensedNotInCentral  = 'Licensed - Not in Central Inventory'
-    StatusLicensedNotMonitored  = 'Licensed - Not Monitored'
-    StatusLicensedOnline        = 'Licensed - Monitored - Online'
-    StatusLicensedOffline       = 'Licensed - Monitored - Offline'
-    StatusLicensedUnknown       = 'Licensed - Monitored - Status Unknown'
-
-    StatusUnlicensedNotInCentral = 'Unlicensed - Not in Central'
-    StatusUnlicensedNotMonitored = 'Unlicensed - Central Inventory - Not Monitored'
-    StatusUnlicensedMonitored    = 'Unlicensed - Monitored'
-}
-
-foreach($qb in @(
-    (New-QuickViewButton 'All' 'Audit' 55),
-    (New-QuickViewButton 'Lic: Not Central' 'StatusLicensedNotInCentral' 130),
-    (New-QuickViewButton 'Lic: Not Monitored' 'StatusLicensedNotMonitored' 140),
-    (New-QuickViewButton 'Lic: Online' 'StatusLicensedOnline' 100),
-    (New-QuickViewButton 'Lic: Offline' 'StatusLicensedOffline' 100),
-    (New-QuickViewButton 'Lic: Unknown' 'StatusLicensedUnknown' 110),
-    (New-QuickViewButton 'Unlic: Not Central' 'StatusUnlicensedNotInCentral' 140),
-    (New-QuickViewButton 'Unlic: Not Monitored' 'StatusUnlicensedNotMonitored' 160),
-    (New-QuickViewButton 'Unlic: Monitored' 'StatusUnlicensedMonitored' 135)
-)){
-    $script:StatusButtons[[string]$qb.Tag] = $qb
-
-     switch ([string]$qb.Tag) {
-         'Audit' {
-             $qb.BackColor = [System.Drawing.Color]::FromArgb(51,65,85)
-             $qb.ForeColor = [System.Drawing.Color]::White
-             $qb.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(51,65,85)
-         }
-         'StatusLicensedNotInCentral' {
-             $qb.BackColor = [System.Drawing.Color]::FromArgb(254,226,226)
-             $qb.ForeColor = [System.Drawing.Color]::FromArgb(185,28,28)
-             $qb.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(248,113,113)
-         }
-         'StatusLicensedNotMonitored' {
-             $qb.BackColor = [System.Drawing.Color]::FromArgb(254,243,199)
-             $qb.ForeColor = [System.Drawing.Color]::FromArgb(161,98,7)
-             $qb.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(234,179,8)
-         }
-         'StatusLicensedOnline' {
-             $qb.BackColor = [System.Drawing.Color]::FromArgb(220,252,231)
-             $qb.ForeColor = [System.Drawing.Color]::FromArgb(21,128,61)
-             $qb.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(74,222,128)
-         }
-         'StatusLicensedOffline' {
-             $qb.BackColor = [System.Drawing.Color]::FromArgb(254,226,226)
-             $qb.ForeColor = [System.Drawing.Color]::FromArgb(185,28,28)
-             $qb.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(248,113,113)
-         }
-         'StatusLicensedUnknown' {
-             $qb.BackColor = [System.Drawing.Color]::FromArgb(254,243,199)
-             $qb.ForeColor = [System.Drawing.Color]::FromArgb(161,98,7)
-             $qb.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(234,179,8)
-         }
-         'StatusUnlicensedNotInCentral' {
-             $qb.BackColor = [System.Drawing.Color]::FromArgb(241,245,249)
-             $qb.ForeColor = [System.Drawing.Color]::FromArgb(71,85,105)
-             $qb.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(148,163,184)
-         }
-         'StatusUnlicensedNotMonitored' {
-             $qb.BackColor = [System.Drawing.Color]::FromArgb(254,243,199)
-             $qb.ForeColor = [System.Drawing.Color]::FromArgb(161,98,7)
-             $qb.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(234,179,8)
-         }
-         'StatusUnlicensedMonitored' {
-             $qb.BackColor = [System.Drawing.Color]::FromArgb(254,243,199)
-             $qb.ForeColor = [System.Drawing.Color]::FromArgb(161,98,7)
-             $qb.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(234,179,8)
-         }
-     }
-
-         $qb.Add_Click({
-        param($sender)
-
-        try {
-            $script:SearchTimer.Stop()
-            $script:CurrentFilterDeviceType = 'All'
-            $script:CurrentFilterHealth = 'All'
-            Show-View -View ([string]$sender.Tag) -Title $titleMap[[string]$sender.Tag]
-            Invoke-CurrentSearch
-        }
-        catch {
-            $message = Get-SafeErrorMessage $_
-            Write-AuditLog ERROR "Quick view '$($sender.Text)' failed: $message"
-            Show-ErrorDialog -Message $message -Title 'Quick View Error'
-        }
-    })
-    [void]$quickPanel.Controls.Add($qb)
-}
-[void]$toolbar.Controls.Add($quickPanel)
-
 $script:txtSearch = New-Object System.Windows.Forms.TextBox
 $script:txtSearch.Font = [System.Drawing.Font]::new('Segoe UI', 8.8)
 $script:txtSearch.Width = 190
@@ -2933,13 +2785,43 @@ $searchTip = New-Object System.Windows.Forms.ToolTip
 $searchTip.SetToolTip($script:txtSearch, 'Search serial, MAC, model, device name or site')
 [void]$toolbar.Controls.Add($script:txtSearch)
 
+# Audit Status is a single dropdown instead of nine status buttons.  The
+# displayed text stays concise while the internal value remains the exact
+# reconciliation status used by the audit engine.
+$script:AuditStatusFilterMap = [ordered]@{
+    'All Audit Statuses'                              = 'All'
+    'Licensed — Not in Central'                      = 'LICENSED - NOT IN CENTRAL INVENTORY'
+    'Licensed — Not Monitored'                       = 'LICENSED - NOT MONITORED'
+    'Licensed — Monitored — Online'                  = 'LICENSED - MONITORED - ONLINE'
+    'Licensed — Monitored — Offline'                 = 'LICENSED - MONITORED - OFFLINE'
+    'Licensed — Monitored — Status Unknown'          = 'LICENSED - MONITORED - STATUS UNKNOWN'
+    'Unlicensed — Not in Central'                    = 'UNLICENSED - NOT IN CENTRAL'
+    'Unlicensed — Central Inventory — Not Monitored' = 'UNLICENSED - IN CENTRAL INVENTORY - NOT MONITORED'
+    'Unlicensed — Monitored'                         = 'UNLICENSED - MONITORED'
+}
+
+$script:cmbAuditStatus = New-Object System.Windows.Forms.ComboBox
+$script:cmbAuditStatus.DropDownStyle = 'DropDownList'
+[void]$script:cmbAuditStatus.Items.AddRange(@($script:AuditStatusFilterMap.Keys))
+$script:cmbAuditStatus.SelectedIndex = 0
+$script:cmbAuditStatus.Width = 285
+$script:cmbAuditStatus.Height = 28
+$script:cmbAuditStatus.DropDownWidth = 360
+$script:cmbAuditStatus.MaxDropDownItems = 10
+$script:cmbAuditStatus.Anchor = 'Top,Right'
+$auditStatusTip = New-Object System.Windows.Forms.ToolTip
+$auditStatusTip.SetToolTip($script:cmbAuditStatus, 'Filter audit results by Audit Status')
+[void]$toolbar.Controls.Add($script:cmbAuditStatus)
+
 $script:cmbHealth = New-Object System.Windows.Forms.ComboBox
 $script:cmbHealth.DropDownStyle = 'DropDownList'
 [void]$script:cmbHealth.Items.AddRange(@('All','Healthy','Warning','Critical'))
 $script:cmbHealth.SelectedIndex = 0
-$script:cmbHealth.Width = 78
+$script:cmbHealth.Width = 90
 $script:cmbHealth.Height = 28
 $script:cmbHealth.Anchor = 'Top,Right'
+$healthTip = New-Object System.Windows.Forms.ToolTip
+$healthTip.SetToolTip($script:cmbHealth, 'Filter by ALIA audit health')
 [void]$toolbar.Controls.Add($script:cmbHealth)
 
 $script:cmbDeviceType = New-Object System.Windows.Forms.ComboBox
@@ -2949,6 +2831,8 @@ $script:cmbDeviceType.SelectedIndex = 0
 $script:cmbDeviceType.Width = 100
 $script:cmbDeviceType.Height = 28
 $script:cmbDeviceType.Anchor = 'Top,Right'
+$deviceTypeTip = New-Object System.Windows.Forms.ToolTip
+$deviceTypeTip.SetToolTip($script:cmbDeviceType, 'Filter by device type')
 [void]$toolbar.Controls.Add($script:cmbDeviceType)
 
 $script:btnResetFilters = New-Object System.Windows.Forms.Button
@@ -2969,8 +2853,10 @@ function Position-Toolbar {
         $script:btnResetFilters.Left = $right - $script:btnResetFilters.Width
         $script:cmbDeviceType.Left = $script:btnResetFilters.Left - $script:cmbDeviceType.Width - 8
         $script:cmbHealth.Left = $script:cmbDeviceType.Left - $script:cmbHealth.Width - 8
-        $script:txtSearch.Left = $script:cmbHealth.Left - $script:txtSearch.Width - 8
+        $script:cmbAuditStatus.Left = $script:cmbHealth.Left - $script:cmbAuditStatus.Width - 8
+        $script:txtSearch.Left = $script:cmbAuditStatus.Left - $script:txtSearch.Width - 8
         $script:txtSearch.Top = 1
+        $script:cmbAuditStatus.Top = 1
         $script:cmbHealth.Top = 1
         $script:cmbDeviceType.Top = 1
         $script:btnResetFilters.Top = 1
@@ -3539,14 +3425,17 @@ $script:btnHistory.Add_Click({
 
 $script:CurrentFilterDeviceType = 'All'
 $script:CurrentFilterHealth = 'All'
+$script:CurrentFilterAuditStatus = 'All'
 
 $script:btnResetFilters.Add_Click({
     $script:txtSearch.Text = ''
-        $script:cmbHealth.SelectedIndex = 0
+    $script:cmbAuditStatus.SelectedIndex = 0
+    $script:cmbHealth.SelectedIndex = 0
     $script:cmbDeviceType.SelectedIndex = 0
-        Invoke-CurrentSearch
+    Invoke-CurrentSearch
 })
 
+$script:cmbAuditStatus.Add_SelectedIndexChanged({ Invoke-CurrentSearch })
 $script:cmbHealth.Add_SelectedIndexChanged({ Invoke-CurrentSearch })
 $script:cmbDeviceType.Add_SelectedIndexChanged({ Invoke-CurrentSearch })
 
@@ -3724,8 +3613,22 @@ function Invoke-CurrentSearch {
         )
     }
 
+    $auditStatusDisplay = [string]$script:cmbAuditStatus.SelectedItem
+    $auditStatusFilter = if ($script:AuditStatusFilterMap.Contains($auditStatusDisplay)) {
+        [string]$script:AuditStatusFilterMap[$auditStatusDisplay]
+    } else {
+        'All'
+    }
+    $script:CurrentFilterAuditStatus = $auditStatusFilter
+
     $healthFilter = [string]$script:cmbHealth.SelectedItem
     $deviceFilter = [string]$script:cmbDeviceType.SelectedItem
+
+    if ($auditStatusFilter -ne 'All') {
+        $base = @($base | Where-Object {
+            (Get-ObjectPropertyString -Object $_ -PropertyName 'AuditStatus') -eq $auditStatusFilter
+        })
+    }
 
     if ($healthFilter -ne 'All') {
         $base = @($base | Where-Object {
