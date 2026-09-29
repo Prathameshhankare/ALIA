@@ -2137,20 +2137,51 @@ $targetHeight = [Math]::Min(980, [Math]::Max(720, $workArea.Height - 70))
 $script:frm.MinimumSize = [System.Drawing.Size]::new(1100, 650)
 $script:frm.ClientSize = [System.Drawing.Size]::new($targetWidth, $targetHeight)
 
-$root = New-Object System.Windows.Forms.TableLayoutPanel
+$root = New-Object System.Windows.Forms.Panel
 $root.Dock = 'Fill'
 $root.Margin = [System.Windows.Forms.Padding]::Empty
 $root.Padding = [System.Windows.Forms.Padding]::Empty
-$root.ColumnCount = 1
-$root.RowCount = 6
 $root.BackColor = [System.Drawing.Color]::FromArgb(241,245,249)
-[void]$root.RowStyles.Add([System.Windows.Forms.RowStyle]::new([System.Windows.Forms.SizeType]::Absolute, 78))
-[void]$root.RowStyles.Add([System.Windows.Forms.RowStyle]::new([System.Windows.Forms.SizeType]::Absolute, 112))
-[void]$root.RowStyles.Add([System.Windows.Forms.RowStyle]::new([System.Windows.Forms.SizeType]::Absolute, 160))
-[void]$root.RowStyles.Add([System.Windows.Forms.RowStyle]::new([System.Windows.Forms.SizeType]::Absolute, 54))
-[void]$root.RowStyles.Add([System.Windows.Forms.RowStyle]::new([System.Windows.Forms.SizeType]::Percent, 100))
-[void]$root.RowStyles.Add([System.Windows.Forms.RowStyle]::new([System.Windows.Forms.SizeType]::Absolute, 34))
-[void]$root.ColumnStyles.Add([System.Windows.Forms.ColumnStyle]::new([System.Windows.Forms.SizeType]::Percent, 100))
+
+# Use explicit panel positioning for the main workspace.  TableLayoutPanel
+# absolute rows were collapsing on some WinForms/DPI combinations, which
+# caused the overview/KPI area to be reduced to a thin strip.
+$script:LogPanelOpen = $false
+
+function Position-RootLayout {
+    try {
+        if ($null -eq $root -or $root.IsDisposed) { return }
+
+        $w = $root.ClientSize.Width
+        $h = $root.ClientSize.Height
+        if ($w -lt 1 -or $h -lt 1) { return }
+
+        $headerHeight = 78
+        $connectionHeight = 112
+        $overviewHeight = 160
+        $toolbarHeight = 54
+        $logHeight = if ($script:LogPanelOpen) { 194 } else { 34 }
+
+        $workspaceHeight = $h - $headerHeight - $connectionHeight - $overviewHeight - $toolbarHeight - $logHeight
+        if ($workspaceHeight -lt 140) {
+            $overviewHeight = 145
+            $workspaceHeight = $h - $headerHeight - $connectionHeight - $overviewHeight - $toolbarHeight - $logHeight
+        }
+        if ($workspaceHeight -lt 100) {
+            $connectionHeight = 96
+            $workspaceHeight = $h - $headerHeight - $connectionHeight - $overviewHeight - $toolbarHeight - $logHeight
+        }
+
+        $y = 0
+        $header.SetBounds(0,$y,$w,$headerHeight); $y += $headerHeight
+        $connectionPanel.SetBounds(0,$y,$w,$connectionHeight); $y += $connectionHeight
+        $overview.SetBounds(0,$y,$w,$overviewHeight); $y += $overviewHeight
+        $toolbar.SetBounds(0,$y,$w,$toolbarHeight); $y += $toolbarHeight
+        $workspaceHost.SetBounds(0,$y,$w,[Math]::Max(0,$workspaceHeight)); $y += [Math]::Max(0,$workspaceHeight)
+        $logHost.SetBounds(0,$y,$w,$logHeight)
+    } catch {}
+}
+
 
 $header = New-Object System.Windows.Forms.Panel
 $header.Dock = 'Fill'
@@ -2161,7 +2192,7 @@ $title.Text = 'ALIA'
 $title.ForeColor = [System.Drawing.Color]::White
 $title.Font = [System.Drawing.Font]::new('Segoe UI Semibold', 21)
 $title.AutoSize = $true
-$title.Location = [System.Drawing.Point]::new(24, 7)
+$title.Location = [System.Drawing.Point]::new(24, 4)
 [void]$header.Controls.Add($title)
 
 $subtitle = New-Object System.Windows.Forms.Label
@@ -2169,7 +2200,7 @@ $subtitle.Text = 'Aruba License Inventory Audit  |  GreenLake + Aruba Central re
 $subtitle.ForeColor = [System.Drawing.Color]::FromArgb(148,163,184)
 $subtitle.Font = [System.Drawing.Font]::new('Segoe UI', 10)
 $subtitle.AutoSize = $true
-$subtitle.Location = [System.Drawing.Point]::new(26, 43)
+$subtitle.Location = [System.Drawing.Point]::new(26, 45)
 [void]$header.Controls.Add($subtitle)
 
 $headerStatus = New-Object System.Windows.Forms.Label
@@ -2574,7 +2605,7 @@ function New-QuickViewButton {
 
 $quickPanel = New-Object System.Windows.Forms.FlowLayoutPanel
 $quickPanel.Dock = 'Left'
-$quickPanel.Width = 485
+$quickPanel.Width = 525
 $quickPanel.WrapContents = $false
 $quickPanel.FlowDirection = 'LeftToRight'
 
@@ -3058,10 +3089,10 @@ $script:txtLog.Font = [System.Drawing.Font]::new('Consolas', 8.5)
 [void]$logGroup.Controls.Add($script:txtLog)
 
 $script:btnToggleLog.Add_Click({
-    $open = -not $logGroup.Visible
-    $logGroup.Visible = $open
-    $root.RowStyles[5].Height = if ($open) { 160 } else { 34 }
-    $script:btnToggleLog.Text = if ($open) { 'Hide Audit Log ▴' } else { 'Show Audit Log ▾' }
+    $script:LogPanelOpen = -not $script:LogPanelOpen
+    $logGroup.Visible = $script:LogPanelOpen
+    $script:btnToggleLog.Text = if ($script:LogPanelOpen) { 'Hide Audit Log ▴' } else { 'Show Audit Log ▾' }
+    Position-RootLayout
 })
 
 function Get-HistoryPath {
@@ -3233,11 +3264,11 @@ $logPath.ForeColor = [System.Drawing.Color]::FromArgb(100,116,139)
 [void]$statusStrip.Items.Add($logSpring)
 [void]$statusStrip.Items.Add($logPath)
 
-$root.Controls.Add($header,0,0)
-$root.Controls.Add($connectionPanel,0,1)
-$root.Controls.Add($overview,0,2)
-$root.Controls.Add($toolbar,0,3)
-$root.Controls.Add($workspaceHost,0,4)
+[void]$root.Controls.Add($header)
+[void]$root.Controls.Add($connectionPanel)
+[void]$root.Controls.Add($overview)
+[void]$root.Controls.Add($toolbar)
+[void]$root.Controls.Add($workspaceHost)
 
 $logHost = New-Object System.Windows.Forms.TableLayoutPanel
 $logHost.Dock='Fill'
@@ -3247,13 +3278,14 @@ $logHost.RowCount=2
 [void]$logHost.ColumnStyles.Add([System.Windows.Forms.ColumnStyle]::new([System.Windows.Forms.SizeType]::Percent,100))
 [void]$logHost.Controls.Add($logBar,0,0)
 [void]$logHost.Controls.Add($logGroup,0,1)
-$root.Controls.Add($logHost,0,5)
+[void]$root.Controls.Add($logHost)
 
 [void]$script:frm.Controls.Add($root)
 [void]$script:frm.Controls.Add($statusStrip)
 
 $script:frm.Add_Resize({
     try {
+        Position-RootLayout
         Position-Header
         Position-Toolbar
         Position-ViewHeader
@@ -3264,6 +3296,7 @@ $script:frm.Add_Resize({
 
 $script:frm.Add_Shown({
     try {
+        Position-RootLayout
         Position-Workspace
         Position-Header
         Position-Toolbar
@@ -3272,6 +3305,7 @@ $script:frm.Add_Shown({
     } catch {}
 })
 
+Position-RootLayout
 Position-Header
 Position-Toolbar
 Position-ViewHeader
