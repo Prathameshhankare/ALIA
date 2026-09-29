@@ -2003,6 +2003,7 @@ function Show-GridColumnFilterDialog {
         $btnSelectAll.Height = 28
         $btnSelectAll.Tag = $list
         $btnSelectAll.Add_Click({
+            param($sender, $eventArgs)
             $target = [System.Windows.Forms.CheckedListBox]$sender.Tag
             for ($i = 0; $i -lt $target.Items.Count; $i++) {
                 $target.SetItemChecked($i, $true)
@@ -2016,6 +2017,7 @@ function Show-GridColumnFilterDialog {
         $btnClearAll.Left = 84
         $btnClearAll.Tag = $list
         $btnClearAll.Add_Click({
+            param($sender, $eventArgs)
             $target = [System.Windows.Forms.CheckedListBox]$sender.Tag
             for ($i = 0; $i -lt $target.Items.Count; $i++) {
                 $target.SetItemChecked($i, $false)
