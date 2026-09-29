@@ -2100,7 +2100,7 @@ function Update-Dashboard {
     }
 
     if ($script:healthDetail) {
-        $script:healthDetail.Text = "$issueCount exception(s) | Coverage $coverage% | Offline $offlineCount | Not monitored $notMonitoredCount"
+        $script:healthDetail.Text = "Exceptions $issueCount | Coverage $coverage% | Offline $offlineCount | Not monitored $notMonitoredCount"
     }
 
     if ($script:kpiIssues -and $script:kpiIssues.Trend) { Update-KpiTrend -Label $script:kpiIssues.Trend -Current $issueCount -Metric 'IssueCount' }
@@ -2201,16 +2201,20 @@ $title = New-Object System.Windows.Forms.Label
 $title.Text = 'ALIA'
 $title.ForeColor = [System.Drawing.Color]::White
 $title.Font = [System.Drawing.Font]::new('Segoe UI Semibold', 21)
-$title.AutoSize = $true
-$title.Location = [System.Drawing.Point]::new(24, 4)
+$title.AutoSize = $false
+$title.TextAlign = [System.Drawing.ContentAlignment]::MiddleLeft
+$title.Location = [System.Drawing.Point]::new(24, 6)
+$title.Size = [System.Drawing.Size]::new(180, 34)
 [void]$header.Controls.Add($title)
 
 $subtitle = New-Object System.Windows.Forms.Label
 $subtitle.Text = 'Aruba License Inventory Audit  |  GreenLake + Aruba Central reconciliation'
 $subtitle.ForeColor = [System.Drawing.Color]::FromArgb(148,163,184)
 $subtitle.Font = [System.Drawing.Font]::new('Segoe UI', 10)
-$subtitle.AutoSize = $true
-$subtitle.Location = [System.Drawing.Point]::new(26, 43)
+$subtitle.AutoSize = $false
+$subtitle.TextAlign = [System.Drawing.ContentAlignment]::MiddleLeft
+$subtitle.Location = [System.Drawing.Point]::new(26, 42)
+$subtitle.Size = [System.Drawing.Size]::new(760, 24)
 [void]$header.Controls.Add($subtitle)
 
 $headerStatus = New-Object System.Windows.Forms.Label
@@ -2404,17 +2408,18 @@ $script:btnRunAudit.Cursor = [System.Windows.Forms.Cursors]::Hand
 $runHint = New-Object System.Windows.Forms.Label
 $runHint.Text = 'Collect inventory, licensing and monitoring state'
 $runHint.Dock = 'Top'
-$runHint.Height = 25
+$runHint.Height = 22
 $runHint.ForeColor = [System.Drawing.Color]::FromArgb(71,85,105)
 $runHint.Font = [System.Drawing.Font]::new('Segoe UI', 7.8)
 $runHint.TextAlign = [System.Drawing.ContentAlignment]::MiddleCenter
 [void]$actions.Controls.Add($runHint)
 
 $secondary = New-Object System.Windows.Forms.FlowLayoutPanel
-$secondary.Dock = 'Fill'
+$secondary.Dock = 'Bottom'
+$secondary.Height = 32
 $secondary.FlowDirection = 'LeftToRight'
 $secondary.WrapContents = $false
-$secondary.Padding = [System.Windows.Forms.Padding]::new(0, 5, 0, 0)
+$secondary.Padding = [System.Windows.Forms.Padding]::new(0, 2, 0, 0)
 
 function New-SecondaryButton {
     param([string]$Text,[int]$Width,[System.Drawing.Color]$Color)
@@ -2468,24 +2473,25 @@ $healthTitle.Height = 18
 
 $script:healthHeadline = New-Object System.Windows.Forms.Label
 $script:healthHeadline.Text = 'READY TO AUDIT'
-$script:healthHeadline.Font = [System.Drawing.Font]::new('Segoe UI Semibold', 16)
+$script:healthHeadline.Font = [System.Drawing.Font]::new('Segoe UI Semibold', 15)
 $script:healthHeadline.ForeColor = [System.Drawing.Color]::FromArgb(51,65,85)
 $script:healthHeadline.Dock = 'Top'
-$script:healthHeadline.Height = 29
+$script:healthHeadline.Height = 28
 
 $script:healthDetail = New-Object System.Windows.Forms.Label
 $script:healthDetail.Text = 'No audit results yet'
-$script:healthDetail.Font = [System.Drawing.Font]::new('Segoe UI', 8.5)
+$script:healthDetail.Font = [System.Drawing.Font]::new('Segoe UI', 7.8)
 $script:healthDetail.ForeColor = [System.Drawing.Color]::FromArgb(100,116,139)
 $script:healthDetail.Dock = 'Top'
-$script:healthDetail.Height = 30
+$script:healthDetail.AutoEllipsis = $true
+$script:healthDetail.Height = 20
 
 $healthStats = New-Object System.Windows.Forms.TableLayoutPanel
 $healthStats.Dock = 'Fill'
 $healthStats.ColumnCount = 4
 $healthStats.RowCount = 2
 for($i=0;$i -lt 4;$i++){ [void]$healthStats.ColumnStyles.Add([System.Windows.Forms.ColumnStyle]::new([System.Windows.Forms.SizeType]::Percent,25)) }
-[void]$healthStats.RowStyles.Add([System.Windows.Forms.RowStyle]::new([System.Windows.Forms.SizeType]::Absolute, 20))
+[void]$healthStats.RowStyles.Add([System.Windows.Forms.RowStyle]::new([System.Windows.Forms.SizeType]::Absolute, 21))
 [void]$healthStats.RowStyles.Add([System.Windows.Forms.RowStyle]::new([System.Windows.Forms.SizeType]::Percent, 100))
 
 function New-MetricLabel {
@@ -2545,14 +2551,15 @@ function New-KpiCard {
     $cap.Font = [System.Drawing.Font]::new('Segoe UI', 8.2)
     $cap.ForeColor = [System.Drawing.Color]::FromArgb(100,116,139)
     $cap.Dock = 'Top'
-    $cap.Height = 17
+    $cap.Height = 20
 
     $val = New-Object System.Windows.Forms.Label
     $val.Text = '0'
     $val.Font = [System.Drawing.Font]::new('Segoe UI Semibold', 18)
     $val.ForeColor = [System.Drawing.Color]::FromArgb(15,23,42)
     $val.Dock = 'Top'
-    $val.Height = 25
+    $val.TextAlign = [System.Drawing.ContentAlignment]::MiddleLeft
+    $val.Height = 34
 
     $trend = New-Object System.Windows.Forms.Label
     $trend.Text = ''
