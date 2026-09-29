@@ -2218,7 +2218,7 @@ function Apply-RootLayout {
         $overview.Height = 160
 
         $toolbar.Dock = [System.Windows.Forms.DockStyle]::Top
-        $toolbar.Height = 88
+        $toolbar.Height = 76
 
         $logHost.Dock = [System.Windows.Forms.DockStyle]::Bottom
         $logHost.Height = if ($script:LogPanelOpen) { 194 } else { 34 }
@@ -2720,7 +2720,7 @@ $toolbar.Padding = [System.Windows.Forms.Padding]::new(14,3,14,3)
 $toolbar.BackColor = [System.Drawing.Color]::FromArgb(241,245,249)
 
 function New-QuickViewButton {
-    param([string]$Text,[string]$Tag,[int]$Width = 138)
+    param([string]$Text,[string]$Tag,[int]$Width = 112)
 
     $b = New-Object System.Windows.Forms.Button
     $b.Text = $Text
@@ -2742,7 +2742,7 @@ function New-QuickViewButton {
 $quickPanel = New-Object System.Windows.Forms.FlowLayoutPanel
 $quickPanel.Dock = 'Left'
 $quickPanel.Width = 575
-$quickPanel.Height = 82
+$quickPanel.Height = 70
 $quickPanel.WrapContents = $true
 $quickPanel.FlowDirection = 'LeftToRight'
 $quickPanel.AutoScroll = $false
@@ -2763,13 +2763,13 @@ $titleMap = @{
 }
 
 foreach($qb in @(
-    (New-QuickViewButton 'All' 'Audit' 58),
-    (New-QuickViewButton 'Licensed - Not in Central' 'StatusLicensedNotInCentral'),
+    (New-QuickViewButton 'All' 'Audit' 54),
+    (New-QuickViewButton 'Licensed - Not Central' 'StatusLicensedNotInCentral'),
     (New-QuickViewButton 'Licensed - Not Monitored' 'StatusLicensedNotMonitored'),
     (New-QuickViewButton 'Licensed - Online' 'StatusLicensedOnline'),
     (New-QuickViewButton 'Licensed - Offline' 'StatusLicensedOffline'),
     (New-QuickViewButton 'Licensed - Unknown' 'StatusLicensedUnknown'),
-    (New-QuickViewButton 'Unlicensed - Not in Central' 'StatusUnlicensedNotInCentral'),
+    (New-QuickViewButton 'Unlicensed - Not Central' 'StatusUnlicensedNotInCentral'),
     (New-QuickViewButton 'Unlicensed - Not Monitored' 'StatusUnlicensedNotMonitored'),
     (New-QuickViewButton 'Unlicensed - Monitored' 'StatusUnlicensedMonitored')
 )){
@@ -2782,7 +2782,7 @@ foreach($qb in @(
             $script:CurrentFilterHealth = 'All'
             $script:CurrentFilterLicense = 'All'
             $script:CurrentFilterStatus = 'All'
-            $script:chkProblemsOnly.Checked = ($sender.Tag -eq 'Issues')
+            $script:chkProblemsOnly.Checked = $false
             Show-View -View ([string]$sender.Tag) -Title $titleMap[[string]$sender.Tag]
             Invoke-CurrentSearch
         }
