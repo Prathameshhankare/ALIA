@@ -2600,8 +2600,16 @@ function Update-Dashboard {
         (Get-AuditHealth -Status ([string]$_.AuditStatus) -LicenseEnd ([string]$_.LicenseEnd)) -eq 'Critical'
     }).Count
 
-    if ($script:kpiGL) { $script:kpiGL.Value.Text = [string]$glCount }
-    if ($script:kpiCentral) { $script:kpiCentral.Value.Text = [string]$centralCount }
+    if ($script:kpiGL) {
+        $script:kpiGL.Value.Text = [string]$glCount
+        $script:kpiGL.Trend.Text = 'No change'
+        $script:kpiGL.Trend.ForeColor = [System.Drawing.Color]::FromArgb(148,163,184)
+    }
+    if ($script:kpiCentral) {
+        $script:kpiCentral.Value.Text = [string]$centralCount
+        $script:kpiCentral.Trend.Text = 'No change'
+        $script:kpiCentral.Trend.ForeColor = [System.Drawing.Color]::FromArgb(148,163,184)
+    }
     if ($script:kpiMonitored) { $script:kpiMonitored.Value.Text = [string]$monitoredCount }
     if ($script:kpiLicensed) { $script:kpiLicensed.Value.Text = [string]$licensedCount }
     if ($script:kpiIssues) { $script:kpiIssues.Value.Text = [string]$issueCount }
@@ -2690,7 +2698,7 @@ function Apply-RootLayout {
         $connectionPanel.Height = 112
 
         $overview.Dock = [System.Windows.Forms.DockStyle]::Top
-        $overview.Height = 176
+        $overview.Height = 184
 
         $toolbar.Dock = [System.Windows.Forms.DockStyle]::Top
         $toolbar.Height = 54
@@ -3014,7 +3022,7 @@ $overview.Dock = 'Fill'
 $overview.Padding = [System.Windows.Forms.Padding]::new(14, 5, 14, 5)
 $overview.ColumnCount = 2
 $overview.RowCount = 1
-[void]$overview.ColumnStyles.Add([System.Windows.Forms.ColumnStyle]::new([System.Windows.Forms.SizeType]::Absolute, 350))
+[void]$overview.ColumnStyles.Add([System.Windows.Forms.ColumnStyle]::new([System.Windows.Forms.SizeType]::Absolute, 380))
 [void]$overview.ColumnStyles.Add([System.Windows.Forms.ColumnStyle]::new([System.Windows.Forms.SizeType]::Percent, 100))
 
 $healthCard = New-Object System.Windows.Forms.Panel
@@ -3024,7 +3032,7 @@ $healthCard.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
 $healthCard.Padding = [System.Windows.Forms.Padding]::new(10,5,10,6)
 
 $healthTitleIconHost = New-Object System.Windows.Forms.PictureBox
-$healthTitleIconHost.Size = [System.Drawing.Size]::new(24,24)
+$healthTitleIconHost.Size = [System.Drawing.Size]::new(26,26)
 $healthTitleIconHost.Location = [System.Drawing.Point]::new(8,2)
 $healthTitleIconHost.SizeMode = [System.Windows.Forms.PictureBoxSizeMode]::CenterImage
 $healthTitleIconHost.BackColor = [System.Drawing.Color]::Transparent
@@ -3032,7 +3040,7 @@ $healthTitleIconHost.Tag = 'HEALTH_TITLE_ICON'
 [void]$healthCard.Controls.Add($healthTitleIconHost)
 
 $healthHeadlineIconHost = New-Object System.Windows.Forms.PictureBox
-$healthHeadlineIconHost.Size = [System.Drawing.Size]::new(24,24)
+$healthHeadlineIconHost.Size = [System.Drawing.Size]::new(26,26)
 $healthHeadlineIconHost.Location = [System.Drawing.Point]::new(8,28)
 $healthHeadlineIconHost.SizeMode = [System.Windows.Forms.PictureBoxSizeMode]::CenterImage
 $healthHeadlineIconHost.BackColor = [System.Drawing.Color]::Transparent
@@ -3044,15 +3052,15 @@ $healthTitle.Text = 'AUDIT HEALTH'
 $healthTitle.Font = [System.Drawing.Font]::new('Segoe UI Semibold', 8.5)
 $healthTitle.ForeColor = [System.Drawing.Color]::FromArgb(148,163,184)
 $healthTitle.AutoSize = $false
-$healthTitle.SetBounds(38,4,220,18)
+$healthTitle.SetBounds(40,4,300,18)
 
 $script:healthHeadline = New-Object System.Windows.Forms.Label
 $script:healthHeadline.Text = 'READY TO AUDIT'
-$script:healthHeadline.Font = [System.Drawing.Font]::new('Segoe UI Semibold', 13)
+$script:healthHeadline.Font = [System.Drawing.Font]::new('Segoe UI Semibold', 14)
 $script:healthHeadline.AutoEllipsis = $true
 $script:healthHeadline.ForeColor = [System.Drawing.Color]::FromArgb(248,70,70)
 $script:healthHeadline.AutoSize = $false
-$script:healthHeadline.SetBounds(38,28,245,28)
+$script:healthHeadline.SetBounds(40,28,300,30)
 
 $script:healthDetail = New-Object System.Windows.Forms.Label
 $script:healthDetail.Text = 'No audit results yet'
@@ -3108,8 +3116,8 @@ $healthTitle.Size = [System.Drawing.Size]::new(260,18)
 $script:healthHeadline.Location = [System.Drawing.Point]::new(38,28)
 $script:healthHeadline.Size = [System.Drawing.Size]::new(280,28)
 $healthStats.Dock = 'None'
-$healthStats.Location = [System.Drawing.Point]::new(8,59)
-$healthStats.Size = [System.Drawing.Size]::new(324,72)
+$healthStats.Location = [System.Drawing.Point]::new(8,62)
+$healthStats.Size = [System.Drawing.Size]::new(352,76)
 
 [void]$healthCard.Controls.Add($healthStats)
 [void]$healthCard.Controls.Add($script:healthHeadline)
@@ -3121,10 +3129,10 @@ $healthCard.Add_Resize({
     try {
         $w = $this.ClientSize.Width
         $h = $this.ClientSize.Height
-        $healthTitle.Width = [Math]::Max(160,$w-52)
-        $script:healthHeadline.Width = [Math]::Max(180,$w-50)
+        $healthTitle.Width = [Math]::Max(160,$w-54)
+        $script:healthHeadline.Width = [Math]::Max(180,$w-54)
         $healthStats.Location = [System.Drawing.Point]::new(8,59)
-        $healthStats.Size = [System.Drawing.Size]::new([Math]::Max(200,$w-16),[Math]::Max(58,$h-65))
+        $healthStats.Size = [System.Drawing.Size]::new([Math]::Max(200,$w-16),[Math]::Max(58,$h-68))
     } catch {}
 })
 
@@ -3176,8 +3184,8 @@ function New-KpiCard {
     $p.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
 
     $iconHost = New-Object System.Windows.Forms.PictureBox
-    $iconHost.Size = [System.Drawing.Size]::new(38,38)
-    $iconHost.Location = [System.Drawing.Point]::new(10,9)
+    $iconHost.Size = [System.Drawing.Size]::new(42,42)
+    $iconHost.Location = [System.Drawing.Point]::new(10,8)
     $iconHost.SizeMode = [System.Windows.Forms.PictureBoxSizeMode]::CenterImage
     $iconHost.BackColor = [System.Drawing.Color]::Transparent
     $iconHost.Tag = $Accent
@@ -3188,7 +3196,7 @@ function New-KpiCard {
     $cap.Font = [System.Drawing.Font]::new('Segoe UI', 8.5)
     $cap.ForeColor = [System.Drawing.Color]::FromArgb(203,213,225)
     $cap.AutoSize = $false
-    $cap.SetBounds(56,4,300,19)
+    $cap.SetBounds(58,5,300,19)
     $cap.TextAlign = [System.Drawing.ContentAlignment]::MiddleLeft
     $cap.AutoEllipsis = $true
 
@@ -3197,7 +3205,7 @@ function New-KpiCard {
     $val.Font = [System.Drawing.Font]::new('Segoe UI Semibold', 19)
     $val.ForeColor = [System.Drawing.Color]::FromArgb(226,232,240)
     $val.AutoSize = $false
-    $val.SetBounds(56,22,300,30)
+    $val.SetBounds(58,24,300,30)
     $val.TextAlign = [System.Drawing.ContentAlignment]::MiddleLeft
 
     $trend = New-Object System.Windows.Forms.Label
@@ -3205,7 +3213,7 @@ function New-KpiCard {
     $trend.Font = [System.Drawing.Font]::new('Segoe UI', 7.5)
     $trend.ForeColor = [System.Drawing.Color]::FromArgb(148,163,184)
     $trend.AutoSize = $false
-    $trend.SetBounds(56,55,300,16)
+    $trend.SetBounds(58,56,300,17)
     $trend.AutoEllipsis = $true
     $trend.TextAlign = [System.Drawing.ContentAlignment]::MiddleLeft
 
@@ -4787,7 +4795,7 @@ function Set-ALIAKpiIcons {
         $kpi=$item[0];$type=$item[1];$color=$item[2]
         if($null -ne $kpi -and $null -ne $kpi.Icon){
             if($null -eq $kpi.Icon.Image){
-                $kpi.Icon.Image=New-ALIAIconBitmap -Type $type -Color $color -Size 34
+                $kpi.Icon.Image=New-ALIAIconBitmap -Type $type -Color $color -Size 38
             }
             $kpi.Icon.BringToFront()
             $kpi.Icon.Tag=$kpi.Panel.Tag
@@ -4812,10 +4820,10 @@ function Set-ALIAKpiIcons {
 function Set-ALIAHealthIcons {
     try {
         if ($null -eq $healthTitleIconHost.Image) {
-            $healthTitleIconHost.Image = New-ALIAIconBitmap -Type Health -Color $script:DarkTheme.Critical -Size 22
+            $healthTitleIconHost.Image = New-ALIAIconBitmap -Type Health -Color $script:DarkTheme.Critical -Size 24
         }
         if ($null -eq $healthHeadlineIconHost.Image) {
-            $healthHeadlineIconHost.Image = New-ALIAIconBitmap -Type Health -Color $script:DarkTheme.Critical -Size 20
+            $healthHeadlineIconHost.Image = New-ALIAIconBitmap -Type Health -Color $script:DarkTheme.Critical -Size 22
         }
         $healthTitleIconHost.BringToFront()
         $healthHeadlineIconHost.BringToFront()
