@@ -2741,7 +2741,7 @@ function New-QuickViewButton {
 
 $quickPanel = New-Object System.Windows.Forms.FlowLayoutPanel
 $quickPanel.Dock = 'Left'
-$quickPanel.Width = 950
+$quickPanel.Width = 1000
 $quickPanel.Height = 34
 $quickPanel.WrapContents = $false
 $quickPanel.FlowDirection = 'LeftToRight'
@@ -2764,14 +2764,14 @@ $titleMap = @{
 
 foreach($qb in @(
     (New-QuickViewButton 'All' 'Audit' 48),
-    (New-QuickViewButton 'Lic: Not Central' 'StatusLicensedNotInCentral' 96),
-    (New-QuickViewButton 'Lic: Not Monitored' 'StatusLicensedNotMonitored' 112),
-    (New-QuickViewButton 'Lic: Online' 'StatusLicensedOnline' 84),
-    (New-QuickViewButton 'Lic: Offline' 'StatusLicensedOffline' 84),
-    (New-QuickViewButton 'Lic: Unknown' 'StatusLicensedUnknown' 88),
-    (New-QuickViewButton 'Unlic: Not Central' 'StatusUnlicensedNotInCentral' 108),
-    (New-QuickViewButton 'Unlic: Not Monitored' 'StatusUnlicensedNotMonitored' 124),
-    (New-QuickViewButton 'Unlic: Monitored' 'StatusUnlicensedMonitored' 106)
+    (New-QuickViewButton 'Lic: Not Central' 'StatusLicensedNotInCentral' 115),
+    (New-QuickViewButton 'Lic: Not Monitored' 'StatusLicensedNotMonitored' 125),
+    (New-QuickViewButton 'Lic: Online' 'StatusLicensedOnline' 90),
+    (New-QuickViewButton 'Lic: Offline' 'StatusLicensedOffline' 90),
+    (New-QuickViewButton 'Lic: Unknown' 'StatusLicensedUnknown' 95),
+    (New-QuickViewButton 'Unlic: Not Central' 'StatusUnlicensedNotInCentral' 125),
+    (New-QuickViewButton 'Unlic: Not Monitored' 'StatusUnlicensedNotMonitored' 145),
+    (New-QuickViewButton 'Unlic: Monitored' 'StatusUnlicensedMonitored' 120)
 )){
     $qb.Add_Click({
         param($sender)
