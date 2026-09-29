@@ -2771,9 +2771,10 @@ $toolbar.Add_Resize({ Position-Toolbar })
 
 $workspaceHost = New-Object System.Windows.Forms.TableLayoutPanel
 $workspaceHost.Dock = 'Fill'
-$workspaceHost.RowCount = 2
+$workspaceHost.RowCount = 3
 [void]$workspaceHost.RowStyles.Add([System.Windows.Forms.RowStyle]::new([System.Windows.Forms.SizeType]::Absolute,34))
 [void]$workspaceHost.RowStyles.Add([System.Windows.Forms.RowStyle]::new([System.Windows.Forms.SizeType]::Percent,100))
+[void]$workspaceHost.RowStyles.Add([System.Windows.Forms.RowStyle]::new([System.Windows.Forms.SizeType]::Absolute,34))
 [void]$workspaceHost.ColumnStyles.Add([System.Windows.Forms.ColumnStyle]::new([System.Windows.Forms.SizeType]::Percent,100))
 
 $resultsHeader = New-Object System.Windows.Forms.Panel
@@ -2949,6 +2950,13 @@ $script:detailBody.Anchor = 'Top,Left,Right'
 [void]$detailPanel.Controls.Add($script:detailTitle)
 [void]$detailGroup.Controls.Add($detailPanel)
 [void]$workspace.Panel2.Controls.Add($detailGroup)
+
+# Populate the workspace host.  These controls were previously created but
+# never added to workspaceHost, leaving the entire results area blank and
+# making quick-view changes appear to do nothing.
+[void]$workspaceHost.Controls.Add($resultsHeader,0,0)
+[void]$workspaceHost.Controls.Add($workspace,0,1)
+[void]$workspaceHost.Controls.Add($progressPanel,0,2)
 
 function Update-DetailPanelFromSelection {
     if ($null -eq $script:grid -or $null -eq $script:grid.CurrentRow) {
