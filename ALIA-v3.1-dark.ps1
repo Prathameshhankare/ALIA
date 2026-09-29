@@ -5077,6 +5077,26 @@ $script:frm.Add_FormClosing({
 })
 
 # ---------------------------------------------------------------------------
+# Responsive layout coordinator
+# ---------------------------------------------------------------------------
+# Keep this as a real function so the standalone script and PS2EXE build do not
+# depend on functions left behind by an earlier PowerShell ISE run.
+function Update-ResponsiveLayout {
+    try {
+        Apply-RootLayout
+        Position-ActionPanel
+        Position-Workspace
+        Position-Header
+        Position-Toolbar
+        Position-ViewHeader
+        Position-ProgressBar
+    }
+    catch {
+        try { Write-AuditLog DEBUG "Responsive layout update deferred: $($_.Exception.Message)" } catch {}
+    }
+}
+
+# ---------------------------------------------------------------------------
 # Startup
 # ---------------------------------------------------------------------------
 
