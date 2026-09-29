@@ -230,6 +230,7 @@ $script:AuditResults = @()
 $script:CentralNotMonitoredCache = $null
 $script:GLUnlicensedCentralMonitoredCache = $null
 $script:LicensedNotInMonitoredCache = $null
+$script:UpdatingAuditStatusFilter = $false
 $script:CurrentView = 'Audit'
 $script:CurrentViewTitle = 'All Audit Results'
 
@@ -1841,6 +1842,70 @@ function Get-ViewProperties {
     }
 }
 
+function Update-AuditStatusFilterOptions {
+    param(
+        [AllowNull()]
+        [object[]]$Objects
+    )
+
+    if ($null -eq $script:cmbAuditStatus -or
+        $null -eq $script:AuditStatusFilterMap) {
+        return
+    }
+
+    $presentStatuses = @{}
+    foreach ($object in @($Objects)) {
+        $status = Get-ObjectPropertyString -Object $object -PropertyName 'AuditStatus'
+        if (-not [string]::IsNullOrWhiteSpace($status)) {
+            $presentStatuses[$status] = $true
+        }
+    }
+
+    $currentFilter = [string]$script:CurrentFilterAuditStatus
+    $availableDisplayNames = New-Object System.Collections.Generic.List[string]
+
+    foreach ($entry in $script:AuditStatusFilterMap.GetEnumerator()) {
+        if ($entry.Value -eq 'All' -or $presentStatuses.ContainsKey([string]$entry.Value)) {
+            [void]$availableDisplayNames.Add([string]$entry.Key)
+        }
+    }
+
+    $script:UpdatingAuditStatusFilter = $true
+    try {
+        $script:cmbAuditStatus.BeginUpdate()
+        $script:cmbAuditStatus.Items.Clear()
+
+        foreach ($displayName in $availableDisplayNames) {
+            [void]$script:cmbAuditStatus.Items.Add($displayName)
+        }
+
+        $selectedIndex = 0
+        if ($currentFilter -ne 'All') {
+            for ($i = 0; $i -lt $script:cmbAuditStatus.Items.Count; $i++) {
+                $displayName = [string]$script:cmbAuditStatus.Items[$i]
+                if ([string]$script:AuditStatusFilterMap[$displayName] -eq $currentFilter) {
+                    $selectedIndex = $i
+                    break
+                }
+            }
+        }
+
+        $script:cmbAuditStatus.SelectedIndex = $selectedIndex
+        $script:cmbAuditStatus.Enabled = ($availableDisplayNames.Count -gt 1)
+
+        if (-not $script:cmbAuditStatus.Enabled) {
+            $script:CurrentFilterAuditStatus = 'All'
+        }
+        else {
+            $script:CurrentFilterAuditStatus = [string]$script:AuditStatusFilterMap[[string]$script:cmbAuditStatus.SelectedItem]
+        }
+    }
+    finally {
+        $script:cmbAuditStatus.EndUpdate()
+        $script:UpdatingAuditStatusFilter = $false
+    }
+}
+
 function Show-View {
     param(
         [Parameter(Mandatory)][string]$View,
@@ -1849,6 +1914,17 @@ function Show-View {
 
     if ($script:SearchTimer) {
         $script:SearchTimer.Stop()
+    }
+
+    $script:CurrentFilterAuditStatus = 'All'
+    if ($null -ne $script:cmbAuditStatus) {
+        $script:UpdatingAuditStatusFilter = $true
+        try {
+            $script:cmbAuditStatus.SelectedIndex = 0
+        }
+        finally {
+            $script:UpdatingAuditStatusFilter = $false
+        }
     }
 
     if ($script:txtSearch -and $script:txtSearch.Text.Trim().Length -gt 0) {
@@ -1868,6 +1944,8 @@ function Show-View {
     else {
         $objects = @(Get-ViewObjects -View $View)
     }
+
+    Update-AuditStatusFilterOptions -Objects $objects
 
     $properties = @(Get-ViewProperties -View $View)
     if ($View -eq 'Issues') {
@@ -2780,7 +2858,7 @@ $script:txtSearch.Font = [System.Drawing.Font]::new('Segoe UI', 8.8)
 $script:txtSearch.Width = 190
 $script:txtSearch.Height = 28
 $script:txtSearch.Text = ''
-$script:txtSearch.Anchor = 'Top,Right'
+$script:txtSearch.Anchor = 'Top,Left'
 $searchTip = New-Object System.Windows.Forms.ToolTip
 $searchTip.SetToolTip($script:txtSearch, 'Search serial, MAC, model, device name or site')
 [void]$toolbar.Controls.Add($script:txtSearch)
@@ -2808,7 +2886,7 @@ $script:cmbAuditStatus.Width = 285
 $script:cmbAuditStatus.Height = 28
 $script:cmbAuditStatus.DropDownWidth = 360
 $script:cmbAuditStatus.MaxDropDownItems = 10
-$script:cmbAuditStatus.Anchor = 'Top,Right'
+$script:cmbAuditStatus.Anchor = 'Top,Left'
 $auditStatusTip = New-Object System.Windows.Forms.ToolTip
 $auditStatusTip.SetToolTip($script:cmbAuditStatus, 'Filter audit results by Audit Status')
 [void]$toolbar.Controls.Add($script:cmbAuditStatus)
@@ -2819,7 +2897,7 @@ $script:cmbHealth.DropDownStyle = 'DropDownList'
 $script:cmbHealth.SelectedIndex = 0
 $script:cmbHealth.Width = 90
 $script:cmbHealth.Height = 28
-$script:cmbHealth.Anchor = 'Top,Right'
+$script:cmbHealth.Anchor = 'Top,Left'
 $healthTip = New-Object System.Windows.Forms.ToolTip
 $healthTip.SetToolTip($script:cmbHealth, 'Filter by ALIA audit health')
 [void]$toolbar.Controls.Add($script:cmbHealth)
@@ -2830,7 +2908,7 @@ $script:cmbDeviceType.DropDownStyle = 'DropDownList'
 $script:cmbDeviceType.SelectedIndex = 0
 $script:cmbDeviceType.Width = 100
 $script:cmbDeviceType.Height = 28
-$script:cmbDeviceType.Anchor = 'Top,Right'
+$script:cmbDeviceType.Anchor = 'Top,Left'
 $deviceTypeTip = New-Object System.Windows.Forms.ToolTip
 $deviceTypeTip.SetToolTip($script:cmbDeviceType, 'Filter by device type')
 [void]$toolbar.Controls.Add($script:cmbDeviceType)
@@ -2844,17 +2922,18 @@ $script:btnResetFilters.FlatAppearance.BorderSize = 1
 $script:btnResetFilters.BackColor = [System.Drawing.Color]::White
 $script:btnResetFilters.ForeColor = [System.Drawing.Color]::FromArgb(51,65,85)
 $script:btnResetFilters.Font = [System.Drawing.Font]::new('Segoe UI', 8)
-$script:btnResetFilters.Anchor = 'Top,Right'
+$script:btnResetFilters.Anchor = 'Top,Left'
 [void]$toolbar.Controls.Add($script:btnResetFilters)
 
 function Position-Toolbar {
     try {
-        $right = $toolbar.ClientSize.Width - 14
-        $script:btnResetFilters.Left = $right - $script:btnResetFilters.Width
-        $script:cmbDeviceType.Left = $script:btnResetFilters.Left - $script:cmbDeviceType.Width - 8
-        $script:cmbHealth.Left = $script:cmbDeviceType.Left - $script:cmbHealth.Width - 8
-        $script:cmbAuditStatus.Left = $script:cmbHealth.Left - $script:cmbAuditStatus.Width - 8
-        $script:txtSearch.Left = $script:cmbAuditStatus.Left - $script:txtSearch.Width - 8
+        $left = 14
+        $script:txtSearch.Left = $left
+        $script:cmbAuditStatus.Left = $script:txtSearch.Right + 8
+        $script:cmbHealth.Left = $script:cmbAuditStatus.Right + 8
+        $script:cmbDeviceType.Left = $script:cmbHealth.Right + 8
+        $script:btnResetFilters.Left = $script:cmbDeviceType.Right + 8
+
         $script:txtSearch.Top = 1
         $script:cmbAuditStatus.Top = 1
         $script:cmbHealth.Top = 1
@@ -3430,12 +3509,17 @@ $script:CurrentFilterAuditStatus = 'All'
 $script:btnResetFilters.Add_Click({
     $script:txtSearch.Text = ''
     $script:cmbAuditStatus.SelectedIndex = 0
+    $script:CurrentFilterAuditStatus = 'All'
     $script:cmbHealth.SelectedIndex = 0
     $script:cmbDeviceType.SelectedIndex = 0
     Invoke-CurrentSearch
 })
 
-$script:cmbAuditStatus.Add_SelectedIndexChanged({ Invoke-CurrentSearch })
+$script:cmbAuditStatus.Add_SelectedIndexChanged({
+    if (-not $script:UpdatingAuditStatusFilter) {
+        Invoke-CurrentSearch
+    }
+})
 $script:cmbHealth.Add_SelectedIndexChanged({ Invoke-CurrentSearch })
 $script:cmbDeviceType.Add_SelectedIndexChanged({ Invoke-CurrentSearch })
 
