@@ -2218,7 +2218,7 @@ function Apply-RootLayout {
         $overview.Height = 160
 
         $toolbar.Dock = [System.Windows.Forms.DockStyle]::Top
-        $toolbar.Height = 76
+        $toolbar.Height = 54
 
         $logHost.Dock = [System.Windows.Forms.DockStyle]::Bottom
         $logHost.Height = if ($script:LogPanelOpen) { 194 } else { 34 }
@@ -2732,7 +2732,7 @@ function New-QuickViewButton {
     $b.FlatAppearance.BorderSize = 1
     $b.BackColor = [System.Drawing.Color]::White
     $b.ForeColor = [System.Drawing.Color]::FromArgb(51,65,85)
-    $b.Font = [System.Drawing.Font]::new('Segoe UI Semibold', 7.8)
+    $b.Font = [System.Drawing.Font]::new('Segoe UI Semibold', 8.0)
     $b.TextAlign = [System.Drawing.ContentAlignment]::MiddleCenter
     $b.Cursor = [System.Windows.Forms.Cursors]::Hand
 
@@ -2741,9 +2741,9 @@ function New-QuickViewButton {
 
 $quickPanel = New-Object System.Windows.Forms.FlowLayoutPanel
 $quickPanel.Dock = 'Left'
-$quickPanel.Width = 575
-$quickPanel.Height = 70
-$quickPanel.WrapContents = $true
+$quickPanel.Width = 950
+$quickPanel.Height = 34
+$quickPanel.WrapContents = $false
 $quickPanel.FlowDirection = 'LeftToRight'
 $quickPanel.AutoScroll = $false
 $quickPanel.Padding = [System.Windows.Forms.Padding]::Empty
@@ -2763,15 +2763,15 @@ $titleMap = @{
 }
 
 foreach($qb in @(
-    (New-QuickViewButton 'All' 'Audit' 54),
-    (New-QuickViewButton 'Licensed - Not Central' 'StatusLicensedNotInCentral'),
-    (New-QuickViewButton 'Licensed - Not Monitored' 'StatusLicensedNotMonitored'),
-    (New-QuickViewButton 'Licensed - Online' 'StatusLicensedOnline'),
-    (New-QuickViewButton 'Licensed - Offline' 'StatusLicensedOffline'),
-    (New-QuickViewButton 'Licensed - Unknown' 'StatusLicensedUnknown'),
-    (New-QuickViewButton 'Unlicensed - Not Central' 'StatusUnlicensedNotInCentral'),
-    (New-QuickViewButton 'Unlicensed - Not Monitored' 'StatusUnlicensedNotMonitored'),
-    (New-QuickViewButton 'Unlicensed - Monitored' 'StatusUnlicensedMonitored')
+    (New-QuickViewButton 'All' 'Audit' 48),
+    (New-QuickViewButton 'Lic: Not Central' 'StatusLicensedNotInCentral' 96),
+    (New-QuickViewButton 'Lic: Not Monitored' 'StatusLicensedNotMonitored' 112),
+    (New-QuickViewButton 'Lic: Online' 'StatusLicensedOnline' 84),
+    (New-QuickViewButton 'Lic: Offline' 'StatusLicensedOffline' 84),
+    (New-QuickViewButton 'Lic: Unknown' 'StatusLicensedUnknown' 88),
+    (New-QuickViewButton 'Unlic: Not Central' 'StatusUnlicensedNotInCentral' 108),
+    (New-QuickViewButton 'Unlic: Not Monitored' 'StatusUnlicensedNotMonitored' 124),
+    (New-QuickViewButton 'Unlic: Monitored' 'StatusUnlicensedMonitored' 106)
 )){
     $qb.Add_Click({
         param($sender)
