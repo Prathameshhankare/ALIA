@@ -2853,6 +2853,24 @@ $toolbar.Dock = 'Fill'
 $toolbar.Padding = [System.Windows.Forms.Padding]::new(14,3,14,3)
 $toolbar.BackColor = [System.Drawing.Color]::FromArgb(241,245,249)
 
+$script:btnShowAll = New-Object System.Windows.Forms.Button
+$script:btnShowAll.Text = 'All'
+$script:btnShowAll.Width = 55
+$script:btnShowAll.Height = 28
+$script:btnShowAll.FlatStyle = 'Flat'
+$script:btnShowAll.FlatAppearance.BorderSize = 1
+$script:btnShowAll.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(51,65,85)
+$script:btnShowAll.BackColor = [System.Drawing.Color]::FromArgb(51,65,85)
+$script:btnShowAll.ForeColor = [System.Drawing.Color]::White
+$script:btnShowAll.Font = [System.Drawing.Font]::new('Segoe UI Semibold', 8)
+$script:btnShowAll.TextAlign = [System.Drawing.ContentAlignment]::MiddleCenter
+$script:btnShowAll.Cursor = [System.Windows.Forms.Cursors]::Hand
+$script:btnShowAll.UseMnemonic = $false
+$script:btnShowAll.Anchor = 'Top,Left'
+$allTip = New-Object System.Windows.Forms.ToolTip
+$allTip.SetToolTip($script:btnShowAll, 'Show the raw reconciliation with all audit columns')
+[void]$toolbar.Controls.Add($script:btnShowAll)
+
 $script:txtSearch = New-Object System.Windows.Forms.TextBox
 $script:txtSearch.Font = [System.Drawing.Font]::new('Segoe UI', 8.8)
 $script:txtSearch.Width = 190
@@ -2928,12 +2946,14 @@ $script:btnResetFilters.Anchor = 'Top,Left'
 function Position-Toolbar {
     try {
         $left = 14
-        $script:txtSearch.Left = $left
+        $script:btnShowAll.Left = $left
+        $script:txtSearch.Left = $script:btnShowAll.Right + 8
         $script:cmbAuditStatus.Left = $script:txtSearch.Right + 8
         $script:cmbHealth.Left = $script:cmbAuditStatus.Right + 8
         $script:cmbDeviceType.Left = $script:cmbHealth.Right + 8
         $script:btnResetFilters.Left = $script:cmbDeviceType.Right + 8
 
+        $script:btnShowAll.Top = 1
         $script:txtSearch.Top = 1
         $script:cmbAuditStatus.Top = 1
         $script:cmbHealth.Top = 1
@@ -3795,9 +3815,39 @@ $script:txtSearch.Add_KeyDown({
 })
 
 $script:btnShowAll.Add_Click({
-    $script:SearchTimer.Stop()
-    $script:txtSearch.Text = ''
-    Show-View -View Audit -Title 'All Audit Results'
+    try {
+        $script:SearchTimer.Stop()
+
+        $script:txtSearch.Text = ''
+        $script:CurrentFilterAuditStatus = 'All'
+        $script:CurrentFilterHealth = 'All'
+        $script:CurrentFilterDeviceType = 'All'
+
+        if ($null -ne $script:cmbAuditStatus) {
+            $script:UpdatingAuditStatusFilter = $true
+            try {
+                $script:cmbAuditStatus.SelectedIndex = 0
+            }
+            finally {
+                $script:UpdatingAuditStatusFilter = $false
+            }
+        }
+        if ($null -ne $script:cmbHealth) {
+            $script:cmbHealth.SelectedIndex = 0
+        }
+        if ($null -ne $script:cmbDeviceType) {
+            $script:cmbDeviceType.SelectedIndex = 0
+        }
+
+        # Audit view is the raw GreenLake-to-Aruba reconciliation dataset.
+        # Show-View('Audit') preserves the full reconciliation column set.
+        Show-View -View Audit -Title 'All Audit Results'
+    }
+    catch {
+        $message = Get-SafeErrorMessage $_
+        Write-AuditLog ERROR "All reconciliation view failed: $message"
+        Show-ErrorDialog -Message $message -Title 'Audit Results Error'
+    }
 })
 
 
