@@ -4053,7 +4053,10 @@ Update-SessionStatus
 # ---------------------------------------------------------------------------
 
 $script:SearchTimer = New-Object System.Windows.Forms.Timer
-$script:SearchTimer.Interval = 450
+# Debounce search so the grid does not refresh while the user is still typing.
+# 800 ms gives enough time to finish a normal search term while keeping the
+# dynamic search experience responsive once typing pauses.
+$script:SearchTimer.Interval = 800
 
 function Get-ObjectPropertyString {
     param(
