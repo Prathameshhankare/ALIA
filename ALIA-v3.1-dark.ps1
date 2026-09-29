@@ -407,6 +407,94 @@ public static class ALIANativeMethods
 try { [ALIANativeMethods]::EnableDarkAppMode() } catch {}
 
 # ---------------------------------------------------------------------------
+# Phase 3 - native Windows dark chrome
+# ---------------------------------------------------------------------------
+
+function Set-ALIANativeWindowTheme {
+    try {
+        if ($null -eq $script:frm -or $script:frm.IsDisposed) {
+            return
+        }
+
+        if (-not $script:frm.IsHandleCreated) {
+            return
+        }
+
+        # COLORREF is 0x00BBGGRR:
+        # caption = #0F172A, text = #E2E8F0, border = #263D56.
+        $caption = [uint32]0x002A170F
+        $text    = [uint32]0x00F0E8E2
+        $border  = [uint32]0x00563D26
+
+        [ALIANativeMethods]::SetDarkTitleBar(
+            $script:frm.Handle,
+            $caption,
+            $text,
+            $border)
+    }
+    catch {
+        try { Write-AuditLog DEBUG "Native title bar theme could not be applied: $($_.Exception.Message)" } catch {}
+    }
+}
+
+function Set-ALIADataGridScrollbars {
+    try {
+        if ($null -eq $script:grid -or $script:grid.IsDisposed) {
+            return
+        }
+
+        if (-not $script:grid.IsHandleCreated) {
+            return
+        }
+
+        [ALIANativeMethods]::EnableDarkAppMode()
+        [ALIANativeMethods]::SetDarkScrollbars($script:grid.Handle)
+
+        $flags = [System.Reflection.BindingFlags]::Instance -bor [System.Reflection.BindingFlags]::NonPublic
+
+        foreach ($propertyName in @('HorizontalScrollBar','VerticalScrollBar')) {
+            try {
+                $property = [System.Windows.Forms.DataGridView].GetProperty($propertyName, $flags)
+                if ($null -ne $property) {
+                    $scrollBar = $property.GetValue($script:grid, $null)
+                    if ($null -ne $scrollBar -and $scrollBar.IsHandleCreated) {
+                        [ALIANativeMethods]::SetWindowThemeForHandle($scrollBar.Handle)
+                    }
+                }
+            } catch {}
+        }
+
+        # Fallback: DataGridView owns real WinForms HScrollBar/VScrollBar
+        # child controls. Apply the same theme to any such controls directly.
+        foreach ($child in @($script:grid.Controls)) {
+            if ($child -is [System.Windows.Forms.HScrollBar] -or
+                $child -is [System.Windows.Forms.VScrollBar]) {
+                try {
+                    if ($child.IsHandleCreated) {
+                        [ALIANativeMethods]::SetWindowThemeForHandle($child.Handle)
+                    }
+                } catch {}
+            }
+        }
+
+        try {
+            $script:grid.Invalidate()
+            $script:grid.Update()
+        } catch {}
+    }
+    catch {
+        try { Write-AuditLog DEBUG "Native DataGridView scrollbar theme could not be applied: $($_.Exception.Message)" } catch {}
+    }
+}
+
+function Apply-ALIAWindowChrome {
+    try { [ALIANativeMethods]::EnableDarkAppMode() } catch {}
+    Set-ALIANativeWindowTheme
+    Set-ALIADataGridScrollbars
+}
+
+
+# ---------------------------------------------------------------------------
 # Embedded startup splash
 # ---------------------------------------------------------------------------
 
@@ -5116,93 +5204,6 @@ $script:lblProgress.Text = 'Ready'
 Show-View -View Audit -Title 'All Audit Results'
 [System.Windows.Forms.Application]::DoEvents()
 Close-StartupSplash
-
-# ---------------------------------------------------------------------------
-# Phase 3 - native Windows dark chrome
-# ---------------------------------------------------------------------------
-
-function Set-ALIANativeWindowTheme {
-    try {
-        if ($null -eq $script:frm -or $script:frm.IsDisposed) {
-            return
-        }
-
-        if (-not $script:frm.IsHandleCreated) {
-            return
-        }
-
-        # COLORREF is 0x00BBGGRR:
-        # caption = #0F172A, text = #E2E8F0, border = #263D56.
-        $caption = [uint32]0x002A170F
-        $text    = [uint32]0x00F0E8E2
-        $border  = [uint32]0x00563D26
-
-        [ALIANativeMethods]::SetDarkTitleBar(
-            $script:frm.Handle,
-            $caption,
-            $text,
-            $border)
-    }
-    catch {
-        try { Write-AuditLog DEBUG "Native title bar theme could not be applied: $($_.Exception.Message)" } catch {}
-    }
-}
-
-function Set-ALIADataGridScrollbars {
-    try {
-        if ($null -eq $script:grid -or $script:grid.IsDisposed) {
-            return
-        }
-
-        if (-not $script:grid.IsHandleCreated) {
-            return
-        }
-
-        [ALIANativeMethods]::EnableDarkAppMode()
-        [ALIANativeMethods]::SetDarkScrollbars($script:grid.Handle)
-
-        $flags = [System.Reflection.BindingFlags]::Instance -bor [System.Reflection.BindingFlags]::NonPublic
-
-        foreach ($propertyName in @('HorizontalScrollBar','VerticalScrollBar')) {
-            try {
-                $property = [System.Windows.Forms.DataGridView].GetProperty($propertyName, $flags)
-                if ($null -ne $property) {
-                    $scrollBar = $property.GetValue($script:grid, $null)
-                    if ($null -ne $scrollBar -and $scrollBar.IsHandleCreated) {
-                        [ALIANativeMethods]::SetWindowThemeForHandle($scrollBar.Handle)
-                    }
-                }
-            } catch {}
-        }
-
-        # Fallback: DataGridView owns real WinForms HScrollBar/VScrollBar
-        # child controls. Apply the same theme to any such controls directly.
-        foreach ($child in @($script:grid.Controls)) {
-            if ($child -is [System.Windows.Forms.HScrollBar] -or
-                $child -is [System.Windows.Forms.VScrollBar]) {
-                try {
-                    if ($child.IsHandleCreated) {
-                        [ALIANativeMethods]::SetWindowThemeForHandle($child.Handle)
-                    }
-                } catch {}
-            }
-        }
-
-        try {
-            $script:grid.Invalidate()
-            $script:grid.Update()
-        } catch {}
-    }
-    catch {
-        try { Write-AuditLog DEBUG "Native DataGridView scrollbar theme could not be applied: $($_.Exception.Message)" } catch {}
-    }
-}
-
-function Apply-ALIAWindowChrome {
-    try { [ALIANativeMethods]::EnableDarkAppMode() } catch {}
-    Set-ALIANativeWindowTheme
-    Set-ALIADataGridScrollbars
-}
 
 # ---------------------------------------------------------------------------
 # ALIA Dark Mode - visual layer only
