@@ -1899,25 +1899,49 @@ function New-GridColumnFilterMenu {
     if ([string]::IsNullOrWhiteSpace($propertyName)) { $propertyName = [string]$column.Name }
 
     $menu = New-Object System.Windows.Forms.ContextMenuStrip
+
     $sortAsc = $menu.Items.Add("Sort '$($column.HeaderText)' A → Z")
-    $sortAsc.Add_Click({ $script:grid.Sort($column, [System.ComponentModel.ListSortDirection]::Ascending) })
+    $sortAscHandler = {
+        $script:grid.Sort($column, [System.ComponentModel.ListSortDirection]::Ascending)
+    }.GetNewClosure()
+    $sortAsc.Add_Click($sortAscHandler)
+
     $sortDesc = $menu.Items.Add("Sort '$($column.HeaderText)' Z → A")
-    $sortDesc.Add_Click({ $script:grid.Sort($column, [System.ComponentModel.ListSortDirection]::Descending) })
+    $sortDescHandler = {
+        $script:grid.Sort($column, [System.ComponentModel.ListSortDirection]::Descending)
+    }.GetNewClosure()
+    $sortDesc.Add_Click($sortDescHandler)
+
     [void]$menu.Items.Add('-')
 
     $clearColumn = $menu.Items.Add('Clear Filter for This Column')
     $clearColumn.Enabled = $script:GridFilters.ContainsKey($propertyName)
-    $clearColumn.Add_Click({
-        if ($script:GridFilters.ContainsKey($propertyName)) { $script:GridFilters.Remove($propertyName) }
+    $clearColumnHandler = {
+        if ($script:GridFilters.ContainsKey($propertyName)) {
+            $script:GridFilters.Remove($propertyName)
+        }
         Invoke-CurrentSearch
-    })
+    }.GetNewClosure()
+    $clearColumn.Add_Click($clearColumnHandler)
 
     $clearAll = $menu.Items.Add('Clear All Column Filters')
-    $clearAll.Add_Click({ $script:GridFilters.Clear(); Invoke-CurrentSearch })
+    $clearAllHandler = {
+        $script:GridFilters.Clear()
+        Invoke-CurrentSearch
+    }.GetNewClosure()
+    $clearAll.Add_Click($clearAllHandler)
+
     [void]$menu.Items.Add('-')
 
     $candidateObjects = @(Get-GridBaseObjects -ExcludeColumn $propertyName)
-    $uniqueValues = @($candidateObjects | ForEach-Object { Get-ObjectPropertyString -Object $_ -PropertyName $propertyName } | Sort-Object -Unique)
+    $uniqueValues = @(
+        $candidateObjects |
+            ForEach-Object {
+                Get-ObjectPropertyString -Object $_ -PropertyName $propertyName
+            } |
+            Sort-Object -Unique
+    )
+
     if ($uniqueValues.Count -eq 0) {
         $empty = $menu.Items.Add('(No values in current view)')
         $empty.Enabled = $false
@@ -1926,11 +1950,23 @@ function New-GridColumnFilterMenu {
 
     $label = $menu.Items.Add("Filter by '$($column.HeaderText)'")
     $label.Enabled = $false
+
     $valueItems = New-Object System.Collections.Generic.List[object]
-    $selectedValues = if ($script:GridFilters.ContainsKey($propertyName)) { @($script:GridFilters[$propertyName]) } else { @($uniqueValues) }
+    $selectedValues = if ($script:GridFilters.ContainsKey($propertyName)) {
+        @($script:GridFilters[$propertyName])
+    }
+    else {
+        @($uniqueValues)
+    }
 
     foreach ($value in $uniqueValues) {
-        $displayValue = if ([string]::IsNullOrWhiteSpace($value)) { '(Blank)' } else { $value }
+        $displayValue = if ([string]::IsNullOrWhiteSpace($value)) {
+            '(Blank)'
+        }
+        else {
+            $value
+        }
+
         $item = New-Object System.Windows.Forms.ToolStripMenuItem
         $item.Text = $displayValue
         $item.CheckOnClick = $true
@@ -1941,16 +1977,33 @@ function New-GridColumnFilterMenu {
     }
 
     [void]$menu.Items.Add('-')
+
     $apply = $menu.Items.Add('Apply Filter')
     $apply.Font = [System.Drawing.Font]::new('Segoe UI Semibold', 8.5)
-    $apply.Add_Click({
-        $checkedValues = @($valueItems | Where-Object { $_.Checked } | ForEach-Object { [string]$_.Tag })
+
+    # Event handlers fire after this function returns. Use GetNewClosure()
+    # so the handler retains valueItems, uniqueValues and propertyName.
+    $applyHandler = {
+        $checkedValues = @(
+            $valueItems |
+                Where-Object { $_.Checked } |
+                ForEach-Object { [string]$_.Tag }
+        )
+
         if ($checkedValues.Count -eq 0 -or $checkedValues.Count -eq $uniqueValues.Count) {
-            if ($script:GridFilters.ContainsKey($propertyName)) { $script:GridFilters.Remove($propertyName) }
+            if ($script:GridFilters.ContainsKey($propertyName)) {
+                $script:GridFilters.Remove($propertyName)
+            }
         }
-        else { $script:GridFilters[$propertyName] = @($checkedValues) }
+        else {
+            $script:GridFilters[$propertyName] = @($checkedValues)
+        }
+
         Invoke-CurrentSearch
-    })
+    }.GetNewClosure()
+
+    $apply.Add_Click($applyHandler)
+
     return $menu
 }
 
