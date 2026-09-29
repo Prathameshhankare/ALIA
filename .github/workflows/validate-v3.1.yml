@@ -63,6 +63,7 @@ jobs:
             'Audit History',
             'Coverage',
             'Audit Status',
+            'All Audit Results',
             'RUN LICENSE AUDIT',
             'Show Audit Log',
             'Central Inventory',
@@ -90,6 +91,14 @@ jobs:
           if ($source.IndexOf('StatusButtons', [System.StringComparison]::OrdinalIgnoreCase) -ge 0 -or
               $source.IndexOf('New-QuickViewButton', [System.StringComparison]::OrdinalIgnoreCase) -ge 0) {
             throw "Legacy Audit Status button strip is still present."
+          }
+
+          if ($source.IndexOf("$script:btnShowAll", [System.StringComparison]::OrdinalIgnoreCase) -lt 0) {
+            throw "All reconciliation button is missing."
+          }
+
+          if ($source.IndexOf("Show-View -View Audit -Title 'All Audit Results'", [System.StringComparison]::OrdinalIgnoreCase) -lt 0) {
+            throw "All button is not wired to the raw Audit view."
           }
 
           Write-Host "ALIA v3.1 GUI smoke tests passed."
