@@ -1735,6 +1735,11 @@ function Get-ViewObjects {
         'StatusUnlicensedNotInCentral'  { return @($script:AuditResults | Where-Object { $_.AuditStatus -eq 'UNLICENSED - NOT IN CENTRAL' }) }
         'StatusUnlicensedNotMonitored'  { return @($script:AuditResults | Where-Object { $_.AuditStatus -eq 'UNLICENSED - IN CENTRAL INVENTORY - NOT MONITORED' }) }
         'StatusUnlicensedMonitored'     { return @($script:AuditResults | Where-Object { $_.AuditStatus -eq 'UNLICENSED - MONITORED' }) }
+
+        'HealthHealthy'  { return @($script:AuditResults | Where-Object { (Get-AuditHealth -Status ([string]$_.AuditStatus) -LicenseEnd ([string]$_.LicenseEnd)) -eq 'Healthy' }) }
+        'HealthWarning'  { return @($script:AuditResults | Where-Object { (Get-AuditHealth -Status ([string]$_.AuditStatus) -LicenseEnd ([string]$_.LicenseEnd)) -eq 'Warning' }) }
+        'HealthCritical' { return @($script:AuditResults | Where-Object { (Get-AuditHealth -Status ([string]$_.AuditStatus) -LicenseEnd ([string]$_.LicenseEnd)) -eq 'Critical' }) }
+
         'LicensedNotInMonitored' {
             if ($null -ne $script:LicensedNotInMonitoredCache) {
                 return @($script:LicensedNotInMonitoredCache)
