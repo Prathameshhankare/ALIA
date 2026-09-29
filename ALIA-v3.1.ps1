@@ -718,6 +718,13 @@ function Build-AuditResults {
             ArubaMonitoredDeviceName = if ($monitoringMatch) { [string]$monitoringMatch.DeviceName } else { '' }
             ArubaMonitoredSiteName = if ($monitoringMatch) { [string]$monitoringMatch.SiteName } else { '' }
             ArubaMonitoredFirmware = if ($monitoringMatch) { [string]$monitoringMatch.FirmwareVersion } else { '' }
+            FirmwareVersion = if ($monitoringMatch -and -not [string]::IsNullOrWhiteSpace([string]$monitoringMatch.FirmwareVersion)) {
+                [string]$monitoringMatch.FirmwareVersion
+            }
+            elseif ($inventoryMatch) {
+                [string]$inventoryMatch.FirmwareVersion
+            }
+            else { '' }
 
             InventoryMatchMethod = $inventoryMatchMethod
             MonitoringMatchMethod = $monitoringMatchMethod
@@ -1765,7 +1772,7 @@ function Get-ViewProperties {
                 'SerialNumber','MACAddress','GreenLakeDeviceType','Model','DeviceName',
                 'LicenseTier','LicenseStart','LicenseEnd',
                 'ArubaInventoryPresent','ArubaProvisioned','ArubaMonitoredPresent',
-                'ArubaStatus','ArubaHealth',
+                'FirmwareVersion','ArubaStatus','ArubaHealth',
                 'ArubaInventoryDeviceName','ArubaInventorySiteName',
                 'ArubaMonitoredDeviceName','ArubaMonitoredSiteName',
                 'InventoryMatchMethod','MonitoringMatchMethod',
@@ -1808,7 +1815,7 @@ function Show-View {
         $properties = @(
             'SerialNumber','MACAddress','GreenLakeDeviceType','Model','DeviceName',
             'LicenseTier','LicenseEnd','ArubaInventoryPresent','ArubaProvisioned',
-            'ArubaMonitoredPresent','ArubaStatus','ArubaHealth','AuditStatus','AuditReason'
+            'ArubaMonitoredPresent','FirmwareVersion','ArubaStatus','ArubaHealth','AuditStatus','AuditReason'
         )
     }
 
@@ -3032,6 +3039,7 @@ ARUBA CENTRAL
 Inventory       : $central
 Provisioned     : $provisioned
 Monitored       : $monitored
+Firmware        : $(V 'FirmwareVersion')
 Central Status  : $centralStatus
 Health          : $health
 
