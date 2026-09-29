@@ -2415,7 +2415,7 @@ $runHint.TextAlign = [System.Drawing.ContentAlignment]::MiddleCenter
 [void]$actions.Controls.Add($runHint)
 
 $secondary = New-Object System.Windows.Forms.FlowLayoutPanel
-$secondary.Dock = 'Bottom'
+$secondary.Dock = 'None'
 $secondary.Height = 32
 $secondary.FlowDirection = 'LeftToRight'
 $secondary.WrapContents = $false
@@ -2445,6 +2445,33 @@ $script:btnExport.Enabled = $false
 [void]$secondary.Controls.Add($script:btnExport)
 [void]$secondary.Controls.Add($script:btnClear)
 [void]$actions.Controls.Add($secondary)
+
+function Position-ActionPanel {
+    try {
+        if ($null -eq $actions -or $actions.IsDisposed) { return }
+
+        # The action column is only ~25% of the connection row.  Use explicit
+        # child coordinates so the secondary actions cannot be covered by the
+        # primary RUN button on different DPI/layout combinations.
+        $availableWidth = [Math]::Max(1, $actions.ClientSize.Width - 9)
+        $availableHeight = [Math]::Max(1, $actions.ClientSize.Height - 6)
+
+        $runHeight = [Math]::Min(55, [Math]::Max(48, $availableHeight - 51))
+        $hintHeight = 19
+        $secondaryHeight = [Math]::Max(30, $availableHeight - $runHeight - $hintHeight)
+
+        $runPanel.Dock = 'None'
+        $runHint.Dock = 'None'
+        $secondary.Dock = 'None'
+
+        $runPanel.SetBounds(6, 0, $availableWidth, $runHeight)
+        $runHint.SetBounds(6, $runHeight, $availableWidth, $hintHeight)
+        $secondary.SetBounds(4, $runHeight + $hintHeight, [Math]::Max(1,$availableWidth - 2), $secondaryHeight)
+    } catch {}
+}
+
+$actions.Add_Resize({ Position-ActionPanel })
+$connectionPanel.Add_Resize({ Position-ActionPanel })
 
 [void]$connectionPanel.Controls.Add($glCard.Group, 0, 0)
 [void]$connectionPanel.Controls.Add($arubaCard.Group, 1, 0)
@@ -3303,6 +3330,7 @@ $logHost.RowCount=2
 $script:frm.Add_Resize({
     try {
         Apply-RootLayout
+        Position-ActionPanel
         Position-Header
         Position-Toolbar
         Position-ViewHeader
@@ -3314,6 +3342,7 @@ $script:frm.Add_Resize({
 $script:frm.Add_Shown({
     try {
         Apply-RootLayout
+        Position-ActionPanel
         Position-Workspace
         Position-Header
         Position-Toolbar
@@ -3323,6 +3352,7 @@ $script:frm.Add_Shown({
 })
 
 Apply-RootLayout
+Position-ActionPanel
 Position-Header
 Position-Toolbar
 Position-ViewHeader
