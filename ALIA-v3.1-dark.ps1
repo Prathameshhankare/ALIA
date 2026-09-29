@@ -410,7 +410,7 @@ try { [ALIANativeMethods]::EnableDarkAppMode() } catch {}
 # Phase 3 - native Windows dark chrome
 # ---------------------------------------------------------------------------
 
-function Set-ALIANativeWindowTheme {
+function global:Set-ALIANativeWindowTheme {
     try {
         if ($null -eq $script:frm -or $script:frm.IsDisposed) {
             return
@@ -437,7 +437,7 @@ function Set-ALIANativeWindowTheme {
     }
 }
 
-function Set-ALIADataGridScrollbars {
+function global:Set-ALIADataGridScrollbars {
     try {
         if ($null -eq $script:grid -or $script:grid.IsDisposed) {
             return
@@ -487,7 +487,7 @@ function Set-ALIADataGridScrollbars {
     }
 }
 
-function Apply-ALIAWindowChrome {
+function global:Apply-ALIAWindowChrome {
     try { [ALIANativeMethods]::EnableDarkAppMode() } catch {}
     Set-ALIANativeWindowTheme
     Set-ALIADataGridScrollbars
@@ -5169,7 +5169,7 @@ $script:frm.Add_FormClosing({
 # ---------------------------------------------------------------------------
 # Keep this as a real function so the standalone script and PS2EXE build do not
 # depend on functions left behind by an earlier PowerShell ISE run.
-function Update-ResponsiveLayout {
+function global:Update-ResponsiveLayout {
     try {
         Apply-RootLayout
         Position-ActionPanel
