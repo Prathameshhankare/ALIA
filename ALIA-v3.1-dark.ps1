@@ -2701,7 +2701,7 @@ function Apply-RootLayout {
         $overview.Height = 184
 
         $toolbar.Dock = [System.Windows.Forms.DockStyle]::Top
-        $toolbar.Height = 54
+        $toolbar.Height = 58
 
         $logHost.Dock = [System.Windows.Forms.DockStyle]::Bottom
         $logHost.Height = if ($script:LogPanelOpen) { 194 } else { 34 }
@@ -3022,7 +3022,7 @@ $overview.Dock = 'Fill'
 $overview.Padding = [System.Windows.Forms.Padding]::new(14, 5, 14, 5)
 $overview.ColumnCount = 2
 $overview.RowCount = 1
-[void]$overview.ColumnStyles.Add([System.Windows.Forms.ColumnStyle]::new([System.Windows.Forms.SizeType]::Absolute, 380))
+[void]$overview.ColumnStyles.Add([System.Windows.Forms.ColumnStyle]::new([System.Windows.Forms.SizeType]::Absolute, 404))
 [void]$overview.ColumnStyles.Add([System.Windows.Forms.ColumnStyle]::new([System.Windows.Forms.SizeType]::Percent, 100))
 
 $healthCard = New-Object System.Windows.Forms.Panel
@@ -3032,16 +3032,16 @@ $healthCard.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
 $healthCard.Padding = [System.Windows.Forms.Padding]::new(10,5,10,6)
 
 $healthTitleIconHost = New-Object System.Windows.Forms.PictureBox
-$healthTitleIconHost.Size = [System.Drawing.Size]::new(26,26)
-$healthTitleIconHost.Location = [System.Drawing.Point]::new(9,2)
+$healthTitleIconHost.Size = [System.Drawing.Size]::new(28,28)
+$healthTitleIconHost.Location = [System.Drawing.Point]::new(8,1)
 $healthTitleIconHost.SizeMode = [System.Windows.Forms.PictureBoxSizeMode]::CenterImage
 $healthTitleIconHost.BackColor = [System.Drawing.Color]::Transparent
 $healthTitleIconHost.Tag = 'HEALTH_TITLE_ICON'
 [void]$healthCard.Controls.Add($healthTitleIconHost)
 
 $healthHeadlineIconHost = New-Object System.Windows.Forms.PictureBox
-$healthHeadlineIconHost.Size = [System.Drawing.Size]::new(26,26)
-$healthHeadlineIconHost.Location = [System.Drawing.Point]::new(9,30)
+$healthHeadlineIconHost.Size = [System.Drawing.Size]::new(28,28)
+$healthHeadlineIconHost.Location = [System.Drawing.Point]::new(8,29)
 $healthHeadlineIconHost.SizeMode = [System.Windows.Forms.PictureBoxSizeMode]::CenterImage
 $healthHeadlineIconHost.BackColor = [System.Drawing.Color]::Transparent
 $healthHeadlineIconHost.Tag = 'HEALTH_HEADLINE_ICON'
@@ -3049,18 +3049,18 @@ $healthHeadlineIconHost.Tag = 'HEALTH_HEADLINE_ICON'
 
 $healthTitle = New-Object System.Windows.Forms.Label
 $healthTitle.Text = 'AUDIT HEALTH'
-$healthTitle.Font = [System.Drawing.Font]::new('Segoe UI Semibold', 8.5)
+$healthTitle.Font = [System.Drawing.Font]::new('Segoe UI Semibold', 9.0)
 $healthTitle.ForeColor = [System.Drawing.Color]::FromArgb(148,163,184)
 $healthTitle.AutoSize = $false
-$healthTitle.SetBounds(40,4,300,18)
+$healthTitle.SetBounds(40,4,320,18)
 
 $script:healthHeadline = New-Object System.Windows.Forms.Label
 $script:healthHeadline.Text = 'READY TO AUDIT'
-$script:healthHeadline.Font = [System.Drawing.Font]::new('Segoe UI Semibold', 14)
+$script:healthHeadline.Font = [System.Drawing.Font]::new('Segoe UI Semibold', 15)
 $script:healthHeadline.AutoEllipsis = $true
 $script:healthHeadline.ForeColor = [System.Drawing.Color]::FromArgb(248,70,70)
 $script:healthHeadline.AutoSize = $false
-$script:healthHeadline.SetBounds(40,28,300,30)
+$script:healthHeadline.SetBounds(40,28,320,30)
 
 $script:healthDetail = New-Object System.Windows.Forms.Label
 $script:healthDetail.Text = 'No audit results yet'
@@ -3116,8 +3116,8 @@ $healthTitle.Size = [System.Drawing.Size]::new(260,18)
 $script:healthHeadline.Location = [System.Drawing.Point]::new(38,28)
 $script:healthHeadline.Size = [System.Drawing.Size]::new(280,28)
 $healthStats.Dock = 'None'
-$healthStats.Location = [System.Drawing.Point]::new(8,62)
-$healthStats.Size = [System.Drawing.Size]::new(352,76)
+$healthStats.Location = [System.Drawing.Point]::new(8,63)
+$healthStats.Size = [System.Drawing.Size]::new(360,78)
 
 [void]$healthCard.Controls.Add($healthStats)
 [void]$healthCard.Controls.Add($script:healthHeadline)
@@ -3131,8 +3131,8 @@ $healthCard.Add_Resize({
         $h = $this.ClientSize.Height
         $healthTitle.Width = [Math]::Max(160,$w-54)
         $script:healthHeadline.Width = [Math]::Max(180,$w-54)
-        $healthStats.Location = [System.Drawing.Point]::new(8,59)
-        $healthStats.Size = [System.Drawing.Size]::new([Math]::Max(200,$w-16),[Math]::Max(58,$h-68))
+        $healthStats.Location = [System.Drawing.Point]::new(8,62)
+        $healthStats.Size = [System.Drawing.Size]::new([Math]::Max(200,$w-16),[Math]::Max(60,$h-70))
     } catch {}
 })
 
@@ -3171,8 +3171,8 @@ $kpiPanel.Dock = 'Fill'
 $kpiPanel.ColumnCount = 3
 $kpiPanel.RowCount = 2
 for($i=0;$i -lt 3;$i++){ [void]$kpiPanel.ColumnStyles.Add([System.Windows.Forms.ColumnStyle]::new([System.Windows.Forms.SizeType]::Percent,33.333)) }
-[void]$kpiPanel.RowStyles.Add([System.Windows.Forms.RowStyle]::new([System.Windows.Forms.SizeType]::Absolute, 82))
-[void]$kpiPanel.RowStyles.Add([System.Windows.Forms.RowStyle]::new([System.Windows.Forms.SizeType]::Absolute, 82))
+[void]$kpiPanel.RowStyles.Add([System.Windows.Forms.RowStyle]::new([System.Windows.Forms.SizeType]::Absolute, 84))
+[void]$kpiPanel.RowStyles.Add([System.Windows.Forms.RowStyle]::new([System.Windows.Forms.SizeType]::Absolute, 84))
 
 function New-KpiCard {
     param([string]$Caption,[System.Drawing.Color]$Accent)
@@ -3184,8 +3184,8 @@ function New-KpiCard {
     $p.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
 
     $iconHost = New-Object System.Windows.Forms.PictureBox
-    $iconHost.Size = [System.Drawing.Size]::new(40,40)
-    $iconHost.Location = [System.Drawing.Point]::new(11,7)
+    $iconHost.Size = [System.Drawing.Size]::new(42,42)
+    $iconHost.Location = [System.Drawing.Point]::new(10,6)
     $iconHost.SizeMode = [System.Windows.Forms.PictureBoxSizeMode]::CenterImage
     $iconHost.BackColor = [System.Drawing.Color]::Transparent
     $iconHost.Tag = $Accent
@@ -3196,7 +3196,7 @@ function New-KpiCard {
     $cap.Font = [System.Drawing.Font]::new('Segoe UI', 9.0)
     $cap.ForeColor = [System.Drawing.Color]::FromArgb(203,213,225)
     $cap.AutoSize = $false
-    $cap.SetBounds(58,5,300,19)
+    $cap.SetBounds(60,5,300,19)
     $cap.TextAlign = [System.Drawing.ContentAlignment]::MiddleLeft
     $cap.AutoEllipsis = $true
 
@@ -3205,7 +3205,7 @@ function New-KpiCard {
     $val.Font = [System.Drawing.Font]::new('Segoe UI Semibold', 19)
     $val.ForeColor = [System.Drawing.Color]::FromArgb(226,232,240)
     $val.AutoSize = $false
-    $val.SetBounds(58,24,300,30)
+    $val.SetBounds(60,25,300,30)
     $val.TextAlign = [System.Drawing.ContentAlignment]::MiddleLeft
 
     $trend = New-Object System.Windows.Forms.Label
@@ -3213,7 +3213,7 @@ function New-KpiCard {
     $trend.Font = [System.Drawing.Font]::new('Segoe UI', 7.8)
     $trend.ForeColor = [System.Drawing.Color]::FromArgb(148,163,184)
     $trend.AutoSize = $false
-    $trend.SetBounds(58,56,300,17)
+    $trend.SetBounds(60,55,300,18)
     $trend.AutoEllipsis = $true
     $trend.TextAlign = [System.Drawing.ContentAlignment]::MiddleLeft
 
@@ -3278,7 +3278,7 @@ Add-KpiTileClick -Kpi $script:kpiExpired -View 'Expired' -Title 'Expired License
 
 $toolbar = New-Object System.Windows.Forms.Panel
 $toolbar.Dock = 'Fill'
-$toolbar.Padding = [System.Windows.Forms.Padding]::new(14,3,14,3)
+$toolbar.Padding = [System.Windows.Forms.Padding]::new(14,4,14,4)
 $toolbar.BackColor = [System.Drawing.Color]::FromArgb(7,15,28)
 
 $script:btnShowAll = New-Object System.Windows.Forms.Button
@@ -3313,8 +3313,8 @@ $searchTip.SetToolTip($script:txtSearch, 'Search across all visible reconciliati
 [void]$toolbar.Controls.Add($script:txtSearch)
 $gridFilterHint = New-Object System.Windows.Forms.Label
 $gridFilterHint.Text = 'Click a column header to sort  •  Right-click a column header to filter'
-$gridFilterHint.Font = [System.Drawing.Font]::new('Segoe UI', 8.4)
-$gridFilterHint.ForeColor = [System.Drawing.Color]::FromArgb(148,163,184)
+$gridFilterHint.Font = [System.Drawing.Font]::new('Segoe UI', 8.6)
+$gridFilterHint.ForeColor = [System.Drawing.Color]::FromArgb(156,163,175)
 $gridFilterHint.AutoSize = $true
 $gridFilterHint.Anchor = 'Top,Right'
 [void]$toolbar.Controls.Add($gridFilterHint)
@@ -3325,9 +3325,9 @@ function Position-Toolbar {
         $script:btnShowAll.Left = $left
         $script:txtSearch.Left = $script:btnShowAll.Right + 8
         $gridFilterHint.Left = [Math]::Max($script:txtSearch.Right + 16, $toolbar.ClientSize.Width - $gridFilterHint.Width - 14)
-        $script:btnShowAll.Top = 1
-        $script:txtSearch.Top = 1
-        $gridFilterHint.Top = 6
+        $script:btnShowAll.Top = 2
+        $script:txtSearch.Top = 2
+        $gridFilterHint.Top = 7
     } catch {}
 }
 $toolbar.Add_Resize({ Position-Toolbar })
@@ -3335,7 +3335,7 @@ $toolbar.Add_Resize({ Position-Toolbar })
 $workspaceHost = New-Object System.Windows.Forms.TableLayoutPanel
 $workspaceHost.Dock = 'Fill'
 $workspaceHost.RowCount = 3
-[void]$workspaceHost.RowStyles.Add([System.Windows.Forms.RowStyle]::new([System.Windows.Forms.SizeType]::Absolute,34))
+[void]$workspaceHost.RowStyles.Add([System.Windows.Forms.RowStyle]::new([System.Windows.Forms.SizeType]::Absolute,38))
 [void]$workspaceHost.RowStyles.Add([System.Windows.Forms.RowStyle]::new([System.Windows.Forms.SizeType]::Percent,100))
 [void]$workspaceHost.RowStyles.Add([System.Windows.Forms.RowStyle]::new([System.Windows.Forms.SizeType]::Absolute,34))
 [void]$workspaceHost.ColumnStyles.Add([System.Windows.Forms.ColumnStyle]::new([System.Windows.Forms.SizeType]::Percent,100))
@@ -3355,13 +3355,13 @@ $script:lblRecordCount = New-Object System.Windows.Forms.Label
 $script:lblRecordCount.Text = 'Records: 0'
 $script:lblRecordCount.AutoSize = $true
 $script:lblRecordCount.Location = [System.Drawing.Point]::new(0,6)
-$script:lblRecordCount.ForeColor = [System.Drawing.Color]::FromArgb(148,163,184)
+$script:lblRecordCount.ForeColor = [System.Drawing.Color]::FromArgb(156,163,175)
 [void]$resultsHeader.Controls.Add($script:lblRecordCount)
 
 $script:lblViewBadge = New-Object System.Windows.Forms.Label
 $script:lblViewBadge.Text = 'All Audit Results'
 $script:lblViewBadge.Font = [System.Drawing.Font]::new('Segoe UI', 8.4)
-$script:lblViewBadge.ForeColor = [System.Drawing.Color]::FromArgb(148,163,184)
+$script:lblViewBadge.ForeColor = [System.Drawing.Color]::FromArgb(156,163,175)
 $script:lblViewBadge.Anchor = 'Top,Right'
 [void]$resultsHeader.Controls.Add($script:lblViewBadge)
 
@@ -3931,8 +3931,11 @@ function Update-SessionStatus {
     $last = @(Get-AuditHistory) | Select-Object -First 1
     if ($null -ne $last) {
         $script:sessionAuditLabel.Text = "Last audit: $(Get-HistoryProperty -Record $last -Name 'Timestamp' -FallbackName 'Date')"
+        $script:sessionAuditLabel.ForeColor = [System.Drawing.Color]::FromArgb(71,85,105)
         $script:sessionDurationLabel.Text = "Duration: $(Get-HistoryProperty -Record $last -Name 'Duration')"
+        $script:sessionDurationLabel.ForeColor = [System.Drawing.Color]::FromArgb(71,85,105)
         $script:sessionCoverageLabel.Text = "Coverage: $(Get-HistoryProperty -Record $last -Name 'CoveragePercent')%"
+        $script:sessionCoverageLabel.ForeColor = [System.Drawing.Color]::FromArgb(71,85,105)
     }
     else {
         $script:sessionAuditLabel.Text = 'Last audit: —'
@@ -4134,6 +4137,17 @@ function Invoke-CurrentSearch {
 
 $script:SearchTimer.Add_Tick({
     Invoke-CurrentSearch
+})
+
+# WinForms may give focus to the search textbox during initial layout. Force the
+# dashboard to open on the All button so the placeholder remains visible until
+# the user intentionally enters search mode.
+$script:frm.Add_Shown({
+    try {
+        $script:frm.ActiveControl = $script:btnShowAll
+        Set-SearchPlaceholder
+        $script:txtSearch.Refresh()
+    } catch {}
 })
 
 $script:txtSearch.Add_GotFocus({
@@ -4825,7 +4839,7 @@ function Set-ALIAKpiIcons {
         $kpi=$item[0];$type=$item[1];$color=$item[2]
         if($null -ne $kpi -and $null -ne $kpi.Icon){
             if($null -eq $kpi.Icon.Image){
-                $kpi.Icon.Image=New-ALIAIconBitmap -Type $type -Color $color -Size 36
+                $kpi.Icon.Image=New-ALIAIconBitmap -Type $type -Color $color -Size 38
             }
             $kpi.Icon.BringToFront()
             $kpi.Icon.Tag=$kpi.Panel.Tag
@@ -4850,10 +4864,10 @@ function Set-ALIAKpiIcons {
 function Set-ALIAHealthIcons {
     try {
         if ($null -eq $healthTitleIconHost.Image) {
-            $healthTitleIconHost.Image = New-ALIAIconBitmap -Type Health -Color $script:DarkTheme.Critical -Size 23
+            $healthTitleIconHost.Image = New-ALIAIconBitmap -Type Health -Color $script:DarkTheme.Critical -Size 24
         }
         if ($null -eq $healthHeadlineIconHost.Image) {
-            $healthHeadlineIconHost.Image = New-ALIAIconBitmap -Type Health -Color $script:DarkTheme.Critical -Size 21
+            $healthHeadlineIconHost.Image = New-ALIAIconBitmap -Type Health -Color $script:DarkTheme.Critical -Size 23
         }
         $healthTitleIconHost.BringToFront()
         $healthHeadlineIconHost.BringToFront()
