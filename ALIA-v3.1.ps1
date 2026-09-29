@@ -4013,6 +4013,16 @@ $script:btnClear.Add_Click({
     $script:CurrentView = 'Audit'
     $script:CurrentViewTitle = 'All Audit Results'
 
+    $script:CurrentFilterAuditStatus = 'All'
+    $script:UpdatingAuditStatusFilter = $true
+    try {
+        $script:cmbAuditStatus.SelectedIndex = 0
+    }
+    finally {
+        $script:UpdatingAuditStatusFilter = $false
+    }
+    Update-AuditStatusFilterOptions -Objects @()
+
     $script:txtSearch.Text = ''
     $script:grid.DataSource = $null
     $script:lblViewTitle.Text = 'All Audit Results'
