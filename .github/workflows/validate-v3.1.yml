@@ -62,6 +62,7 @@ jobs:
             'Device Details',
             'Audit History',
             'Coverage',
+            'Audit Status',
             'RUN LICENSE AUDIT',
             'Show Audit Log',
             'Central Inventory',
