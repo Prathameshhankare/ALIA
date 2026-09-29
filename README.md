@@ -105,7 +105,7 @@ Run the PowerShell script from a Windows PowerShell 5.1 session:
 
 ```powershell
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-.\ALIA-v3.0.ps1
+.\ALIA-v3.1.ps1
 ```
 
 The application prompts for the required **Client ID** and **Client Secret** values at runtime.
@@ -119,7 +119,7 @@ The application prompts for the required **Client ID** and **Client Secret** val
 The repository includes a production EXE builder:
 
 ```text
-Build-ALIA-v3.0.ps1
+Build-ALIA-v3.1.ps1
 ```
 
 The builder uses **PS2EXE** to compile `ALIA-v3.0.ps1` into a 64-bit, GUI-only Windows executable with DPI-aware metadata and an embedded application icon.
@@ -128,7 +128,7 @@ Run it from **Windows PowerShell 5.1**:
 
 ```powershell
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-.\Build-ALIA-v3.0.ps1
+.\Build-ALIA-v3.1.ps1
 ```
 
 If PS2EXE is not installed, the builder installs it for the current user automatically.
@@ -136,7 +136,7 @@ If PS2EXE is not installed, the builder installs it for the current user automat
 The resulting executable is created here:
 
 ```text
-dist\ALIA-v3.0.exe
+dist\ALIA-v3.1.exe
 ```
 
 The `dist` directory and generated executable files are excluded from Git through `.gitignore`. The builder itself is version-controlled so a reproducible EXE can be generated from the repository source.
@@ -164,7 +164,7 @@ Before deploying ALIA in a production environment, review the script and the con
 ```text
 ALIA/
 ├── ALIA-v3.0.ps1          # Main Windows PowerShell application
-├── Build-ALIA-v3.0.ps1    # Production EXE builder using PS2EXE
+├── Build-ALIA-v3.1.ps1    # Production EXE builder using PS2EXE
 ├── README.md              # Project documentation
 ├── LICENSE                # GPL-3.0 license
 └── .gitignore             # Repository exclusions
@@ -176,9 +176,9 @@ Generated EXE/build output and runtime audit logs are intentionally excluded fro
 
 ## Version
 
-**Current application version:** `v3.0.3`
+**Current application version:** `v3.1.0`
 
-The main application source remains named `ALIA-v3.0.ps1` because it represents the v3.0 application line.
+The canonical v3.1 application source is `ALIA-v3.1.ps1`. The v3.0 source and builder are retained in the repository as the legacy application line.
 
 The current v3.x release includes the redesigned dashboard layout, GreenLake/Central reconciliation workflow, audit views, logging, search and CSV export functionality.
 
@@ -215,11 +215,11 @@ Network & Security Engineering
 ALIA is distributed under the **GNU General Public License v3.0**. See [`LICENSE`](LICENSE) for the complete license text.
 
 
-## ALIA v3.1 GUI Workspace
+## ALIA v3.1 Workspace
 
-The v3.1 application is available as a redesigned workspace on the `v3.1-gui-redesign` branch.
+The v3.1 application is the current redesigned ALIA workspace on the `v3.1-gui-redesign` branch.
 
-Highlights include audit health, reconciliation coverage, compact KPI cards, audit-over-audit trends, quick views, advanced filters, problems-only mode, a read-only audit grid, device detail inspection, collapsible diagnostics, audit history, and a responsive enterprise layout.
+Highlights include audit health, reconciliation coverage, compact KPI cards, audit-over-audit trends, quick views, advanced filters, problems-only mode, a read-only audit grid, device detail inspection, collapsible diagnostics, audit history, and a responsive enterprise layout with dark Windows UI treatment.
 
 Run:
 
@@ -228,7 +228,7 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 .\\ALIA-v3.1.ps1
 ```
 
-Build the EXE:
+Build the production EXE:
 
 ```powershell
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
