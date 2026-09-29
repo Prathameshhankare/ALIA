@@ -643,8 +643,8 @@ function Build-AuditResults {
         $inInventory = $null -ne $inventoryMatch
         $inMonitored = $null -ne $monitoringMatch
 
-        $status = if ($monitoringMatch) { [string]$monitoringMatch.Status } else { '' }
-        $health = Get-CentralHealthState -Status $status
+        $rawCentralStatus = if ($monitoringMatch) { [string]$monitoringMatch.Status } else { '' }
+        $status = Get-CentralHealthState -Status $rawCentralStatus
         $licensed = -not [string]::IsNullOrWhiteSpace([string]$gl.LicenseTier)
 
         if ($licensed) {
@@ -656,17 +656,29 @@ function Build-AuditResults {
                 $auditStatus = 'LICENSED - NOT MONITORED'
                 $auditReason = 'Device is present in Aruba Central inventory but is not present in Aruba Central monitored-device list.'
             }
-            elseif ($health -eq 'Offline') {
+            elseif ($status -eq 'Offline') {
                 $auditStatus = 'LICENSED - MONITORED - OFFLINE'
-                $auditReason = "Device is monitored but reported status '$status'."
+                $auditReason = if ($rawCentralStatus) {
+                    "Device is monitored and Aruba Central reported '$rawCentralStatus'."
+                } else {
+                    'Device is monitored but Aruba Central returned no status.'
+                }
             }
-            elseif ($health -eq 'Online') {
+            elseif ($status -eq 'Online') {
                 $auditStatus = 'LICENSED - MONITORED - ONLINE'
-                $auditReason = 'Licensed in GreenLake and actively monitored in Aruba Central.'
+                $auditReason = if ($rawCentralStatus) {
+                    "Licensed in GreenLake and actively monitored in Aruba Central (Central status: '$rawCentralStatus')."
+                } else {
+                    'Licensed in GreenLake and actively monitored in Aruba Central.'
+                }
             }
             else {
                 $auditStatus = 'LICENSED - MONITORED - STATUS UNKNOWN'
-                $auditReason = 'Device is monitored, but Aruba Central returned an unrecognized or blank status.'
+                $auditReason = if ($rawCentralStatus) {
+                    "Device is monitored, but Aruba Central returned an unrecognized status '$rawCentralStatus'."
+                } else {
+                    'Device is monitored, but Aruba Central returned a blank status.'
+                }
             }
         }
         else {
@@ -702,7 +714,6 @@ function Build-AuditResults {
             ArubaInventoryPresent = if ($inInventory) { 'Yes' } else { 'No' }
             ArubaMonitoredPresent = if ($inMonitored) { 'Yes' } else { 'No' }
             ArubaStatus = $status
-            ArubaHealth = $health
 
             ArubaInventorySerialNumber = if ($inventoryMatch) { [string]$inventoryMatch.SerialNumber } else { '' }
             ArubaInventoryMACAddress = if ($inventoryMatch) { [string]$inventoryMatch.MACAddress } else { '' }
@@ -1818,7 +1829,7 @@ function Get-ViewProperties {
                 'SerialNumber','MACAddress','GreenLakeDeviceType','Model','FirmwareVersion','DeviceName',
                 'LicenseTier','LicenseStart','LicenseEnd',
                 'ArubaInventoryPresent','ArubaMonitoredPresent',
-                'ArubaStatus','ArubaHealth',
+                'ArubaStatus',
                 'ArubaInventoryDeviceName','ArubaInventorySiteName',
                 'ArubaMonitoredDeviceName','ArubaMonitoredSiteName',
                 'InventoryMatchMethod','MonitoringMatchMethod',
@@ -1861,7 +1872,7 @@ function Show-View {
         $properties = @(
             'SerialNumber','MACAddress','GreenLakeDeviceType','Model','FirmwareVersion','DeviceName',
             'LicenseTier','LicenseEnd','ArubaInventoryPresent',
-            'ArubaMonitoredPresent','ArubaStatus','ArubaHealth','AuditStatus','AuditReason'
+            'ArubaMonitoredPresent','ArubaStatus','AuditStatus','AuditReason'
         )
     }
 
@@ -3187,11 +3198,11 @@ function Update-DetailPanelFromSelection {
     $central = V 'ArubaInventoryPresent'
     $monitored = V 'ArubaMonitoredPresent'
     $centralStatus = V 'ArubaStatus'
-    $health = V 'ArubaHealth'
     $reason = V 'AuditReason'
 
     $script:detailTitle.Text = if (-not [string]::IsNullOrWhiteSpace($device)) { $device } elseif ($serial) { $serial } else { 'Device Details' }
     $healthState = Get-AuditHealth -Status $status -LicenseEnd $licenseEnd
+    $health = $healthState
     $script:detailStatus.ForeColor = switch ($healthState) {
         'Critical' { [System.Drawing.Color]::FromArgb(185,28,28) }
         'Warning' { [System.Drawing.Color]::FromArgb(161,98,7) }
@@ -3718,7 +3729,7 @@ function Invoke-CurrentSearch {
         $properties = @(
             'SerialNumber','MACAddress','GreenLakeDeviceType','Model','DeviceName',
             'LicenseTier','LicenseEnd','ArubaInventoryPresent',
-            'ArubaMonitoredPresent','ArubaStatus','ArubaHealth','AuditStatus','AuditReason'
+            'ArubaMonitoredPresent','ArubaStatus','AuditStatus','AuditReason'
         )
     }
 
