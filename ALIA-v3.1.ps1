@@ -2016,23 +2016,37 @@ function Show-GridColumnFilterDialog {
         $dialog.ShowInTaskbar = $false
         $dialog.BackColor = [System.Drawing.Color]::White
 
+        # Use an explicit four-row layout so the title, hint, list and
+        # action buttons always occupy separate regions. Docking multiple
+        # controls directly on the Form can reorder the Fill control above
+        # the header controls in WinForms/PowerShell 5.1.
+        $layout = New-Object System.Windows.Forms.TableLayoutPanel
+        $layout.Dock = 'Fill'
+        $layout.ColumnCount = 1
+        $layout.RowCount = 4
+        $layout.Margin = [System.Windows.Forms.Padding]::new(0)
+        $layout.Padding = [System.Windows.Forms.Padding]::new(0)
+        [void]$layout.RowStyles.Add([System.Windows.Forms.RowStyle]::new([System.Windows.Forms.SizeType]::Absolute, 42))
+        [void]$layout.RowStyles.Add([System.Windows.Forms.RowStyle]::new([System.Windows.Forms.SizeType]::Absolute, 32))
+        [void]$layout.RowStyles.Add([System.Windows.Forms.RowStyle]::new([System.Windows.Forms.SizeType]::Percent, 100))
+        [void]$layout.RowStyles.Add([System.Windows.Forms.RowStyle]::new([System.Windows.Forms.SizeType]::Absolute, 48))
+        [void]$layout.ColumnStyles.Add([System.Windows.Forms.ColumnStyle]::new([System.Windows.Forms.SizeType]::Percent, 100))
+
         $title = New-Object System.Windows.Forms.Label
         $title.Text = "Select values for $($column.HeaderText)"
         $title.Font = [System.Drawing.Font]::new('Segoe UI Semibold', 10)
         $title.ForeColor = [System.Drawing.Color]::FromArgb(15,23,42)
-        $title.Dock = 'Top'
-        $title.Height = 38
+        $title.Dock = 'Fill'
         $title.Padding = [System.Windows.Forms.Padding]::new(12,10,12,0)
-        [void]$dialog.Controls.Add($title)
+        $title.TextAlign = [System.Drawing.ContentAlignment]::MiddleLeft
 
         $hint = New-Object System.Windows.Forms.Label
         $hint.Text = 'Check the values to keep. Uncheck values to exclude.'
         $hint.Font = [System.Drawing.Font]::new('Segoe UI', 8.5)
         $hint.ForeColor = [System.Drawing.Color]::FromArgb(100,116,139)
-        $hint.Dock = 'Top'
-        $hint.Height = 30
+        $hint.Dock = 'Fill'
         $hint.Padding = [System.Windows.Forms.Padding]::new(12,2,12,4)
-        [void]$dialog.Controls.Add($hint)
+        $hint.TextAlign = [System.Drawing.ContentAlignment]::MiddleLeft
 
         $list = New-Object System.Windows.Forms.CheckedListBox
         $list.Dock = 'Fill'
@@ -2083,11 +2097,8 @@ function Show-GridColumnFilterDialog {
             ($maxTextWidth + 36)
         )
 
-        [void]$dialog.Controls.Add($list)
-
         $buttonPanel = New-Object System.Windows.Forms.Panel
-        $buttonPanel.Dock = 'Bottom'
-        $buttonPanel.Height = 48
+        $buttonPanel.Dock = 'Fill'
         $buttonPanel.Padding = [System.Windows.Forms.Padding]::new(10,8,10,8)
         $buttonPanel.BackColor = [System.Drawing.Color]::FromArgb(248,250,252)
 
@@ -2096,6 +2107,8 @@ function Show-GridColumnFilterDialog {
         $btnSelectAll.Width = 78
         $btnSelectAll.Height = 28
         $btnSelectAll.Tag = $list
+        $btnSelectAll.Top = 8
+        $btnSelectAll.Left = 10
         $btnSelectAll.Add_Click({
             param($sender, $eventArgs)
             $target = [System.Windows.Forms.CheckedListBox]$sender.Tag
@@ -2108,8 +2121,9 @@ function Show-GridColumnFilterDialog {
         $btnClearAll.Text = 'Clear All'
         $btnClearAll.Width = 78
         $btnClearAll.Height = 28
-        $btnClearAll.Left = 84
         $btnClearAll.Tag = $list
+        $btnClearAll.Top = 8
+        $btnClearAll.Left = 94
         $btnClearAll.Add_Click({
             param($sender, $eventArgs)
             $target = [System.Windows.Forms.CheckedListBox]$sender.Tag
@@ -2122,36 +2136,38 @@ function Show-GridColumnFilterDialog {
         $btnCancel.Text = 'Cancel'
         $btnCancel.Width = 78
         $btnCancel.Height = 28
-        $btnCancel.Anchor = 'Top,Right'
+        $btnCancel.Top = 8
         $btnCancel.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
 
         $btnApply = New-Object System.Windows.Forms.Button
         $btnApply.Text = 'Apply Filter'
         $btnApply.Width = 92
         $btnApply.Height = 28
-        $btnApply.Anchor = 'Top,Right'
+        $btnApply.Top = 8
         $btnApply.DialogResult = [System.Windows.Forms.DialogResult]::OK
 
         [void]$buttonPanel.Controls.Add($btnSelectAll)
         [void]$buttonPanel.Controls.Add($btnClearAll)
         [void]$buttonPanel.Controls.Add($btnCancel)
         [void]$buttonPanel.Controls.Add($btnApply)
-        [void]$dialog.Controls.Add($buttonPanel)
 
         function Position-FilterDialogButtons {
             try {
                 $right = $buttonPanel.ClientSize.Width - $buttonPanel.Padding.Right
                 $btnApply.Left = $right - $btnApply.Width
-                $btnApply.Top = 8
-
                 $btnCancel.Left = $btnApply.Left - 8 - $btnCancel.Width
-                $btnCancel.Top = 8
             }
             catch {}
         }
 
         $buttonPanel.Add_Resize({ Position-FilterDialogButtons })
         Position-FilterDialogButtons
+
+        [void]$layout.Controls.Add($title, 0, 0)
+        [void]$layout.Controls.Add($hint, 0, 1)
+        [void]$layout.Controls.Add($list, 0, 2)
+        [void]$layout.Controls.Add($buttonPanel, 0, 3)
+        [void]$dialog.Controls.Add($layout)
 
         $dialog.AcceptButton = $btnApply
         $dialog.CancelButton = $btnCancel
