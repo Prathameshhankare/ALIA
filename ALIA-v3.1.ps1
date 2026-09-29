@@ -2598,7 +2598,7 @@ function New-KpiCard {
     $cap.Font = [System.Drawing.Font]::new('Segoe UI', 8.2)
     $cap.ForeColor = [System.Drawing.Color]::FromArgb(100,116,139)
     $cap.Dock = 'Top'
-    $cap.Height = 20
+    $cap.Height = 18
 
     $val = New-Object System.Windows.Forms.Label
     $val.Text = '0'
@@ -2606,13 +2606,15 @@ function New-KpiCard {
     $val.ForeColor = [System.Drawing.Color]::FromArgb(15,23,42)
     $val.Dock = 'Top'
     $val.TextAlign = [System.Drawing.ContentAlignment]::MiddleLeft
-    $val.Height = 34
+    $val.Height = 28
 
     $trend = New-Object System.Windows.Forms.Label
     $trend.Text = ''
-    $trend.Font = [System.Drawing.Font]::new('Segoe UI', 7.4)
+    $trend.Font = [System.Drawing.Font]::new('Segoe UI', 7.0)
     $trend.ForeColor = [System.Drawing.Color]::FromArgb(100,116,139)
-    $trend.Dock = 'Fill'
+    $trend.Dock = 'Bottom'
+    $trend.Height = 13
+    $trend.AutoEllipsis = $true
     $trend.TextAlign = [System.Drawing.ContentAlignment]::MiddleLeft
 
     $accentBar = New-Object System.Windows.Forms.Panel
