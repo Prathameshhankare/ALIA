@@ -2635,7 +2635,15 @@ function New-QuickViewButton {
     $b = New-Object System.Windows.Forms.Button
     $b.Text = $Text
     $b.Tag = $Tag
-    $b.Width = 82
+    $b.Width = switch ($Tag) {
+        'Audit'        { 70 }
+        'Issues'       { 76 }
+        'Licensed'     { 82 }
+        'Unlicensed'   { 88 }
+        'NotMonitored' { 96 }
+        'Inventory'    { 82 }
+        default        { 82 }
+    }
     $b.Height = 28
     $b.Margin = [System.Windows.Forms.Padding]::new(0,0,4,0)
     $b.FlatStyle = 'Flat'
@@ -2649,7 +2657,7 @@ function New-QuickViewButton {
 
 $quickPanel = New-Object System.Windows.Forms.FlowLayoutPanel
 $quickPanel.Dock = 'Left'
-$quickPanel.Width = 540
+$quickPanel.Width = 575
 $quickPanel.WrapContents = $false
 $quickPanel.FlowDirection = 'LeftToRight'
 
