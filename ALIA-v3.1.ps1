@@ -669,13 +669,17 @@ function Build-AuditResults {
             }
         }
         else {
-            if ($inInventory) {
-                $auditStatus = 'UNLICENSED - IN CENTRAL INVENTORY'
-                $auditReason = 'Device is in Aruba Central inventory but no GreenLake license tier was found.'
-            }
-            else {
+            if (-not $inInventory) {
                 $auditStatus = 'UNLICENSED - NOT IN CENTRAL'
                 $auditReason = 'Device has no GreenLake license and is not in Aruba Central inventory.'
+            }
+            elseif (-not $inMonitored) {
+                $auditStatus = 'UNLICENSED - IN CENTRAL INVENTORY - NOT MONITORED'
+                $auditReason = 'Device is present in Aruba Central inventory without a GreenLake license and is not present in the Aruba Central monitored-device list.'
+            }
+            else {
+                $auditStatus = 'UNLICENSED - MONITORED'
+                $auditReason = 'Device is present in Aruba Central inventory and actively monitored, but no GreenLake license tier was found.'
             }
         }
 
@@ -2033,7 +2037,8 @@ function Get-AuditHealth {
         'EXPIRED'                             { return 'Critical' }
         'LICENSED - NOT MONITORED'            { return 'Warning' }
         'LICENSED - MONITORED - STATUS UNKNOWN'    { return 'Warning' }
-        'UNLICENSED - IN CENTRAL INVENTORY'         { return 'Warning' }
+        'UNLICENSED - IN CENTRAL INVENTORY - NOT MONITORED' { return 'Warning' }
+        'UNLICENSED - MONITORED'                    { return 'Warning' }
         default { return 'Healthy' }
     }
 }
@@ -4098,6 +4103,8 @@ $script:WorkerTimer.Add_Tick({
         $notInInventory = @($script:AuditResults | Where-Object { $_.AuditStatus -eq 'LICENSED - NOT IN CENTRAL INVENTORY' }).Count
         $notMonitored = @($script:AuditResults | Where-Object { $_.AuditStatus -eq 'LICENSED - NOT MONITORED' }).Count
         $offline = @($script:AuditResults | Where-Object { $_.AuditStatus -eq 'LICENSED - MONITORED - OFFLINE' }).Count
+        $unlicensedCentralNotMonitored = @($script:AuditResults | Where-Object { $_.AuditStatus -eq 'UNLICENSED - IN CENTRAL INVENTORY - NOT MONITORED' }).Count
+        $unlicensedMonitored = @($script:AuditResults | Where-Object { $_.AuditStatus -eq 'UNLICENSED - MONITORED' }).Count
         $licensedNotInMonitoredCount = @($script:LicensedNotInMonitoredCache).Count
         Write-AuditLog INFO "Licensed devices absent from Aruba Central monitored list: $licensedNotInMonitoredCount"
         $centralNotMonitoredCount = @($script:CentralNotMonitoredCache).Count
@@ -4108,11 +4115,12 @@ $script:WorkerTimer.Add_Tick({
 
         Show-View -View Audit -Title 'All Audit Results'
 
-        if (($notInInventory + $notMonitored + $offline + $licensedNotInMonitoredCount) -gt 0) {
-            Write-AuditLog WARNING "Licensed-device exceptions: NotInInventory=$notInInventory; NotMonitored=$notMonitored; LicensedNotInMonitored=$licensedNotInMonitoredCount; Offline=$offline."
+        $exceptionCount = Get-AuditIssueCount
+        if ($exceptionCount -gt 0) {
+            Write-AuditLog WARNING "Audit exceptions: LicensedNotInInventory=$notInInventory; LicensedNotMonitored=$notMonitored; LicensedOffline=$offline; UnlicensedCentralNotMonitored=$unlicensedCentralNotMonitored; UnlicensedMonitored=$unlicensedMonitored; LicensedNotInMonitored=$licensedNotInMonitoredCount."
         }
         else {
-            Write-AuditLog SUCCESS 'No licensed-device exceptions were identified.'
+            Write-AuditLog SUCCESS 'No audit exceptions were identified.'
         }
 
         Update-Progress 100 'License audit completed.'
