@@ -19,7 +19,7 @@ jobs:
       - name: Validate v3.1 PowerShell syntax
         shell: pwsh
         run: |
-          $files = @('ALIA-v3.1.ps1','Build-ALIA-v3.1.ps1')
+          $files = @('ALIA-v3.1.ps1','ALIA-v3.1-dark.ps1','Build-ALIA-v3.1.ps1')
           foreach ($file in $files) {
             $tokens = $null
             $errors = $null
@@ -44,12 +44,15 @@ jobs:
       - name: Run static analysis
         shell: pwsh
         run: |
-          $result = Invoke-ScriptAnalyzer -Path (Join-Path $PWD 'ALIA-v3.1.ps1') -Severity Error -Recurse
-          $result | Format-Table -AutoSize | Out-Host
-          if ($result.Count -gt 0) {
-            throw "PSScriptAnalyzer reported $($result.Count) error-severity issue(s)."
+          $targets = @('ALIA-v3.1.ps1','ALIA-v3.1-dark.ps1')
+          foreach ($target in $targets) {
+            $result = Invoke-ScriptAnalyzer -Path (Join-Path $PWD $target) -Severity Error -Recurse
+            $result | Format-Table -AutoSize | Out-Host
+            if ($result.Count -gt 0) {
+              throw "PSScriptAnalyzer reported $($result.Count) error-severity issue(s) in $target."
+            }
           }
-          Write-Host "PSScriptAnalyzer passed."
+          Write-Host "PSScriptAnalyzer passed for ALIA v3.1 and dark-mode script."
 
       - name: Run ALIA v3.1 GUI smoke tests
         shell: pwsh
@@ -123,7 +126,26 @@ jobs:
             }
           }
 
+          $dark = Get-Content (Join-Path $PWD 'ALIA-v3.1-dark.ps1') -Raw
+          foreach ($darkFeature in @(
+            'DarkTheme',
+            'New-ALIAIconBitmap',
+            'Set-ALIAKpiIcons',
+            'Set-ALIAHealthIcons',
+            'RUN LICENSE AUDIT',
+            'Search devices...'
+          )) {
+            if ($dark.IndexOf($darkFeature, [System.StringComparison]::OrdinalIgnoreCase) -lt 0) {
+              throw "Expected dark-mode feature not found: $darkFeature"
+            }
+          }
+
+          if ($dark.IndexOf('Add-ALIAIconToLabel', [System.StringComparison]::OrdinalIgnoreCase) -ge 0) {
+            throw "Legacy Unicode icon-label overlay is still present in dark script."
+          }
+
           Write-Host "ALIA v3.1 GUI smoke tests passed."
+
 
       - name: Build ALIA v3.1 EXE
         shell: powershell
