@@ -37,6 +37,464 @@ Add-Type -AssemblyName System.Drawing
 Add-Type -AssemblyName System.Data
 
 # ---------------------------------------------------------------------------
+# Native Windows dark chrome helpers (Phase 3)
+# ---------------------------------------------------------------------------
+# Keep this type guarded because ALIA can be reloaded in PowerShell ISE.
+if (-not ('ALIANativeMethods' -as [type])) {
+    Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+using System.Text;
+
+public static class ALIANativeMethods
+{
+    private delegate bool EnumChildProc(IntPtr hWnd, IntPtr lParam);
+    private delegate int SetPreferredAppModeDelegate(int mode);
+    private delegate bool AllowDarkModeForWindowDelegate(
+        IntPtr hwnd,
+        bool allowDark);
+
+    [DllImport("dwmapi.dll")]
+    private static extern int DwmSetWindowAttribute(
+        IntPtr hwnd,
+        int dwAttribute,
+        ref int pvAttribute,
+        int cbAttribute);
+
+    [DllImport("dwmapi.dll")]
+    private static extern int DwmSetWindowAttribute(
+        IntPtr hwnd,
+        int dwAttribute,
+        ref uint pvAttribute,
+        int cbAttribute);
+
+    [DllImport("uxtheme.dll", CharSet = CharSet.Unicode, ExactSpelling = true)]
+    private static extern int SetWindowTheme(
+        IntPtr hwnd,
+        string pszSubAppName,
+        string pszSubIdList);
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern IntPtr GetModuleHandle(string lpModuleName);
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Ansi, ExactSpelling = true, SetLastError = true)]
+    private static extern IntPtr GetProcAddress(
+        IntPtr hModule,
+        string lpProcName);
+
+    [DllImport("user32.dll")]
+    private static extern bool EnumChildWindows(
+        IntPtr hWndParent,
+        EnumChildProc lpEnumFunc,
+        IntPtr lParam);
+
+    [DllImport("user32.dll")]
+    private static extern int GetClassName(
+        IntPtr hWnd,
+        StringBuilder lpClassName,
+        int nMaxCount);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr SendMessage(
+        IntPtr hWnd,
+        uint Msg,
+        IntPtr wParam,
+        IntPtr lParam);
+
+    private const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
+    private const int DWMWA_BORDER_COLOR = 34;
+    private const int DWMWA_CAPTION_COLOR = 35;
+    private const int DWMWA_TEXT_COLOR = 36;
+    private const uint WM_THEMECHANGED = 0x031A;
+
+    private const int PreferredAppMode_ForceDark = 2;
+
+    private const int WCA_USEDARKMODECOLORS = 26;
+    private const uint SWP_NOSIZE = 0x0001;
+    private const uint SWP_NOMOVE = 0x0002;
+    private const uint SWP_NOZORDER = 0x0004;
+    private const uint SWP_NOACTIVATE = 0x0010;
+    private const uint SWP_FRAMECHANGED = 0x0020;
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct WINDOWCOMPOSITIONATTRIBDATA
+    {
+        public int Attrib;
+        public IntPtr pvData;
+        public int cbData;
+    }
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool SetWindowPos(
+        IntPtr hWnd,
+        IntPtr hWndInsertAfter,
+        int X,
+        int Y,
+        int cx,
+        int cy,
+        uint uFlags);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool RedrawWindow(
+        IntPtr hWnd,
+        IntPtr lprcUpdate,
+        IntPtr hrgnUpdate,
+        uint flags);
+
+    private delegate bool SetWindowCompositionAttributeDelegate(
+        IntPtr hwnd,
+        ref WINDOWCOMPOSITIONATTRIBDATA data);
+
+    private static SetWindowCompositionAttributeDelegate GetSetWindowCompositionAttribute()
+    {
+        try
+        {
+            IntPtr user32 = GetModuleHandle("user32.dll");
+            if (user32 == IntPtr.Zero)
+                return null;
+
+            IntPtr proc = GetProcAddress(
+                user32,
+                "SetWindowCompositionAttribute");
+
+            if (proc == IntPtr.Zero)
+                return null;
+
+            return (SetWindowCompositionAttributeDelegate)
+                Marshal.GetDelegateForFunctionPointer(
+                    proc,
+                    typeof(SetWindowCompositionAttributeDelegate));
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static void SetDarkCompositionMode(IntPtr hwnd, bool dark)
+    {
+        var proc = GetSetWindowCompositionAttribute();
+        if (proc == null || hwnd == IntPtr.Zero)
+            return;
+
+        int value = dark ? 1 : 0;
+        IntPtr valuePtr = IntPtr.Zero;
+
+        try
+        {
+            valuePtr = Marshal.AllocHGlobal(sizeof(int));
+            Marshal.WriteInt32(valuePtr, value);
+
+            var data = new WINDOWCOMPOSITIONATTRIBDATA
+            {
+                Attrib = WCA_USEDARKMODECOLORS,
+                pvData = valuePtr,
+                cbData = sizeof(int)
+            };
+
+            proc(hwnd, ref data);
+        }
+        catch
+        {
+        }
+        finally
+        {
+            if (valuePtr != IntPtr.Zero)
+                Marshal.FreeHGlobal(valuePtr);
+        }
+    }
+
+    public static void EnableDarkAppMode()
+    {
+        try
+        {
+            IntPtr uxtheme = GetModuleHandle("uxtheme.dll");
+            if (uxtheme == IntPtr.Zero)
+                return;
+
+            IntPtr preferred = GetProcAddress(
+                uxtheme,
+                "#135");
+
+            if (preferred != IntPtr.Zero)
+            {
+                var setMode = (SetPreferredAppModeDelegate)
+                    Marshal.GetDelegateForFunctionPointer(
+                        preferred,
+                        typeof(SetPreferredAppModeDelegate));
+
+                setMode(PreferredAppMode_ForceDark);
+            }
+
+            IntPtr refresh = GetProcAddress(
+                uxtheme,
+                "#104");
+
+            if (refresh != IntPtr.Zero)
+            {
+                var refreshPolicy = (Action)
+                    Marshal.GetDelegateForFunctionPointer(
+                        refresh,
+                        typeof(Action));
+
+                refreshPolicy();
+            }
+
+            IntPtr flush = GetProcAddress(
+                uxtheme,
+                "#136");
+
+            if (flush != IntPtr.Zero)
+            {
+                var flushThemes = (Action)
+                    Marshal.GetDelegateForFunctionPointer(
+                        flush,
+                        typeof(Action));
+
+                flushThemes();
+            }
+        }
+        catch
+        {
+        }
+    }
+
+    public static void AllowDarkModeForWindow(IntPtr hwnd)
+    {
+        try
+        {
+            if (hwnd == IntPtr.Zero)
+                return;
+
+            IntPtr uxtheme = GetModuleHandle("uxtheme.dll");
+            if (uxtheme == IntPtr.Zero)
+                return;
+
+            IntPtr proc = GetProcAddress(
+                uxtheme,
+                "#133");
+
+            if (proc == IntPtr.Zero)
+                return;
+
+            var allowDark = (AllowDarkModeForWindowDelegate)
+                Marshal.GetDelegateForFunctionPointer(
+                    proc,
+                    typeof(AllowDarkModeForWindowDelegate));
+
+            allowDark(hwnd, true);
+        }
+        catch
+        {
+        }
+    }
+
+    public static void SetDarkTitleBar(
+        IntPtr hwnd,
+        uint captionColor,
+        uint textColor,
+        uint borderColor)
+    {
+        if (hwnd == IntPtr.Zero)
+            return;
+
+        AllowDarkModeForWindow(hwnd);
+        SetWindowTheme(hwnd, "DarkMode_Explorer", null);
+
+        int enabled = 1;
+        int hr = DwmSetWindowAttribute(
+            hwnd,
+            DWMWA_USE_IMMERSIVE_DARK_MODE,
+            ref enabled,
+            sizeof(int));
+
+        if (hr != 0)
+        {
+            // Older Windows 10 builds exposed the same feature as attribute 19.
+            DwmSetWindowAttribute(
+                hwnd,
+                19,
+                ref enabled,
+                sizeof(int));
+        }
+
+        // WCA_USEDARKMODECOLORS covers Windows 10 builds where the DWM
+        // attribute path is unavailable or ignored.
+        SetDarkCompositionMode(hwnd, true);
+
+        // These are supported on newer Windows builds. Ignore unsupported
+        // return values so the compatibility path above remains available.
+        DwmSetWindowAttribute(
+            hwnd,
+            DWMWA_CAPTION_COLOR,
+            ref captionColor,
+            sizeof(uint));
+
+        DwmSetWindowAttribute(
+            hwnd,
+            DWMWA_TEXT_COLOR,
+            ref textColor,
+            sizeof(uint));
+
+        DwmSetWindowAttribute(
+            hwnd,
+            DWMWA_BORDER_COLOR,
+            ref borderColor,
+            sizeof(uint));
+
+        SetWindowPos(
+            hwnd,
+            IntPtr.Zero,
+            0, 0, 0, 0,
+            SWP_NOSIZE |
+            SWP_NOMOVE |
+            SWP_NOZORDER |
+            SWP_NOACTIVATE |
+            SWP_FRAMECHANGED);
+
+        RedrawWindow(
+            hwnd,
+            IntPtr.Zero,
+            IntPtr.Zero,
+            0x0401 | 0x0080);
+    }
+
+    public static void SetWindowThemeForHandle(IntPtr hwnd)
+    {
+        if (hwnd == IntPtr.Zero)
+            return;
+
+        AllowDarkModeForWindow(hwnd);
+        SetDarkCompositionMode(hwnd, true);
+        SetWindowTheme(hwnd, "DarkMode_Explorer", null);
+        SendMessage(hwnd, WM_THEMECHANGED, IntPtr.Zero, IntPtr.Zero);
+    }
+
+    public static void SetDarkScrollbars(IntPtr parentHwnd)
+    {
+        if (parentHwnd == IntPtr.Zero)
+            return;
+
+        AllowDarkModeForWindow(parentHwnd);
+        SetWindowTheme(parentHwnd, "DarkMode_Explorer", null);
+
+        EnumChildWindows(parentHwnd, delegate(IntPtr child, IntPtr state)
+        {
+            var className = new StringBuilder(64);
+            GetClassName(child, className, className.Capacity);
+
+            if (string.Equals(
+                className.ToString(),
+                "ScrollBar",
+                StringComparison.OrdinalIgnoreCase))
+            {
+                AllowDarkModeForWindow(child);
+                SetWindowTheme(child, "DarkMode_Explorer", null);
+                SetWindowTheme(child, "DarkMode_Explorer", "ScrollBar");
+                SendMessage(child, WM_THEMECHANGED, IntPtr.Zero, IntPtr.Zero);
+            }
+
+            return true;
+        }, IntPtr.Zero);
+
+        SendMessage(parentHwnd, WM_THEMECHANGED, IntPtr.Zero, IntPtr.Zero);
+    }
+}
+"@
+}
+
+# Initialize common-control dark mode only after the native helper type exists.
+try { [ALIANativeMethods]::EnableDarkAppMode() } catch {}
+
+# ---------------------------------------------------------------------------
+# Phase 3 - native Windows dark chrome
+# ---------------------------------------------------------------------------
+
+function global:Set-ALIANativeWindowTheme {
+    try {
+        if ($null -eq $script:frm -or $script:frm.IsDisposed) {
+            return
+        }
+
+        if (-not $script:frm.IsHandleCreated) {
+            return
+        }
+
+        # COLORREF is 0x00BBGGRR:
+        # caption = #0F172A, text = #E2E8F0, border = #263D56.
+        $caption = [uint32]0x002A170F
+        $text    = [uint32]0x00F0E8E2
+        $border  = [uint32]0x00563D26
+
+        [ALIANativeMethods]::SetDarkTitleBar(
+            $script:frm.Handle,
+            $caption,
+            $text,
+            $border)
+    }
+    catch {
+        try { Write-AuditLog DEBUG "Native title bar theme could not be applied: $($_.Exception.Message)" } catch {}
+    }
+}
+
+function global:Set-ALIADataGridScrollbars {
+    try {
+        if ($null -eq $script:grid -or $script:grid.IsDisposed) {
+            return
+        }
+
+        if (-not $script:grid.IsHandleCreated) {
+            return
+        }
+
+        [ALIANativeMethods]::EnableDarkAppMode()
+        [ALIANativeMethods]::SetDarkScrollbars($script:grid.Handle)
+
+        $flags = [System.Reflection.BindingFlags]::Instance -bor [System.Reflection.BindingFlags]::NonPublic
+
+        foreach ($propertyName in @('HorizontalScrollBar','VerticalScrollBar')) {
+            try {
+                $property = [System.Windows.Forms.DataGridView].GetProperty($propertyName, $flags)
+                if ($null -ne $property) {
+                    $scrollBar = $property.GetValue($script:grid, $null)
+                    if ($null -ne $scrollBar -and $scrollBar.IsHandleCreated) {
+                        [ALIANativeMethods]::SetWindowThemeForHandle($scrollBar.Handle)
+                    }
+                }
+            } catch {}
+        }
+
+        # Fallback: DataGridView owns real WinForms HScrollBar/VScrollBar
+        # child controls. Apply the same theme to any such controls directly.
+        foreach ($child in @($script:grid.Controls)) {
+            if ($child -is [System.Windows.Forms.HScrollBar] -or
+                $child -is [System.Windows.Forms.VScrollBar]) {
+                try {
+                    if ($child.IsHandleCreated) {
+                        [ALIANativeMethods]::SetWindowThemeForHandle($child.Handle)
+                    }
+                } catch {}
+            }
+        }
+
+        try {
+            $script:grid.Invalidate()
+            $script:grid.Update()
+        } catch {}
+    }
+    catch {
+        try { Write-AuditLog DEBUG "Native DataGridView scrollbar theme could not be applied: $($_.Exception.Message)" } catch {}
+    }
+}
+
+function global:Apply-ALIAWindowChrome {
+    try { [ALIANativeMethods]::EnableDarkAppMode() } catch {}
+    Set-ALIANativeWindowTheme
+    Set-ALIADataGridScrollbars
+}
+
+
+# ---------------------------------------------------------------------------
 # Embedded startup splash
 # ---------------------------------------------------------------------------
 
@@ -1929,7 +2387,7 @@ function Get-GridBaseObjects {
         $base = @(Get-ViewObjects -View $script:CurrentView)
     }
 
-    $term = $script:txtSearch.Text.Trim()
+    $term = Get-SearchTerm
     if (-not [string]::IsNullOrWhiteSpace($term)) {
         $escapedTerm = [regex]::Escape($term)
         $base = @($base | Where-Object {
@@ -2299,8 +2757,11 @@ function Show-View {
 
     $script:GridFilters.Clear()
 
-    if ($script:txtSearch -and $script:txtSearch.Text.Trim().Length -gt 0) {
+    if ($script:txtSearch) {
+        $script:SearchTimer.Stop()
+        $script:SearchPlaceholderActive = $false
         $script:txtSearch.Text = ''
+        Set-SearchPlaceholder
     }
 
     $script:CurrentView = $View
@@ -2347,15 +2808,21 @@ function Show-View {
         }
 
         foreach ($row in $script:grid.Rows) {
+            $row.DefaultCellStyle.BackColor = if (($row.Index % 2) -eq 1) {
+                [System.Drawing.Color]::FromArgb(14,27,43)
+            } else {
+                [System.Drawing.Color]::FromArgb(11,22,36)
+            }
+            $row.DefaultCellStyle.ForeColor = [System.Drawing.Color]::FromArgb(226,232,240)
+            $row.DefaultCellStyle.SelectionBackColor = [System.Drawing.Color]::FromArgb(24,76,150)
+            $row.DefaultCellStyle.SelectionForeColor = [System.Drawing.Color]::White
             if ($script:grid.Columns.Contains('AuditStatus')) {
                 $licenseEndValue = if ($script:grid.Columns.Contains('LicenseEnd')) {
                     [string]$row.Cells['LicenseEnd'].Value
                 } else { '' }
-                $health = Get-AuditHealth -Status ([string]$row.Cells['AuditStatus'].Value) -LicenseEnd $licenseEndValue
-                switch ($health) {
-                    'Critical' { $row.DefaultCellStyle.BackColor = [System.Drawing.Color]::FromArgb(254,242,242) }
-                    'Warning'  { $row.DefaultCellStyle.BackColor = [System.Drawing.Color]::FromArgb(255,251,235) }
-                    default    { $row.DefaultCellStyle.BackColor = [System.Drawing.Color]::White }
+                switch (Get-AuditHealth -Status ([string]$row.Cells['AuditStatus'].Value) -LicenseEnd $licenseEndValue) {
+                    'Critical' { $row.DefaultCellStyle.BackColor = [System.Drawing.Color]::FromArgb(42,28,36) }
+                    'Warning'  { $row.DefaultCellStyle.BackColor = [System.Drawing.Color]::FromArgb(43,37,24) }
                 }
             }
         }
@@ -2594,8 +3061,16 @@ function Update-Dashboard {
         (Get-AuditHealth -Status ([string]$_.AuditStatus) -LicenseEnd ([string]$_.LicenseEnd)) -eq 'Critical'
     }).Count
 
-    if ($script:kpiGL) { $script:kpiGL.Value.Text = [string]$glCount }
-    if ($script:kpiCentral) { $script:kpiCentral.Value.Text = [string]$centralCount }
+    if ($script:kpiGL) {
+        $script:kpiGL.Value.Text = [string]$glCount
+        $script:kpiGL.Trend.Text = 'No change'
+        $script:kpiGL.Trend.ForeColor = [System.Drawing.Color]::FromArgb(148,163,184)
+    }
+    if ($script:kpiCentral) {
+        $script:kpiCentral.Value.Text = [string]$centralCount
+        $script:kpiCentral.Trend.Text = 'No change'
+        $script:kpiCentral.Trend.ForeColor = [System.Drawing.Color]::FromArgb(148,163,184)
+    }
     if ($script:kpiMonitored) { $script:kpiMonitored.Value.Text = [string]$monitoredCount }
     if ($script:kpiLicensed) { $script:kpiLicensed.Value.Text = [string]$licensedCount }
     if ($script:kpiIssues) { $script:kpiIssues.Value.Text = [string]$issueCount }
@@ -2608,15 +3083,15 @@ function Update-Dashboard {
     if ($script:healthHeadline) {
         if ($criticalCount -gt 0) {
             $script:healthHeadline.Text = 'ATTENTION REQUIRED'
-            $script:healthHeadline.ForeColor = [System.Drawing.Color]::FromArgb(185,28,28)
+            $script:healthHeadline.ForeColor = [System.Drawing.Color]::FromArgb(248,70,70)
         }
         elseif ($warningCount -gt 0) {
             $script:healthHeadline.Text = 'REVIEW RECOMMENDED'
-            $script:healthHeadline.ForeColor = [System.Drawing.Color]::FromArgb(161,98,7)
+            $script:healthHeadline.ForeColor = [System.Drawing.Color]::FromArgb(250,204,21)
         }
         else {
             $script:healthHeadline.Text = 'AUDIT HEALTHY'
-            $script:healthHeadline.ForeColor = [System.Drawing.Color]::FromArgb(21,128,61)
+            $script:healthHeadline.ForeColor = [System.Drawing.Color]::FromArgb(34,197,94)
         }
     }
 
@@ -2684,10 +3159,10 @@ function Apply-RootLayout {
         $connectionPanel.Height = 112
 
         $overview.Dock = [System.Windows.Forms.DockStyle]::Top
-        $overview.Height = 160
+        $overview.Height = 184
 
         $toolbar.Dock = [System.Windows.Forms.DockStyle]::Top
-        $toolbar.Height = 54
+        $toolbar.Height = 58
 
         $logHost.Dock = [System.Windows.Forms.DockStyle]::Bottom
         $logHost.Height = if ($script:LogPanelOpen) { 194 } else { 34 }
@@ -2759,7 +3234,7 @@ $script:btnHistory.Text = 'Audit History'
 $script:btnHistory.Size = [System.Drawing.Size]::new(108, 28)
 $script:btnHistory.FlatStyle = 'Flat'
 $script:btnHistory.FlatAppearance.BorderSize = 1
-$script:btnHistory.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(71,85,105)
+$script:btnHistory.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(38,61,86)
 $script:btnHistory.BackColor = [System.Drawing.Color]::FromArgb(30,41,59)
 $script:btnHistory.ForeColor = [System.Drawing.Color]::White
 $script:btnHistory.Font = [System.Drawing.Font]::new('Segoe UI', 8.8)
@@ -2798,14 +3273,14 @@ function New-CredentialCardV31 {
     $group.Dock = 'Fill'
     $group.Margin = [System.Windows.Forms.Padding]::new(3, 0, 6, 0)
     $group.Padding = [System.Windows.Forms.Padding]::new(10, 5, 10, 5)
-    $group.BackColor = [System.Drawing.Color]::White
+    $group.BackColor = [System.Drawing.Color]::FromArgb(15,25,39)
     $group.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
 
     $layout = New-Object System.Windows.Forms.TableLayoutPanel
     $layout.Dock = 'Fill'
     $layout.ColumnCount = 3
     $layout.RowCount = 3
-    $layout.BackColor = [System.Drawing.Color]::White
+    $layout.BackColor = [System.Drawing.Color]::FromArgb(15,25,39)
     [void]$layout.ColumnStyles.Add([System.Windows.Forms.ColumnStyle]::new([System.Windows.Forms.SizeType]::Absolute, 90))
     [void]$layout.ColumnStyles.Add([System.Windows.Forms.ColumnStyle]::new([System.Windows.Forms.SizeType]::Percent, 100))
     [void]$layout.ColumnStyles.Add([System.Windows.Forms.ColumnStyle]::new([System.Windows.Forms.SizeType]::Absolute, 48))
@@ -2818,7 +3293,7 @@ function New-CredentialCardV31 {
     $name = New-Object System.Windows.Forms.Label
     $name.Text = $TitleText
     $name.Font = [System.Drawing.Font]::new('Segoe UI Semibold', 10.2)
-    $name.ForeColor = [System.Drawing.Color]::FromArgb(15,23,42)
+    $name.ForeColor = [System.Drawing.Color]::FromArgb(226,232,240)
     $name.Dock = 'Left'
     $name.AutoSize = $true
 
@@ -2838,7 +3313,7 @@ function New-CredentialCardV31 {
     $idLabel.Text = 'Client ID'
     $idLabel.Dock = 'Fill'
     $idLabel.TextAlign = [System.Drawing.ContentAlignment]::MiddleLeft
-    $idLabel.ForeColor = [System.Drawing.Color]::FromArgb(71,85,105)
+    $idLabel.ForeColor = [System.Drawing.Color]::FromArgb(148,163,184)
 
     $idBox = New-Object System.Windows.Forms.TextBox
     $idBox.Dock = 'Fill'
@@ -2855,7 +3330,7 @@ function New-CredentialCardV31 {
     $secretLabel.Text = 'Secret'
     $secretLabel.Dock = 'Fill'
     $secretLabel.TextAlign = [System.Drawing.ContentAlignment]::MiddleLeft
-    $secretLabel.ForeColor = [System.Drawing.Color]::FromArgb(71,85,105)
+    $secretLabel.ForeColor = [System.Drawing.Color]::FromArgb(148,163,184)
 
     $secretBox = New-Object System.Windows.Forms.TextBox
     $secretBox.Dock = 'Fill'
@@ -2913,17 +3388,18 @@ $actions.Padding = [System.Windows.Forms.Padding]::new(6, 3, 3, 3)
 $runPanel = New-Object System.Windows.Forms.Panel
 $runPanel.Dock = 'Top'
 $runPanel.Height = 55
-$runPanel.BackColor = [System.Drawing.Color]::FromArgb(15,118,110)
+$runPanel.BackColor = [System.Drawing.Color]::FromArgb(15,25,39)
 
 $script:btnRunAudit = New-Object System.Windows.Forms.Button
 $script:btnRunAudit.Text = 'RUN LICENSE AUDIT'
 $script:btnRunAudit.Dock = 'Fill'
 $script:btnRunAudit.FlatStyle = 'Flat'
 $script:btnRunAudit.FlatAppearance.BorderSize = 0
-$script:btnRunAudit.BackColor = [System.Drawing.Color]::FromArgb(15,118,110)
+$script:btnRunAudit.BackColor = [System.Drawing.Color]::FromArgb(0,200,83)
 $script:btnRunAudit.ForeColor = [System.Drawing.Color]::White
 $script:btnRunAudit.Font = [System.Drawing.Font]::new('Segoe UI Semibold', 11)
 $script:btnRunAudit.Cursor = [System.Windows.Forms.Cursors]::Hand
+$script:btnRunAudit.Tag = 'ALIA_PRIMARY'
 [void]$runPanel.Controls.Add($script:btnRunAudit)
 [void]$actions.Controls.Add($runPanel)
 
@@ -2931,7 +3407,7 @@ $runHint = New-Object System.Windows.Forms.Label
 $runHint.Text = 'Collect inventory, licensing and monitoring state'
 $runHint.Dock = 'Top'
 $runHint.Height = 22
-$runHint.ForeColor = [System.Drawing.Color]::FromArgb(71,85,105)
+$runHint.ForeColor = [System.Drawing.Color]::FromArgb(148,163,184)
 $runHint.Font = [System.Drawing.Font]::new('Segoe UI', 7.8)
 $runHint.TextAlign = [System.Drawing.ContentAlignment]::MiddleCenter
 [void]$actions.Controls.Add($runHint)
@@ -2960,8 +3436,11 @@ function New-SecondaryButton {
 }
 
 $script:btnTestConnections = New-SecondaryButton 'Test Connections' 120 ([System.Drawing.Color]::FromArgb(37,99,235))
+$script:btnTestConnections.Tag = 'ALIA_TEST'
 $script:btnExport = New-SecondaryButton 'Export' 65 ([System.Drawing.Color]::FromArgb(22,163,74))
+$script:btnExport.Tag = 'ALIA_EXPORT'
 $script:btnClear = New-SecondaryButton 'Clear' 55 ([System.Drawing.Color]::FromArgb(71,85,105))
+$script:btnClear.Tag = 'ALIA_CLEAR'
 $script:btnExport.Enabled = $false
 [void]$secondary.Controls.Add($script:btnTestConnections)
 [void]$secondary.Controls.Add($script:btnExport)
@@ -3004,29 +3483,45 @@ $overview.Dock = 'Fill'
 $overview.Padding = [System.Windows.Forms.Padding]::new(14, 5, 14, 5)
 $overview.ColumnCount = 2
 $overview.RowCount = 1
-[void]$overview.ColumnStyles.Add([System.Windows.Forms.ColumnStyle]::new([System.Windows.Forms.SizeType]::Absolute, 310))
+[void]$overview.ColumnStyles.Add([System.Windows.Forms.ColumnStyle]::new([System.Windows.Forms.SizeType]::Absolute, 404))
 [void]$overview.ColumnStyles.Add([System.Windows.Forms.ColumnStyle]::new([System.Windows.Forms.SizeType]::Percent, 100))
 
 $healthCard = New-Object System.Windows.Forms.Panel
 $healthCard.Dock = 'Fill'
-$healthCard.BackColor = [System.Drawing.Color]::White
-$healthCard.BorderStyle = 'FixedSingle'
-$healthCard.Padding = [System.Windows.Forms.Padding]::new(14,7,14,7)
+$healthCard.BackColor = [System.Drawing.Color]::FromArgb(15,25,39)
+$healthCard.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
+$healthCard.Padding = [System.Windows.Forms.Padding]::new(10,5,10,6)
+
+$healthTitleIconHost = New-Object System.Windows.Forms.PictureBox
+$healthTitleIconHost.Size = [System.Drawing.Size]::new(28,28)
+$healthTitleIconHost.Location = [System.Drawing.Point]::new(8,1)
+$healthTitleIconHost.SizeMode = [System.Windows.Forms.PictureBoxSizeMode]::CenterImage
+$healthTitleIconHost.BackColor = [System.Drawing.Color]::Transparent
+$healthTitleIconHost.Tag = 'HEALTH_TITLE_ICON'
+[void]$healthCard.Controls.Add($healthTitleIconHost)
+
+$healthHeadlineIconHost = New-Object System.Windows.Forms.PictureBox
+$healthHeadlineIconHost.Size = [System.Drawing.Size]::new(28,28)
+$healthHeadlineIconHost.Location = [System.Drawing.Point]::new(8,29)
+$healthHeadlineIconHost.SizeMode = [System.Windows.Forms.PictureBoxSizeMode]::CenterImage
+$healthHeadlineIconHost.BackColor = [System.Drawing.Color]::Transparent
+$healthHeadlineIconHost.Tag = 'HEALTH_HEADLINE_ICON'
+[void]$healthCard.Controls.Add($healthHeadlineIconHost)
 
 $healthTitle = New-Object System.Windows.Forms.Label
 $healthTitle.Text = 'AUDIT HEALTH'
-$healthTitle.Font = [System.Drawing.Font]::new('Segoe UI Semibold', 8.5)
-$healthTitle.ForeColor = [System.Drawing.Color]::FromArgb(100,116,139)
-$healthTitle.Dock = 'Top'
-$healthTitle.Height = 18
+$healthTitle.Font = [System.Drawing.Font]::new('Segoe UI Semibold', 9.0)
+$healthTitle.ForeColor = [System.Drawing.Color]::FromArgb(148,163,184)
+$healthTitle.AutoSize = $false
+$healthTitle.SetBounds(40,4,320,18)
 
 $script:healthHeadline = New-Object System.Windows.Forms.Label
 $script:healthHeadline.Text = 'READY TO AUDIT'
-$script:healthHeadline.Font = [System.Drawing.Font]::new('Segoe UI Semibold', 12.5)
+$script:healthHeadline.Font = [System.Drawing.Font]::new('Segoe UI Semibold', 15)
 $script:healthHeadline.AutoEllipsis = $true
-$script:healthHeadline.ForeColor = [System.Drawing.Color]::FromArgb(51,65,85)
-$script:healthHeadline.Dock = 'Top'
-$script:healthHeadline.Height = 28
+$script:healthHeadline.ForeColor = [System.Drawing.Color]::FromArgb(248,70,70)
+$script:healthHeadline.AutoSize = $false
+$script:healthHeadline.SetBounds(40,28,320,30)
 
 $script:healthDetail = New-Object System.Windows.Forms.Label
 $script:healthDetail.Text = 'No audit results yet'
@@ -3060,10 +3555,10 @@ $warningLabel = New-MetricLabel 'Warning' ([System.Drawing.Color]::FromArgb(100,
 $criticalLabel = New-MetricLabel 'Critical' ([System.Drawing.Color]::FromArgb(100,116,139))
 $coverageLabel = New-MetricLabel 'Coverage' ([System.Drawing.Color]::FromArgb(100,116,139))
 
-$script:healthHealthy = New-MetricLabel '0' ([System.Drawing.Color]::FromArgb(22,163,74)) 13
-$script:healthWarning = New-MetricLabel '0' ([System.Drawing.Color]::FromArgb(202,138,4)) 13
-$script:healthCritical = New-MetricLabel '0' ([System.Drawing.Color]::FromArgb(220,38,38)) 13
-$script:healthCoverage = New-MetricLabel '0%' ([System.Drawing.Color]::FromArgb(37,99,235)) 11
+$script:healthHealthy = New-MetricLabel '0' ([System.Drawing.Color]::FromArgb(34,197,94)) 13
+$script:healthWarning = New-MetricLabel '0' ([System.Drawing.Color]::FromArgb(250,204,21)) 13
+$script:healthCritical = New-MetricLabel '0' ([System.Drawing.Color]::FromArgb(248,70,70)) 13
+$script:healthCoverage = New-MetricLabel '0%' ([System.Drawing.Color]::FromArgb(59,130,246)) 11
 
 foreach($item in @(
     @($healthyLabel,$script:healthHealthy,0),
@@ -3075,9 +3570,32 @@ foreach($item in @(
     [void]$healthStats.Controls.Add($item[1],$item[2],1)
 }
 
+# Explicit health-card geometry: title row, headline row, then the four metrics.
+# Avoid Fill-docking overlap between healthStats and the headline/title controls.
+$healthTitle.Location = [System.Drawing.Point]::new(38,4)
+$healthTitle.Size = [System.Drawing.Size]::new(260,18)
+$script:healthHeadline.Location = [System.Drawing.Point]::new(38,28)
+$script:healthHeadline.Size = [System.Drawing.Size]::new(280,28)
+$healthStats.Dock = 'None'
+$healthStats.Location = [System.Drawing.Point]::new(8,63)
+$healthStats.Size = [System.Drawing.Size]::new(360,78)
+
 [void]$healthCard.Controls.Add($healthStats)
 [void]$healthCard.Controls.Add($script:healthHeadline)
 [void]$healthCard.Controls.Add($healthTitle)
+[void]$healthCard.Controls.Add($healthHeadlineIconHost)
+[void]$healthCard.Controls.Add($healthTitleIconHost)
+
+$healthCard.Add_Resize({
+    try {
+        $w = $this.ClientSize.Width
+        $h = $this.ClientSize.Height
+        $healthTitle.Width = [Math]::Max(160,$w-54)
+        $script:healthHeadline.Width = [Math]::Max(180,$w-54)
+        $healthStats.Location = [System.Drawing.Point]::new(8,62)
+        $healthStats.Size = [System.Drawing.Size]::new([Math]::Max(200,$w-16),[Math]::Max(60,$h-70))
+    } catch {}
+})
 
 foreach($healthMetric in @(
     @($healthyLabel, 'HealthHealthy', 'Healthy Audit Results'),
@@ -3114,52 +3632,58 @@ $kpiPanel.Dock = 'Fill'
 $kpiPanel.ColumnCount = 3
 $kpiPanel.RowCount = 2
 for($i=0;$i -lt 3;$i++){ [void]$kpiPanel.ColumnStyles.Add([System.Windows.Forms.ColumnStyle]::new([System.Windows.Forms.SizeType]::Percent,33.333)) }
-for($i=0;$i -lt 2;$i++){ [void]$kpiPanel.RowStyles.Add([System.Windows.Forms.RowStyle]::new([System.Windows.Forms.SizeType]::Percent,50)) }
+[void]$kpiPanel.RowStyles.Add([System.Windows.Forms.RowStyle]::new([System.Windows.Forms.SizeType]::Absolute, 84))
+[void]$kpiPanel.RowStyles.Add([System.Windows.Forms.RowStyle]::new([System.Windows.Forms.SizeType]::Absolute, 84))
 
 function New-KpiCard {
     param([string]$Caption,[System.Drawing.Color]$Accent)
     $p = New-Object System.Windows.Forms.Panel
     $p.Dock = 'Fill'
     $p.Margin = [System.Windows.Forms.Padding]::new(4,0,0,4)
-    $p.Padding = [System.Windows.Forms.Padding]::new(10,4,10,3)
-    $p.BackColor = [System.Drawing.Color]::White
-    $p.BorderStyle = 'FixedSingle'
+    $p.Padding = [System.Windows.Forms.Padding]::new(8,4,10,3)
+    $p.BackColor = [System.Drawing.Color]::FromArgb(15,25,39)
+    $p.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
+
+    $iconHost = New-Object System.Windows.Forms.PictureBox
+    $iconHost.Size = [System.Drawing.Size]::new(42,42)
+    $iconHost.Location = [System.Drawing.Point]::new(10,6)
+    $iconHost.SizeMode = [System.Windows.Forms.PictureBoxSizeMode]::CenterImage
+    $iconHost.BackColor = [System.Drawing.Color]::Transparent
+    $iconHost.Tag = $Accent
+    [void]$p.Controls.Add($iconHost)
 
     $cap = New-Object System.Windows.Forms.Label
     $cap.Text = $Caption
-    $cap.Font = [System.Drawing.Font]::new('Segoe UI', 8.2)
-    $cap.ForeColor = [System.Drawing.Color]::FromArgb(100,116,139)
-    $cap.Dock = 'Top'
-    $cap.Height = 18
+    $cap.Font = [System.Drawing.Font]::new('Segoe UI', 9.0)
+    $cap.ForeColor = [System.Drawing.Color]::FromArgb(203,213,225)
+    $cap.AutoSize = $false
+    $cap.SetBounds(60,5,300,19)
+    $cap.TextAlign = [System.Drawing.ContentAlignment]::MiddleLeft
+    $cap.AutoEllipsis = $true
 
     $val = New-Object System.Windows.Forms.Label
     $val.Text = '0'
-    $val.Font = [System.Drawing.Font]::new('Segoe UI Semibold', 18)
-    $val.ForeColor = [System.Drawing.Color]::FromArgb(15,23,42)
-    $val.Dock = 'Top'
+    $val.Font = [System.Drawing.Font]::new('Segoe UI Semibold', 19)
+    $val.ForeColor = [System.Drawing.Color]::FromArgb(226,232,240)
+    $val.AutoSize = $false
+    $val.SetBounds(60,25,300,30)
     $val.TextAlign = [System.Drawing.ContentAlignment]::MiddleLeft
-    $val.Height = 28
 
     $trend = New-Object System.Windows.Forms.Label
     $trend.Text = ''
-    $trend.Font = [System.Drawing.Font]::new('Segoe UI', 7.0)
-    $trend.ForeColor = [System.Drawing.Color]::FromArgb(100,116,139)
-    $trend.Dock = 'Bottom'
-    $trend.Height = 13
+    $trend.Font = [System.Drawing.Font]::new('Segoe UI', 7.8)
+    $trend.ForeColor = [System.Drawing.Color]::FromArgb(148,163,184)
+    $trend.AutoSize = $false
+    $trend.SetBounds(60,55,300,18)
     $trend.AutoEllipsis = $true
     $trend.TextAlign = [System.Drawing.ContentAlignment]::MiddleLeft
-
-    $accentBar = New-Object System.Windows.Forms.Panel
-    $accentBar.Dock = 'Left'
-    $accentBar.Width = 4
-    $accentBar.BackColor = $Accent
 
     [void]$p.Controls.Add($trend)
     [void]$p.Controls.Add($val)
     [void]$p.Controls.Add($cap)
-    [void]$p.Controls.Add($accentBar)
+    [void]$p.Controls.Add($iconHost)
 
-    return [PSCustomObject]@{ Panel=$p; Caption=$cap; Value=$val; Trend=$trend }
+    return [PSCustomObject]@{ Panel=$p; Caption=$cap; Value=$val; Trend=$trend; Icon=$iconHost; Accent=$Accent }
 }
 
 $script:kpiGL = New-KpiCard 'GreenLake Inventory' ([System.Drawing.Color]::FromArgb(37,99,235))
@@ -3215,16 +3739,16 @@ Add-KpiTileClick -Kpi $script:kpiExpired -View 'Expired' -Title 'Expired License
 
 $toolbar = New-Object System.Windows.Forms.Panel
 $toolbar.Dock = 'Fill'
-$toolbar.Padding = [System.Windows.Forms.Padding]::new(14,3,14,3)
-$toolbar.BackColor = [System.Drawing.Color]::FromArgb(241,245,249)
+$toolbar.Padding = [System.Windows.Forms.Padding]::new(14,4,14,4)
+$toolbar.BackColor = [System.Drawing.Color]::FromArgb(7,15,28)
 
 $script:btnShowAll = New-Object System.Windows.Forms.Button
-$script:btnShowAll.Text = 'All'
+$script:btnShowAll.Text = 'All  ▾'
 $script:btnShowAll.Width = 55
 $script:btnShowAll.Height = 28
 $script:btnShowAll.FlatStyle = 'Flat'
 $script:btnShowAll.FlatAppearance.BorderSize = 1
-$script:btnShowAll.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(51,65,85)
+$script:btnShowAll.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(38,61,86)
 $script:btnShowAll.BackColor = [System.Drawing.Color]::FromArgb(51,65,85)
 $script:btnShowAll.ForeColor = [System.Drawing.Color]::White
 $script:btnShowAll.Font = [System.Drawing.Font]::new('Segoe UI Semibold', 8)
@@ -3238,18 +3762,20 @@ $allTip.SetToolTip($script:btnShowAll, 'Show the raw reconciliation with all aud
 
 $script:txtSearch = New-Object System.Windows.Forms.TextBox
 $script:txtSearch.Font = [System.Drawing.Font]::new('Segoe UI', 8.8)
-$script:txtSearch.Width = 240
+$script:txtSearch.Width = 260
 $script:txtSearch.Height = 28
-$script:txtSearch.Text = ''
+$script:txtSearch.Text = 'Search devices...'
+$script:txtSearch.ForeColor = [System.Drawing.Color]::FromArgb(100,116,139)
+$script:txtSearch.BackColor = [System.Drawing.Color]::FromArgb(10,20,34)
 $script:txtSearch.Anchor = 'Top,Left'
+$script:SearchPlaceholderActive = $true
 $searchTip = New-Object System.Windows.Forms.ToolTip
 $searchTip.SetToolTip($script:txtSearch, 'Search across all visible reconciliation fields')
 [void]$toolbar.Controls.Add($script:txtSearch)
-
 $gridFilterHint = New-Object System.Windows.Forms.Label
 $gridFilterHint.Text = 'Click a column header to sort  •  Right-click a column header to filter'
-$gridFilterHint.Font = [System.Drawing.Font]::new('Segoe UI', 8.0)
-$gridFilterHint.ForeColor = [System.Drawing.Color]::FromArgb(100,116,139)
+$gridFilterHint.Font = [System.Drawing.Font]::new('Segoe UI', 8.6)
+$gridFilterHint.ForeColor = [System.Drawing.Color]::FromArgb(156,163,175)
 $gridFilterHint.AutoSize = $true
 $gridFilterHint.Anchor = 'Top,Right'
 [void]$toolbar.Controls.Add($gridFilterHint)
@@ -3260,9 +3786,9 @@ function Position-Toolbar {
         $script:btnShowAll.Left = $left
         $script:txtSearch.Left = $script:btnShowAll.Right + 8
         $gridFilterHint.Left = [Math]::Max($script:txtSearch.Right + 16, $toolbar.ClientSize.Width - $gridFilterHint.Width - 14)
-        $script:btnShowAll.Top = 1
-        $script:txtSearch.Top = 1
-        $gridFilterHint.Top = 6
+        $script:btnShowAll.Top = 2
+        $script:txtSearch.Top = 2
+        $gridFilterHint.Top = 7
     } catch {}
 }
 $toolbar.Add_Resize({ Position-Toolbar })
@@ -3270,7 +3796,7 @@ $toolbar.Add_Resize({ Position-Toolbar })
 $workspaceHost = New-Object System.Windows.Forms.TableLayoutPanel
 $workspaceHost.Dock = 'Fill'
 $workspaceHost.RowCount = 3
-[void]$workspaceHost.RowStyles.Add([System.Windows.Forms.RowStyle]::new([System.Windows.Forms.SizeType]::Absolute,34))
+[void]$workspaceHost.RowStyles.Add([System.Windows.Forms.RowStyle]::new([System.Windows.Forms.SizeType]::Absolute,38))
 [void]$workspaceHost.RowStyles.Add([System.Windows.Forms.RowStyle]::new([System.Windows.Forms.SizeType]::Percent,100))
 [void]$workspaceHost.RowStyles.Add([System.Windows.Forms.RowStyle]::new([System.Windows.Forms.SizeType]::Absolute,34))
 [void]$workspaceHost.ColumnStyles.Add([System.Windows.Forms.ColumnStyle]::new([System.Windows.Forms.SizeType]::Percent,100))
@@ -3283,28 +3809,31 @@ $script:lblViewTitle.Text = 'All Audit Results'
 $script:lblViewTitle.Font = [System.Drawing.Font]::new('Segoe UI Semibold', 11.5)
 $script:lblViewTitle.AutoSize = $true
 $script:lblViewTitle.Location = [System.Drawing.Point]::new(0,4)
-$script:lblViewTitle.ForeColor = [System.Drawing.Color]::FromArgb(15,23,42)
+$script:lblViewTitle.ForeColor = [System.Drawing.Color]::FromArgb(226,232,240)
 [void]$resultsHeader.Controls.Add($script:lblViewTitle)
 
 $script:lblRecordCount = New-Object System.Windows.Forms.Label
 $script:lblRecordCount.Text = 'Records: 0'
 $script:lblRecordCount.AutoSize = $true
 $script:lblRecordCount.Location = [System.Drawing.Point]::new(0,6)
-$script:lblRecordCount.ForeColor = [System.Drawing.Color]::FromArgb(100,116,139)
+$script:lblRecordCount.ForeColor = [System.Drawing.Color]::FromArgb(156,163,175)
 [void]$resultsHeader.Controls.Add($script:lblRecordCount)
 
 $script:lblViewBadge = New-Object System.Windows.Forms.Label
 $script:lblViewBadge.Text = 'All Audit Results'
-$script:lblViewBadge.Font = [System.Drawing.Font]::new('Segoe UI', 8)
-$script:lblViewBadge.ForeColor = [System.Drawing.Color]::FromArgb(100,116,139)
+$script:lblViewBadge.Font = [System.Drawing.Font]::new('Segoe UI', 8.4)
+$script:lblViewBadge.ForeColor = [System.Drawing.Color]::FromArgb(156,163,175)
+$script:lblViewBadge.AutoSize = $false
+$script:lblViewBadge.Size = [System.Drawing.Size]::new(300,22)
+$script:lblViewBadge.TextAlign = [System.Drawing.ContentAlignment]::MiddleRight
 $script:lblViewBadge.Anchor = 'Top,Right'
 [void]$resultsHeader.Controls.Add($script:lblViewBadge)
 
 function Position-ViewHeader {
     try {
         $script:lblRecordCount.Left = $script:lblViewTitle.Right + 12
-        $script:lblViewBadge.Left = [Math]::Max(0,$resultsHeader.ClientSize.Width-$script:lblViewBadge.Width-4)
-        $script:lblViewBadge.Top = 7
+        $script:lblViewBadge.Left = [Math]::Max(0,$resultsHeader.ClientSize.Width-$script:lblViewBadge.Width-8)
+        $script:lblViewBadge.Top = 4
     } catch {}
 }
 $resultsHeader.Add_Resize({ Position-ViewHeader })
@@ -3320,7 +3849,7 @@ $workspace.Orientation = [System.Windows.Forms.Orientation]::Vertical
 $workspace.Panel1MinSize = 0
 $workspace.Panel2MinSize = 0
 $workspace.SplitterDistance = 1
-$workspace.BackColor = [System.Drawing.Color]::FromArgb(226,232,240)
+$workspace.BackColor = [System.Drawing.Color]::FromArgb(38,61,86)
 
 function Position-Workspace {
     try {
@@ -3334,11 +3863,11 @@ function Position-Workspace {
         # width so WinForms can validate them safely.
         if ($width -ge 980) {
             $workspace.Panel1MinSize = 650
-            $workspace.Panel2MinSize = 300
+            $workspace.Panel2MinSize = 280
 
             $minimumDistance = 651
-            $maximumDistance = $width - 301
-            $preferredDistance = [int]($width * 0.72)
+            $maximumDistance = $width - 281
+            $preferredDistance = [int]($width * 0.82)
 
             $workspace.SplitterDistance = [Math]::Min(
                 $maximumDistance,
@@ -3347,8 +3876,8 @@ function Position-Workspace {
         }
         else {
             # Graceful fallback for small/RDP viewports.
-            $panel2Min = [Math]::Max(140, [int]($width * 0.25))
-            $panel1Min = [Math]::Max(260, $width - $panel2Min - 2)
+            $panel2Min = [Math]::Max(160, [int]($width * 0.18))
+            $panel1Min = [Math]::Max(300, $width - $panel2Min - 2)
 
             if (($panel1Min + $panel2Min) -ge $width) {
                 $panel1Min = [Math]::Max(220, $width - $panel2Min - 2)
@@ -3359,7 +3888,7 @@ function Position-Workspace {
 
             $minimumDistance = $panel1Min + 1
             $maximumDistance = $width - $panel2Min - 1
-            $preferredDistance = [int]($width * 0.68)
+            $preferredDistance = [int]($width * 0.78)
 
             if ($maximumDistance -gt $minimumDistance) {
                 $workspace.SplitterDistance = [Math]::Min(
@@ -3378,7 +3907,7 @@ $gridGroup = New-Object System.Windows.Forms.GroupBox
 $gridGroup.Text = ' Audit Results '
 $gridGroup.Font = $fontSection
 $gridGroup.Dock = 'Fill'
-$gridGroup.BackColor = [System.Drawing.Color]::White
+$gridGroup.BackColor = [System.Drawing.Color]::FromArgb(15,25,39)
 $gridGroup.Padding = [System.Windows.Forms.Padding]::new(3,5,3,3)
 
 $script:grid = New-Object System.Windows.Forms.DataGridView
@@ -3395,42 +3924,55 @@ $script:grid.StandardTab = $true
 $script:grid.AutoGenerateColumns = $true
 $script:grid.AutoSizeColumnsMode = 'DisplayedCells'
 $script:grid.EnableHeadersVisualStyles = $false
-$script:grid.BackgroundColor = [System.Drawing.Color]::White
-$script:grid.BorderStyle = 'None'
-$script:grid.GridColor = [System.Drawing.Color]::FromArgb(226,232,240)
-$script:grid.ColumnHeadersDefaultCellStyle.BackColor = [System.Drawing.Color]::FromArgb(15,23,42)
-$script:grid.ColumnHeadersDefaultCellStyle.ForeColor = [System.Drawing.Color]::White
-$script:grid.ColumnHeadersDefaultCellStyle.Font = New-Object System.Drawing.Font('Segoe UI Semibold', 8.8)
+$script:grid.BackgroundColor = [System.Drawing.Color]::FromArgb(11,22,36)
+$script:grid.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
+$script:grid.GridColor = [System.Drawing.Color]::FromArgb(34,54,76)
+$script:grid.ColumnHeadersDefaultCellStyle.BackColor = [System.Drawing.Color]::FromArgb(18,32,49)
+$script:grid.ColumnHeadersDefaultCellStyle.ForeColor = [System.Drawing.Color]::FromArgb(226,232,240)
+$script:grid.ColumnHeadersDefaultCellStyle.Font = New-Object System.Drawing.Font('Segoe UI Semibold', 9.0)
 $script:grid.ColumnHeadersHeight = 30
-$script:grid.DefaultCellStyle.Font = $fontSmall
-$script:grid.DefaultCellStyle.SelectionBackColor = [System.Drawing.Color]::FromArgb(219,234,254)
-$script:grid.DefaultCellStyle.SelectionForeColor = [System.Drawing.Color]::FromArgb(15,23,42)
-$script:grid.AlternatingRowsDefaultCellStyle.BackColor = [System.Drawing.Color]::FromArgb(248,250,252)
-$script:grid.RowTemplate.Height = 27
+$script:grid.DefaultCellStyle.Font = [System.Drawing.Font]::new('Segoe UI', 8.8)
+$script:grid.DefaultCellStyle.SelectionBackColor = [System.Drawing.Color]::FromArgb(24,76,150)
+$script:grid.DefaultCellStyle.SelectionForeColor = [System.Drawing.Color]::White
+$script:grid.AlternatingRowsDefaultCellStyle.BackColor = [System.Drawing.Color]::FromArgb(14,27,43)
+$script:grid.RowTemplate.Height = 26
 [void]$gridGroup.Controls.Add($script:grid)
+
+$script:grid.Add_HandleCreated({
+    try {
+        $script:grid.BeginInvoke([Action]{ Set-ALIADataGridScrollbars }) | Out-Null
+    } catch {}
+})
+
+$script:grid.Add_DataBindingComplete({
+    try {
+        $script:grid.BeginInvoke([Action]{ Set-ALIADataGridScrollbars }) | Out-Null
+    } catch {}
+})
+
 [void]$workspace.Panel1.Controls.Add($gridGroup)
 
 $detailGroup = New-Object System.Windows.Forms.GroupBox
 $detailGroup.Text = ' Device Details '
 $detailGroup.Font = $fontSection
 $detailGroup.Dock = 'Fill'
-$detailGroup.BackColor = [System.Drawing.Color]::White
+$detailGroup.BackColor = [System.Drawing.Color]::FromArgb(15,25,39)
 $detailGroup.Padding = [System.Windows.Forms.Padding]::new(10,8,10,8)
 
 $detailPanel = New-Object System.Windows.Forms.Panel
 $detailPanel.Dock = 'Fill'
 $detailPanel.AutoScroll = $false
-$detailPanel.BackColor = [System.Drawing.Color]::White
+$detailPanel.BackColor = [System.Drawing.Color]::FromArgb(15,25,39)
 
 $detailHeader = New-Object System.Windows.Forms.Panel
 $detailHeader.Dock = 'Top'
 $detailHeader.Height = 58
-$detailHeader.BackColor = [System.Drawing.Color]::White
+$detailHeader.BackColor = [System.Drawing.Color]::FromArgb(15,25,39)
 
 $script:detailTitle = New-Object System.Windows.Forms.Label
 $script:detailTitle.Text = 'Select a device'
 $script:detailTitle.Font = [System.Drawing.Font]::new('Segoe UI Semibold', 15)
-$script:detailTitle.ForeColor = [System.Drawing.Color]::FromArgb(15,23,42)
+$script:detailTitle.ForeColor = [System.Drawing.Color]::FromArgb(226,232,240)
 $script:detailTitle.Location = [System.Drawing.Point]::new(6,4)
 $script:detailTitle.Size = [System.Drawing.Size]::new(320,32)
 $script:detailTitle.Anchor = 'Top,Left,Right'
@@ -3438,7 +3980,7 @@ $script:detailTitle.AutoEllipsis = $true
 
 $script:detailStatus = New-Object System.Windows.Forms.Label
 $script:detailStatus.Text = ''
-$script:detailStatus.Font = [System.Drawing.Font]::new('Segoe UI Semibold', 8.8)
+$script:detailStatus.Font = [System.Drawing.Font]::new('Segoe UI Semibold', 9.0)
 $script:detailStatus.Location = [System.Drawing.Point]::new(6,36)
 $script:detailStatus.Size = [System.Drawing.Size]::new(320,20)
 $script:detailStatus.Anchor = 'Top,Left,Right'
@@ -3450,8 +3992,9 @@ $script:detailStatus.AutoEllipsis = $true
 $script:detailBody = New-Object System.Windows.Forms.RichTextBox
 $script:detailBody.ReadOnly = $true
 $script:detailBody.BorderStyle = 'None'
-$script:detailBody.BackColor = [System.Drawing.Color]::White
-$script:detailBody.Font = [System.Drawing.Font]::new('Segoe UI', 9)
+$script:detailBody.BackColor = [System.Drawing.Color]::FromArgb(10,20,34)
+$script:detailBody.Font = [System.Drawing.Font]::new('Segoe UI', 9.2)
+$script:detailBody.ForeColor = [System.Drawing.Color]::FromArgb(226,232,240)
 $script:detailBody.Dock = 'Fill'
 $script:detailBody.Text = 'Select a row to inspect GreenLake, Aruba Central, monitoring and audit state.'
 $script:detailBody.WordWrap = $true
@@ -3865,8 +4408,11 @@ function Update-SessionStatus {
     $last = @(Get-AuditHistory) | Select-Object -First 1
     if ($null -ne $last) {
         $script:sessionAuditLabel.Text = "Last audit: $(Get-HistoryProperty -Record $last -Name 'Timestamp' -FallbackName 'Date')"
+        $script:sessionAuditLabel.ForeColor = [System.Drawing.Color]::FromArgb(71,85,105)
         $script:sessionDurationLabel.Text = "Duration: $(Get-HistoryProperty -Record $last -Name 'Duration')"
+        $script:sessionDurationLabel.ForeColor = [System.Drawing.Color]::FromArgb(71,85,105)
         $script:sessionCoverageLabel.Text = "Coverage: $(Get-HistoryProperty -Record $last -Name 'CoveragePercent')%"
+        $script:sessionCoverageLabel.ForeColor = [System.Drawing.Color]::FromArgb(71,85,105)
     }
     else {
         $script:sessionAuditLabel.Text = 'Last audit: —'
@@ -3978,7 +4524,10 @@ Update-SessionStatus
 # ---------------------------------------------------------------------------
 
 $script:SearchTimer = New-Object System.Windows.Forms.Timer
-$script:SearchTimer.Interval = 450
+# Debounce search so the grid does not refresh while the user is still typing.
+# 800 ms gives enough time to finish a normal search term while keeping the
+# dynamic search experience responsive once typing pauses.
+$script:SearchTimer.Interval = 800
 
 function Get-ObjectPropertyString {
     param(
@@ -3993,6 +4542,25 @@ function Get-ObjectPropertyString {
     if ($null -eq $property) { return '' }
 
     return [string]$property.Value
+}
+
+function Clear-SearchPlaceholder {
+    if (-not $script:SearchPlaceholderActive) { return }
+    $script:SearchPlaceholderActive = $false
+    $script:txtSearch.Text = ''
+    $script:txtSearch.ForeColor = [System.Drawing.Color]::FromArgb(226,232,240)
+}
+
+function Set-SearchPlaceholder {
+    if (-not [string]::IsNullOrWhiteSpace($script:txtSearch.Text)) { return }
+    $script:SearchPlaceholderActive = $true
+    $script:txtSearch.Text = 'Search devices...'
+    $script:txtSearch.ForeColor = [System.Drawing.Color]::FromArgb(100,116,139)
+}
+
+function Get-SearchTerm {
+    if ($script:SearchPlaceholderActive) { return '' }
+    return $script:txtSearch.Text.Trim()
 }
 
 function Invoke-CurrentSearch {
@@ -4020,12 +4588,21 @@ function Invoke-CurrentSearch {
         if ($script:grid.Columns.Contains('SerialNumber')) { $script:grid.Columns['SerialNumber'].Frozen = $true }
         if ($script:grid.Columns.Contains('MACAddress')) { $script:grid.Columns['MACAddress'].Frozen = $true }
         foreach ($row in $script:grid.Rows) {
+            $row.DefaultCellStyle.BackColor = if (($row.Index % 2) -eq 1) {
+                [System.Drawing.Color]::FromArgb(14,27,43)
+            } else {
+                [System.Drawing.Color]::FromArgb(11,22,36)
+            }
+            $row.DefaultCellStyle.ForeColor = [System.Drawing.Color]::FromArgb(226,232,240)
+            $row.DefaultCellStyle.SelectionBackColor = [System.Drawing.Color]::FromArgb(24,76,150)
+            $row.DefaultCellStyle.SelectionForeColor = [System.Drawing.Color]::White
             if ($script:grid.Columns.Contains('AuditStatus')) {
-                $licenseEndValue = if ($script:grid.Columns.Contains('LicenseEnd')) { [string]$row.Cells['LicenseEnd'].Value } else { '' }
+                $licenseEndValue = if ($script:grid.Columns.Contains('LicenseEnd')) {
+                    [string]$row.Cells['LicenseEnd'].Value
+                } else { '' }
                 switch (Get-AuditHealth -Status ([string]$row.Cells['AuditStatus'].Value) -LicenseEnd $licenseEndValue) {
-                    'Critical' { $row.DefaultCellStyle.BackColor = [System.Drawing.Color]::FromArgb(254,242,242) }
-                    'Warning'  { $row.DefaultCellStyle.BackColor = [System.Drawing.Color]::FromArgb(255,251,235) }
-                    default    { $row.DefaultCellStyle.BackColor = [System.Drawing.Color]::White }
+                    'Critical' { $row.DefaultCellStyle.BackColor = [System.Drawing.Color]::FromArgb(54,30,38) }
+                    'Warning'  { $row.DefaultCellStyle.BackColor = [System.Drawing.Color]::FromArgb(54,45,22) }
                 }
             }
         }
@@ -4034,7 +4611,7 @@ function Invoke-CurrentSearch {
     finally { $script:grid.ResumeLayout() }
 
     $script:lblRecordCount.Text = "Records: $($base.Count)"
-    Write-AuditLog DEBUG "Search/filter applied: view='$script:CurrentView'; term='$($script:txtSearch.Text.Trim())'; columnFilters=$($script:GridFilters.Count); results=$($base.Count)."
+    Write-AuditLog DEBUG "Search/filter applied: view='$script:CurrentView'; term='$(Get-SearchTerm)'; columnFilters=$($script:GridFilters.Count); results=$($base.Count)."
     try { Update-DetailPanelFromSelection } catch {}
 }
 
@@ -4042,9 +4619,35 @@ $script:SearchTimer.Add_Tick({
     Invoke-CurrentSearch
 })
 
+# WinForms may give focus to the search textbox during initial layout. Force the
+# dashboard to open on the All button so the placeholder remains visible until
+# the user intentionally enters search mode.
+$script:frm.Add_Shown({
+    try {
+        $script:frm.ActiveControl = $script:btnShowAll
+        Set-SearchPlaceholder
+        $script:txtSearch.Refresh()
+        [ALIANativeMethods]::EnableDarkAppMode()
+        Apply-ALIAWindowChrome
+        try { $script:frm.Refresh() } catch {}
+    } catch {}
+})
+
+$script:txtSearch.Add_GotFocus({
+    Clear-SearchPlaceholder
+})
+
+$script:txtSearch.Add_LostFocus({
+    Set-SearchPlaceholder
+})
+
 $script:txtSearch.Add_TextChanged({
     # Wait until the user pauses typing before running the search.
     $script:SearchTimer.Stop()
+
+    if ($script:SearchPlaceholderActive) {
+        return
+    }
 
     if ([string]::IsNullOrWhiteSpace($script:txtSearch.Text)) {
         Invoke-CurrentSearch
@@ -4057,6 +4660,10 @@ $script:txtSearch.Add_TextChanged({
 $script:txtSearch.Add_KeyDown({
     param($sender, $eventArgs)
 
+    if ($script:SearchPlaceholderActive) {
+        Clear-SearchPlaceholder
+    }
+
     if ($eventArgs.KeyCode -eq [System.Windows.Forms.Keys]::Enter) {
         $eventArgs.SuppressKeyPress = $true
         Invoke-CurrentSearch
@@ -4067,6 +4674,8 @@ $script:btnShowAll.Add_Click({
     try {
         $script:SearchTimer.Stop()
         $script:txtSearch.Text = ''
+        $script:SearchPlaceholderActive = $false
+        Set-SearchPlaceholder
         $script:GridFilters.Clear()
         Show-View -View Audit -Title 'All Audit Results'
     }
@@ -4187,7 +4796,9 @@ $script:btnRunAudit.Add_Click({
         $script:GLUnlicensedCentralMonitoredCache = $null
         $script:LicensedNotInMonitoredCache = $null
 
+        $script:SearchPlaceholderActive = $false
         $script:txtSearch.Text = ''
+        Set-SearchPlaceholder
         $script:grid.DataSource = $null
         $script:lblRecordCount.Text = 'Records: 0'
 
@@ -4292,7 +4903,9 @@ $script:btnClear.Add_Click({
     $script:CurrentViewTitle = 'All Audit Results'
     $script:GridFilters.Clear()
 
+    $script:SearchPlaceholderActive = $false
     $script:txtSearch.Text = ''
+    Set-SearchPlaceholder
     $script:grid.DataSource = $null
     $script:lblViewTitle.Text = 'All Audit Results'
     $script:lblRecordCount.Text = 'Records: 0'
@@ -4552,6 +5165,26 @@ $script:frm.Add_FormClosing({
 })
 
 # ---------------------------------------------------------------------------
+# Responsive layout coordinator
+# ---------------------------------------------------------------------------
+# Keep this as a real function so the standalone script and PS2EXE build do not
+# depend on functions left behind by an earlier PowerShell ISE run.
+function global:Update-ResponsiveLayout {
+    try {
+        Apply-RootLayout
+        Position-ActionPanel
+        Position-Workspace
+        Position-Header
+        Position-Toolbar
+        Position-ViewHeader
+        Position-ProgressBar
+    }
+    catch {
+        try { Write-AuditLog DEBUG "Responsive layout update deferred: $($_.Exception.Message)" } catch {}
+    }
+}
+
+# ---------------------------------------------------------------------------
 # Startup
 # ---------------------------------------------------------------------------
 
@@ -4571,5 +5204,200 @@ $script:lblProgress.Text = 'Ready'
 Show-View -View Audit -Title 'All Audit Results'
 [System.Windows.Forms.Application]::DoEvents()
 Close-StartupSplash
+
+# ---------------------------------------------------------------------------
+# ALIA Dark Mode - visual layer only
+# ---------------------------------------------------------------------------
+$script:ALIA_DARK = $true
+
+$script:DarkTheme = @{
+    Window      = [System.Drawing.Color]::FromArgb(7,15,28)
+    Panel       = [System.Drawing.Color]::FromArgb(15,25,39)
+    Panel2      = [System.Drawing.Color]::FromArgb(17,30,46)
+    Input       = [System.Drawing.Color]::FromArgb(10,20,34)
+    Grid        = [System.Drawing.Color]::FromArgb(11,22,36)
+    GridAlt     = [System.Drawing.Color]::FromArgb(14,27,43)
+    Border      = [System.Drawing.Color]::FromArgb(38,61,86)
+    Header      = [System.Drawing.Color]::FromArgb(20,35,54)
+    Text        = [System.Drawing.Color]::FromArgb(226,232,240)
+    Muted       = [System.Drawing.Color]::FromArgb(148,163,184)
+    Accent      = [System.Drawing.Color]::FromArgb(0,210,145)
+    Blue        = [System.Drawing.Color]::FromArgb(59,130,246)
+    Cyan        = [System.Drawing.Color]::FromArgb(34,211,238)
+    Purple      = [System.Drawing.Color]::FromArgb(168,85,247)
+    Warning     = [System.Drawing.Color]::FromArgb(250,204,21)
+    Critical    = [System.Drawing.Color]::FromArgb(248,70,70)
+    Healthy     = [System.Drawing.Color]::FromArgb(34,197,94)
+    Selected    = [System.Drawing.Color]::FromArgb(24,76,150)
+}
+
+function Set-ALIAControlTheme {
+    param([System.Windows.Forms.Control]$Control)
+    if ($null -eq $Control -or $Control.IsDisposed) { return }
+    $t=$script:DarkTheme
+    if($Control -is [System.Windows.Forms.Form]){
+        $Control.BackColor=$t.Window; $Control.ForeColor=$t.Text
+    }elseif($Control -is [System.Windows.Forms.DataGridView]){
+        $Control.BackgroundColor=$t.Grid; $Control.GridColor=$t.Border
+        $Control.BorderStyle=[System.Windows.Forms.BorderStyle]::FixedSingle
+        $Control.EnableHeadersVisualStyles=$false
+        $Control.ColumnHeadersDefaultCellStyle.BackColor=$t.Header
+        $Control.ColumnHeadersDefaultCellStyle.ForeColor=$t.Text
+        $Control.ColumnHeadersDefaultCellStyle.SelectionBackColor=$t.Header
+        $Control.ColumnHeadersDefaultCellStyle.SelectionForeColor=$t.Text
+        $Control.DefaultCellStyle.BackColor=$t.Grid
+        $Control.DefaultCellStyle.ForeColor=$t.Text
+        $Control.DefaultCellStyle.SelectionBackColor=$t.Selected
+        $Control.DefaultCellStyle.SelectionForeColor=[System.Drawing.Color]::White
+        $Control.AlternatingRowsDefaultCellStyle.BackColor=$t.GridAlt
+        $Control.AlternatingRowsDefaultCellStyle.ForeColor=$t.Text
+    }elseif($Control -is [System.Windows.Forms.TextBoxBase]){
+        $Control.BackColor=$t.Input
+        if($Control -eq $script:txtSearch -and $script:SearchPlaceholderActive){
+            $Control.ForeColor=[System.Drawing.Color]::FromArgb(100,116,139)
+        }else{
+            $Control.ForeColor=$t.Text
+        }
+        $Control.BorderStyle=[System.Windows.Forms.BorderStyle]::FixedSingle
+    }elseif($Control -is [System.Windows.Forms.Button]){
+        $Control.FlatStyle=[System.Windows.Forms.FlatStyle]::Flat
+        $Control.FlatAppearance.BorderColor=$t.Border
+        $Control.FlatAppearance.MouseOverBackColor=$t.Header
+        $Control.FlatAppearance.MouseDownBackColor=$t.Selected
+        switch([string]$Control.Tag){
+            'ALIA_PRIMARY' { $Control.BackColor=[System.Drawing.Color]::FromArgb(0,200,83); $Control.ForeColor=[System.Drawing.Color]::White; $Control.FlatAppearance.BorderSize=0 }
+            'ALIA_TEST' { $Control.BackColor=[System.Drawing.Color]::FromArgb(37,99,235); $Control.ForeColor=[System.Drawing.Color]::White }
+            'ALIA_EXPORT' { $Control.BackColor=[System.Drawing.Color]::FromArgb(22,163,74); $Control.ForeColor=[System.Drawing.Color]::White }
+            'ALIA_CLEAR' { $Control.BackColor=[System.Drawing.Color]::FromArgb(71,85,105); $Control.ForeColor=[System.Drawing.Color]::White }
+            default { $Control.BackColor=$t.Panel2; $Control.ForeColor=$t.Text }
+        }
+    }elseif($Control -is [System.Windows.Forms.GroupBox]){
+        $Control.BackColor=$t.Panel; $Control.ForeColor=$t.Text
+    }elseif($Control -is [System.Windows.Forms.Label]){
+        $argb=$Control.ForeColor.ToArgb()
+        if($argb -eq [System.Drawing.Color]::FromArgb(15,23,42).ToArgb() -or $argb -eq [System.Drawing.Color]::FromArgb(51,65,85).ToArgb()){
+            $Control.ForeColor=$t.Text
+        }elseif($argb -eq [System.Drawing.Color]::FromArgb(71,85,105).ToArgb()){
+            $Control.ForeColor=$t.Muted
+        }
+        $Control.BackColor=[System.Drawing.Color]::Transparent
+    }elseif($Control -is [System.Windows.Forms.Panel] -or
+            $Control -is [System.Windows.Forms.TableLayoutPanel] -or
+            $Control -is [System.Windows.Forms.FlowLayoutPanel] -or
+            $Control -is [System.Windows.Forms.SplitContainer]){
+        $Control.BackColor=$t.Panel; $Control.ForeColor=$t.Text
+    }elseif($Control -is [System.Windows.Forms.RichTextBox]){
+        $Control.BackColor=$t.Input; $Control.ForeColor=$t.Text
+    }
+    foreach($child in @($Control.Controls)){ Set-ALIAControlTheme -Control $child }
+}
+
+function New-ALIAIconBitmap {
+    param(
+        [Parameter(Mandatory)]
+        [ValidateSet('Inventory','Database','Monitor','License','Warning','Clock','Health')]
+        [string]$Type,
+        [Parameter(Mandatory)][System.Drawing.Color]$Color,
+        [int]$Size = 34
+    )
+    $bmp=New-Object System.Drawing.Bitmap($Size,$Size,[System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
+    $g=[System.Drawing.Graphics]::FromImage($bmp)
+    $g.SmoothingMode=[System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
+    $g.PixelOffsetMode=[System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
+    $g.CompositingQuality=[System.Drawing.Drawing2D.CompositingQuality]::HighQuality
+    $g.Clear([System.Drawing.Color]::Transparent)
+    $pen=New-Object System.Drawing.Pen($Color,[Math]::Max(1.8,$Size/12.0))
+    $pen.StartCap=[System.Drawing.Drawing2D.LineCap]::Round; $pen.EndCap=[System.Drawing.Drawing2D.LineCap]::Round; $pen.LineJoin=[System.Drawing.Drawing2D.LineJoin]::Round
+    $brush=New-Object System.Drawing.SolidBrush($Color)
+    $fill=New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(35,$Color.R,$Color.G,$Color.B))
+    $rect=[System.Drawing.RectangleF]::new(2,2,$Size-4,$Size-4)
+    switch($Type){
+        'Inventory'{
+            $g.DrawRectangle($pen,4,4,$Size-8,$Size-8)
+            foreach($y in @([int]($Size*.30),[int]($Size*.50),[int]($Size*.70))){$g.DrawLine($pen,6,$y,$Size-7,$y);$g.FillEllipse($brush,$Size-10,$y-2,4,4)}
+        }
+        'Database'{
+            $top=[System.Drawing.RectangleF]::new(5,4,$Size-10,7);$g.FillEllipse($fill,$top);$g.DrawEllipse($pen,$top)
+            $g.DrawLine($pen,5,7,5,$Size-7);$g.DrawLine($pen,$Size-5,7,$Size-5,$Size-7);$g.DrawArc($pen,5,$Size-11,$Size-10,8,0,180);$g.DrawArc($pen,5,9,$Size-10,8,0,180)
+        }
+        'Monitor'{
+            $g.FillRectangle($fill,4,5,$Size-8,$Size-11);$g.DrawRectangle($pen,4,5,$Size-8,$Size-11);$g.DrawLine($pen,$Size/2,$Size-6,$Size/2,$Size-2);$g.DrawLine($pen,$Size/2-6,$Size-2,$Size/2+6,$Size-2)
+        }
+        'License'{
+            $path=New-Object System.Drawing.Drawing2D.GraphicsPath;$path.AddRectangle([System.Drawing.RectangleF]::new(5,3,$Size-10,$Size-6));$g.FillPath($fill,$path);$g.DrawPath($pen,$path);$path.Dispose()
+            $g.DrawLine($pen,8,10,$Size-9,10);$g.DrawLine($pen,8,15,$Size-11,15);$g.DrawLine($pen,8,20,$Size-14,20);$g.FillEllipse($brush,$Size-13,$Size-10,7,7)
+        }
+        'Warning'{
+            $pts=[System.Drawing.PointF[]]@([System.Drawing.PointF]::new($Size/2,3),[System.Drawing.PointF]::new($Size-3,$Size-4),[System.Drawing.PointF]::new(3,$Size-4))
+            $g.FillPolygon($fill,$pts);$g.DrawPolygon($pen,$pts);$g.DrawLine($pen,$Size/2,9,$Size/2,17);$g.FillEllipse($brush,$Size/2-1.5,21,3,3)
+        }
+        'Clock'{$g.FillEllipse($fill,$rect);$g.DrawEllipse($pen,$rect);$cx=$Size/2;$cy=$Size/2;$g.DrawLine($pen,$cx,$cy,$cx,$cy-7);$g.DrawLine($pen,$cx,$cy,$cx+6,$cy+3)}
+        'Health'{
+            $pts=[System.Drawing.PointF[]]@([System.Drawing.PointF]::new($Size/2,3),[System.Drawing.PointF]::new($Size-3,$Size-4),[System.Drawing.PointF]::new(3,$Size-4))
+            $g.FillPolygon($fill,$pts);$g.DrawPolygon($pen,$pts);$g.DrawLine($pen,$Size/2,9,$Size/2,17);$g.FillEllipse($brush,$Size/2-1.5,21,3,3)
+        }
+    }
+    $pen.Dispose();$brush.Dispose();$fill.Dispose();$g.Dispose();return $bmp
+}
+
+function Set-ALIAKpiIcons {
+    $items=@(@($script:kpiGL,'Inventory',$script:DarkTheme.Blue),@($script:kpiCentral,'Database',$script:DarkTheme.Purple),@($script:kpiMonitored,'Monitor',$script:DarkTheme.Cyan),@($script:kpiLicensed,'License',$script:DarkTheme.Healthy),@($script:kpiIssues,'Warning',$script:DarkTheme.Critical),@($script:kpiExpired,'Clock',$script:DarkTheme.Warning))
+    foreach($item in $items){
+        $kpi=$item[0];$type=$item[1];$color=$item[2]
+        if($null -ne $kpi -and $null -ne $kpi.Icon){
+            if($null -eq $kpi.Icon.Image){
+                $kpi.Icon.Image=New-ALIAIconBitmap -Type $type -Color $color -Size 38
+            }
+            $kpi.Icon.BringToFront()
+            $kpi.Icon.Tag=$kpi.Panel.Tag
+            $kpi.Icon.Cursor=[System.Windows.Forms.Cursors]::Hand
+
+            if($kpi.Icon.AccessibleName -ne 'ALIA_ICON_HANDLER'){
+                $kpi.Icon.Add_Click({
+                    try{
+                        $selection=$this.Tag
+                        $script:GridFilters.Clear()
+                        Show-View -View ([string]$selection.View) -Title ([string]$selection.Title)
+                    }catch{
+                        Show-ErrorDialog -Message (Get-SafeErrorMessage $_) -Title 'Dashboard Tile Error'
+                    }
+                })
+                $kpi.Icon.AccessibleName='ALIA_ICON_HANDLER'
+            }
+        }
+    }
+}
+
+function Set-ALIAHealthIcons {
+    try {
+        if ($null -eq $healthTitleIconHost.Image) {
+            $healthTitleIconHost.Image = New-ALIAIconBitmap -Type Health -Color $script:DarkTheme.Critical -Size 24
+        }
+        if ($null -eq $healthHeadlineIconHost.Image) {
+            $healthHeadlineIconHost.Image = New-ALIAIconBitmap -Type Health -Color $script:DarkTheme.Critical -Size 23
+        }
+        $healthTitleIconHost.BringToFront()
+        $healthHeadlineIconHost.BringToFront()
+    } catch {}
+}
+
+function Apply-ALIAWindowTheme {
+    foreach ($form in [System.Windows.Forms.Application]::OpenForms) {
+        try { Set-ALIAControlTheme -Control $form } catch {}
+    }
+    try { Set-ALIAKpiIcons } catch {}
+    try { Set-ALIAHealthIcons } catch {}
+}
+
+Apply-ALIAWindowTheme
+try { Apply-ALIAWindowChrome } catch {}
+try { Set-SearchPlaceholder } catch {}
+$script:DarkThemeTimer = New-Object System.Windows.Forms.Timer
+$script:DarkThemeTimer.Interval = 300
+$script:DarkThemeTimer.Add_Tick({
+    Apply-ALIAWindowTheme
+    try { if ($script:frm.IsHandleCreated) { Apply-ALIAWindowChrome } } catch {}
+})
+$script:DarkThemeTimer.Start()
 
 [void]$script:frm.ShowDialog()
