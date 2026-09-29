@@ -1776,7 +1776,7 @@ function Get-ViewProperties {
                 'SerialNumber','MACAddress','GreenLakeDeviceType','Model','FirmwareVersion','DeviceName',
                 'LicenseTier','LicenseStart','LicenseEnd',
                 'ArubaInventoryPresent','ArubaProvisioned','ArubaMonitoredPresent',
-                'FirmwareVersion','ArubaStatus','ArubaHealth',
+                'ArubaStatus','ArubaHealth',
                 'ArubaInventoryDeviceName','ArubaInventorySiteName',
                 'ArubaMonitoredDeviceName','ArubaMonitoredSiteName',
                 'InventoryMatchMethod','MonitoringMatchMethod',
