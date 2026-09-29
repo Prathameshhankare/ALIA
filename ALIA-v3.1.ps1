@@ -1989,7 +1989,7 @@ function Show-GridColumnFilterDialog {
         $uniqueValues = @(
             $candidateObjects |
                 ForEach-Object {
-                    Get-ObjectPropertyString -Object $_ -PropertyName $propertyName
+                    Get-GridFilterValue -Object $_ -PropertyName $propertyName
                 } |
                 Sort-Object -Unique
         )
@@ -2008,8 +2008,8 @@ function Show-GridColumnFilterDialog {
         $dialog = New-Object System.Windows.Forms.Form
         $dialog.Text = "Filter: $($column.HeaderText)"
         $dialog.StartPosition = 'CenterParent'
-        $dialog.Size = [System.Drawing.Size]::new(420, 520)
-        $dialog.MinimumSize = [System.Drawing.Size]::new(360, 420)
+        $dialog.Size = [System.Drawing.Size]::new(680, 600)
+        $dialog.MinimumSize = [System.Drawing.Size]::new(540, 480)
         $dialog.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::FixedDialog
         $dialog.MaximizeBox = $false
         $dialog.MinimizeBox = $false
@@ -2039,6 +2039,7 @@ function Show-GridColumnFilterDialog {
         $list.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
         $list.CheckOnClick = $true
         $list.IntegralHeight = $false
+        $list.HorizontalScrollbar = $true
         $list.Font = [System.Drawing.Font]::new('Segoe UI', 9)
         $list.BackColor = [System.Drawing.Color]::White
         $list.ForeColor = [System.Drawing.Color]::FromArgb(15,23,42)
@@ -2051,6 +2052,7 @@ function Show-GridColumnFilterDialog {
             @($uniqueValues)
         }
 
+        $maxTextWidth = 0
         foreach ($value in $uniqueValues) {
             $displayValue = if ([string]::IsNullOrWhiteSpace($value)) {
                 '(Blank)'
@@ -2060,11 +2062,26 @@ function Show-GridColumnFilterDialog {
             }
 
             $index = $list.Items.Add($displayValue)
-            $list.Items[$index] = $displayValue
             if ($selectedValues -contains [string]$value) {
                 $list.SetItemChecked($index, $true)
             }
+
+            try {
+                $measure = [System.Windows.Forms.TextRenderer]::MeasureText(
+                    $displayValue,
+                    $list.Font
+                )
+                $maxTextWidth = [Math]::Max($maxTextWidth, $measure.Width)
+            }
+            catch {}
         }
+
+        # Keep long serials, MAC addresses, license tiers and site names
+        # available through a horizontal scrollbar instead of clipping them.
+        $list.HorizontalExtent = [Math]::Max(
+            ($dialog.ClientSize.Width - 48),
+            ($maxTextWidth + 36)
+        )
 
         [void]$dialog.Controls.Add($list)
 
