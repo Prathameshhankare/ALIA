@@ -654,7 +654,7 @@ function Build-AuditResults {
             }
             elseif (-not $inMonitored) {
                 $auditStatus = 'LICENSED - NOT MONITORED'
-                $auditReason = 'Device is present in Aruba Central inventory but is not present in Aruba Central monitored-device list.'
+                $auditReason = 'Device is present in Aruba Central inventory with GreenLake License but not in use.'
             }
             elseif ($status -eq 'Offline') {
                 $auditStatus = 'LICENSED - MONITORED - OFFLINE'
@@ -2065,10 +2065,10 @@ function Get-AuditHealth {
         'LICENSED - NOT IN CENTRAL INVENTORY' { return 'Critical' }
         'LICENSED - MONITORED - OFFLINE'      { return 'Critical' }
         'EXPIRED'                             { return 'Critical' }
-        'LICENSED - NOT MONITORED'            { return 'Warning' }
+        'LICENSED - NOT MONITORED'            { return 'Critical' }
         'LICENSED - MONITORED - STATUS UNKNOWN'    { return 'Warning' }
         'UNLICENSED - IN CENTRAL INVENTORY - NOT MONITORED' { return 'Warning' }
-        'UNLICENSED - MONITORED'                    { return 'Warning' }
+        'UNLICENSED - MONITORED'                    { return 'Critical' }
         default { return 'Healthy' }
     }
 }
@@ -3130,13 +3130,19 @@ $detailGroup.Padding = [System.Windows.Forms.Padding]::new(10,8,10,8)
 
 $detailPanel = New-Object System.Windows.Forms.Panel
 $detailPanel.Dock = 'Fill'
-$detailPanel.AutoScroll = $true
+$detailPanel.AutoScroll = $false
+$detailPanel.BackColor = [System.Drawing.Color]::White
+
+$detailHeader = New-Object System.Windows.Forms.Panel
+$detailHeader.Dock = 'Top'
+$detailHeader.Height = 58
+$detailHeader.BackColor = [System.Drawing.Color]::White
 
 $script:detailTitle = New-Object System.Windows.Forms.Label
 $script:detailTitle.Text = 'Select a device'
 $script:detailTitle.Font = [System.Drawing.Font]::new('Segoe UI Semibold', 15)
 $script:detailTitle.ForeColor = [System.Drawing.Color]::FromArgb(15,23,42)
-$script:detailTitle.Location = [System.Drawing.Point]::new(6,6)
+$script:detailTitle.Location = [System.Drawing.Point]::new(6,4)
 $script:detailTitle.Size = [System.Drawing.Size]::new(320,32)
 $script:detailTitle.Anchor = 'Top,Left,Right'
 $script:detailTitle.AutoEllipsis = $true
@@ -3144,25 +3150,27 @@ $script:detailTitle.AutoEllipsis = $true
 $script:detailStatus = New-Object System.Windows.Forms.Label
 $script:detailStatus.Text = ''
 $script:detailStatus.Font = [System.Drawing.Font]::new('Segoe UI Semibold', 8.8)
-$script:detailStatus.Location = [System.Drawing.Point]::new(6,38)
-$script:detailStatus.Size = [System.Drawing.Size]::new(320,22)
+$script:detailStatus.Location = [System.Drawing.Point]::new(6,36)
+$script:detailStatus.Size = [System.Drawing.Size]::new(320,20)
 $script:detailStatus.Anchor = 'Top,Left,Right'
 $script:detailStatus.AutoEllipsis = $true
+
+[void]$detailHeader.Controls.Add($script:detailStatus)
+[void]$detailHeader.Controls.Add($script:detailTitle)
 
 $script:detailBody = New-Object System.Windows.Forms.RichTextBox
 $script:detailBody.ReadOnly = $true
 $script:detailBody.BorderStyle = 'None'
 $script:detailBody.BackColor = [System.Drawing.Color]::White
 $script:detailBody.Font = [System.Drawing.Font]::new('Segoe UI', 9)
-$script:detailBody.Location = [System.Drawing.Point]::new(6,64)
-$script:detailBody.Size = [System.Drawing.Size]::new(350,420)
+$script:detailBody.Dock = 'Fill'
 $script:detailBody.Text = 'Select a row to inspect GreenLake, Aruba Central, monitoring and audit state.'
-$script:detailBody.Anchor = 'Top,Bottom,Left,Right'
 $script:detailBody.WordWrap = $true
 $script:detailBody.ScrollBars = [System.Windows.Forms.RichTextBoxScrollBars]::Vertical
+$script:detailBody.HideSelection = $false
+
 [void]$detailPanel.Controls.Add($script:detailBody)
-[void]$detailPanel.Controls.Add($script:detailStatus)
-[void]$detailPanel.Controls.Add($script:detailTitle)
+[void]$detailPanel.Controls.Add($detailHeader)
 [void]$detailGroup.Controls.Add($detailPanel)
 [void]$workspace.Panel2.Controls.Add($detailGroup)
 
