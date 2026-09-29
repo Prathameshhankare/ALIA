@@ -36,7 +36,7 @@ else {
     (Get-Location).Path
 }
 
-$sourceScript = Join-Path $scriptDirectory 'ALIA-v3.1.ps1'
+$sourceScript = Join-Path $scriptDirectory 'ALIA-v3.1-dark.ps1'
 $outputDirectory = Join-Path $scriptDirectory 'dist'
 $outputExe = Join-Path $outputDirectory 'ALIA-v3.1.exe'
 $tempIcon = Join-Path $outputDirectory 'ALIA-build-icon.ico'
