@@ -167,8 +167,34 @@ $script:StartupSplash = Show-StartupSplash
 # error is rethrown; otherwise a failed initialization can leave the splash
 # visible while PowerShell has already stopped executing the application.
 trap {
-    Close-StartupSplash
-    throw
+    # Preserve and surface the original startup exception. Re-throwing from
+    # inside the trap masks the real failing line with the trap's own line.
+    $startupError = $_
+    try { Close-StartupSplash } catch {}
+
+    $details = @(
+        'ALIA startup failed.',
+        '',
+        ("Error: {0}" -f $startupError.Exception.Message),
+        ("Location: {0}" -f $startupError.InvocationInfo.PositionMessage),
+        ("Script: {0}" -f $startupError.InvocationInfo.ScriptName),
+        ("Line: {0}" -f $startupError.InvocationInfo.ScriptLineNumber),
+        '',
+        'Full error:',
+        ($startupError | Out-String)
+    ) -join [Environment]::NewLine
+
+    try { Write-Host $details -ForegroundColor Red } catch {}
+    try {
+        [System.Windows.Forms.MessageBox]::Show(
+            $details,
+            'ALIA Startup Error',
+            [System.Windows.Forms.MessageBoxButtons]::OK,
+            [System.Windows.Forms.MessageBoxIcon]::Error
+        ) | Out-Null
+    } catch {}
+
+    break
 }
 
 # ---------------------------------------------------------------------------
