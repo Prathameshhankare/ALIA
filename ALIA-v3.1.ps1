@@ -3087,23 +3087,6 @@ $script:chkProblemsOnly.Add_CheckedChanged({ Invoke-CurrentSearch })
 
 $resultsHeader.Visible = $true
 
-$script:txtSearch.Add_TextChanged({
-    $script:SearchTimer.Stop()
-    if ([string]::IsNullOrWhiteSpace($script:txtSearch.Text)) {
-        Invoke-CurrentSearch
-        return
-    }
-    $script:SearchTimer.Start()
-})
-$script:txtSearch.Add_KeyDown({
-    param($sender,$eventArgs)
-    if ($eventArgs.KeyCode -eq [System.Windows.Forms.Keys]::Enter) {
-        $eventArgs.SuppressKeyPress = $true
-        Invoke-CurrentSearch
-    }
-})
-$script:SearchTimer.Add_Tick({ Invoke-CurrentSearch })
-
 $script:frm.Add_KeyDown({
     param($sender,$eventArgs)
     if ($eventArgs.KeyCode -eq [System.Windows.Forms.Keys]::F5 -and -not $script:Busy) {
