@@ -2669,7 +2669,8 @@ foreach($healthMetric in @(
             Show-ErrorDialog -Message $message -Title 'Health View Error'
         }
     })
-})
+
+}
 
 $kpiPanel = New-Object System.Windows.Forms.TableLayoutPanel
 $kpiPanel.Dock = 'Fill'
