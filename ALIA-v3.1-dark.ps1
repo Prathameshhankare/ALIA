@@ -2299,8 +2299,11 @@ function Show-View {
 
     $script:GridFilters.Clear()
 
-    if ($script:txtSearch -and $script:txtSearch.Text.Trim().Length -gt 0) {
+    if ($script:txtSearch) {
+        $script:SearchTimer.Stop()
+        $script:SearchPlaceholderActive = $false
         $script:txtSearch.Text = ''
+        Set-SearchPlaceholder
     }
 
     $script:CurrentView = $View
@@ -3362,14 +3365,17 @@ $script:lblViewBadge = New-Object System.Windows.Forms.Label
 $script:lblViewBadge.Text = 'All Audit Results'
 $script:lblViewBadge.Font = [System.Drawing.Font]::new('Segoe UI', 8.4)
 $script:lblViewBadge.ForeColor = [System.Drawing.Color]::FromArgb(156,163,175)
+$script:lblViewBadge.AutoSize = $false
+$script:lblViewBadge.Size = [System.Drawing.Size]::new(300,22)
+$script:lblViewBadge.TextAlign = [System.Drawing.ContentAlignment]::MiddleRight
 $script:lblViewBadge.Anchor = 'Top,Right'
 [void]$resultsHeader.Controls.Add($script:lblViewBadge)
 
 function Position-ViewHeader {
     try {
         $script:lblRecordCount.Left = $script:lblViewTitle.Right + 12
-        $script:lblViewBadge.Left = [Math]::Max(0,$resultsHeader.ClientSize.Width-$script:lblViewBadge.Width-4)
-        $script:lblViewBadge.Top = 7
+        $script:lblViewBadge.Left = [Math]::Max(0,$resultsHeader.ClientSize.Width-$script:lblViewBadge.Width-8)
+        $script:lblViewBadge.Top = 4
     } catch {}
 }
 $resultsHeader.Add_Resize({ Position-ViewHeader })
@@ -4313,7 +4319,9 @@ $script:btnRunAudit.Add_Click({
         $script:GLUnlicensedCentralMonitoredCache = $null
         $script:LicensedNotInMonitoredCache = $null
 
+        $script:SearchPlaceholderActive = $false
         $script:txtSearch.Text = ''
+        Set-SearchPlaceholder
         $script:grid.DataSource = $null
         $script:lblRecordCount.Text = 'Records: 0'
 
@@ -4418,7 +4426,9 @@ $script:btnClear.Add_Click({
     $script:CurrentViewTitle = 'All Audit Results'
     $script:GridFilters.Clear()
 
+    $script:SearchPlaceholderActive = $false
     $script:txtSearch.Text = ''
+    Set-SearchPlaceholder
     $script:grid.DataSource = $null
     $script:lblViewTitle.Text = 'All Audit Results'
     $script:lblRecordCount.Text = 'Records: 0'
