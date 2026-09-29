@@ -2148,49 +2148,48 @@ $root.BackColor = [System.Drawing.Color]::FromArgb(241,245,249)
 # caused the overview/KPI area to be reduced to a thin strip.
 $script:LogPanelOpen = $false
 
-function Position-RootLayout {
+function Apply-RootLayout {
     try {
         if ($null -eq $root -or $root.IsDisposed) { return }
+        if ($null -eq $logHost -or $logHost.IsDisposed) { return }
 
-        $w = $root.ClientSize.Width
-        $h = $root.ClientSize.Height
-        if ($w -lt 1 -or $h -lt 1) { return }
+        # Use standard WinForms docking for the six top-level sections.
+        # This avoids DPI/layout-order races from manually calling SetBounds.
+        $header.Dock = [System.Windows.Forms.DockStyle]::Top
+        $header.Height = 78
 
-        # The root sections are positioned explicitly.  Their original
-        # Dock='Fill' settings would override SetBounds during the next
-        # WinForms layout pass and collapse the sections into each other.
-        foreach($section in @($header,$connectionPanel,$overview,$toolbar,$workspaceHost,$logHost)){
-            if ($null -ne $section -and -not $section.IsDisposed) {
-                $section.Dock = 'None'
-            }
+        $connectionPanel.Dock = [System.Windows.Forms.DockStyle]::Top
+        $connectionPanel.Height = 112
+
+        $overview.Dock = [System.Windows.Forms.DockStyle]::Top
+        $overview.Height = 160
+
+        $toolbar.Dock = [System.Windows.Forms.DockStyle]::Top
+        $toolbar.Height = 54
+
+        $logHost.Dock = [System.Windows.Forms.DockStyle]::Bottom
+        $logHost.Height = if ($script:LogPanelOpen) { 194 } else { 34 }
+
+        $workspaceHost.Dock = [System.Windows.Forms.DockStyle]::Fill
+
+        $root.SuspendLayout()
+        try {
+            # Rebuild the child order so Fill receives only the remaining
+            # client area after the Top/Bottom sections are reserved.
+            $root.Controls.SetChildIndex($workspaceHost, 0)
+            $root.Controls.SetChildIndex($logHost, 1)
+            $root.Controls.SetChildIndex($toolbar, 2)
+            $root.Controls.SetChildIndex($overview, 3)
+            $root.Controls.SetChildIndex($connectionPanel, 4)
+            $root.Controls.SetChildIndex($header, 5)
         }
-
-        $headerHeight = 78
-        $connectionHeight = 112
-        $overviewHeight = 160
-        $toolbarHeight = 54
-        $logHeight = if ($script:LogPanelOpen) { 194 } else { 34 }
-
-        $workspaceHeight = $h - $headerHeight - $connectionHeight - $overviewHeight - $toolbarHeight - $logHeight
-        if ($workspaceHeight -lt 160) {
-            $overviewHeight = 145
-            $workspaceHeight = $h - $headerHeight - $connectionHeight - $overviewHeight - $toolbarHeight - $logHeight
+        finally {
+            $root.ResumeLayout($true)
         }
-        if ($workspaceHeight -lt 120) {
-            $connectionHeight = 96
-            $workspaceHeight = $h - $headerHeight - $connectionHeight - $overviewHeight - $toolbarHeight - $logHeight
-        }
-
-        $y = 0
-        $header.SetBounds(0,$y,$w,$headerHeight); $y += $headerHeight
-        $connectionPanel.SetBounds(0,$y,$w,$connectionHeight); $y += $connectionHeight
-        $overview.SetBounds(0,$y,$w,$overviewHeight); $y += $overviewHeight
-        $toolbar.SetBounds(0,$y,$w,$toolbarHeight); $y += $toolbarHeight
-        $workspaceHost.SetBounds(0,$y,$w,[Math]::Max(0,$workspaceHeight)); $y += [Math]::Max(0,$workspaceHeight)
-        $logHost.SetBounds(0,$y,$w,$logHeight)
-
-        $root.PerformLayout()
-    } catch {}
+    }
+    catch {
+        try { Write-AuditLog DEBUG "Root layout adjustment failed: $($_.Exception.Message)" } catch {}
+    }
 }
 
 
@@ -2211,7 +2210,7 @@ $subtitle.Text = 'Aruba License Inventory Audit  |  GreenLake + Aruba Central re
 $subtitle.ForeColor = [System.Drawing.Color]::FromArgb(148,163,184)
 $subtitle.Font = [System.Drawing.Font]::new('Segoe UI', 10)
 $subtitle.AutoSize = $true
-$subtitle.Location = [System.Drawing.Point]::new(112, 45)
+$subtitle.Location = [System.Drawing.Point]::new(26, 43)
 [void]$header.Controls.Add($subtitle)
 
 $headerStatus = New-Object System.Windows.Forms.Label
@@ -3103,7 +3102,7 @@ $script:btnToggleLog.Add_Click({
     $script:LogPanelOpen = -not $script:LogPanelOpen
     $logGroup.Visible = $script:LogPanelOpen
     $script:btnToggleLog.Text = if ($script:LogPanelOpen) { 'Hide Audit Log ▴' } else { 'Show Audit Log ▾' }
-    Position-RootLayout
+    Apply-RootLayout
 })
 
 function Get-HistoryPath {
@@ -3296,7 +3295,7 @@ $logHost.RowCount=2
 
 $script:frm.Add_Resize({
     try {
-        Position-RootLayout
+        Apply-RootLayout
         Position-Header
         Position-Toolbar
         Position-ViewHeader
@@ -3307,7 +3306,7 @@ $script:frm.Add_Resize({
 
 $script:frm.Add_Shown({
     try {
-        Position-RootLayout
+        Apply-RootLayout
         Position-Workspace
         Position-Header
         Position-Toolbar
@@ -3316,7 +3315,7 @@ $script:frm.Add_Shown({
     } catch {}
 })
 
-Position-RootLayout
+Apply-RootLayout
 Position-Header
 Position-Toolbar
 Position-ViewHeader
