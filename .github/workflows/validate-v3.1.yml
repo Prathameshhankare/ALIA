@@ -1,0 +1,102 @@
+name: ALIA v3.1 Validation
+
+on:
+  push:
+    branches:
+      - main
+      - v3.1-gui-redesign
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  validate:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate v3.1 PowerShell syntax
+        shell: pwsh
+        run: |
+          $files = @('ALIA-v3.1.ps1','Build-ALIA-v3.1.ps1')
+          foreach ($file in $files) {
+            $tokens = $null
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile(
+              (Join-Path $PWD $file),
+              [ref]$tokens,
+              [ref]$errors
+            ) | Out-Null
+            if ($errors.Count -gt 0) {
+              $errors | Format-List | Out-Host
+              throw "PowerShell parse validation failed for $file"
+            }
+          }
+          Write-Host "PowerShell syntax validation passed."
+
+      - name: Install analysis modules
+        shell: pwsh
+        run: |
+          Install-Module PSScriptAnalyzer -Scope CurrentUser -Force -AllowClobber
+          Install-Module Pester -Scope CurrentUser -Force -AllowClobber
+
+      - name: Run static analysis
+        shell: pwsh
+        run: |
+          $result = Invoke-ScriptAnalyzer -Path .ALIA-v3.1.ps1 -Severity Error -Recurse
+          $result | Format-Table -AutoSize | Out-Host
+          if ($result.Count -gt 0) {
+            throw "PSScriptAnalyzer reported $($result.Count) error-severity issue(s)."
+          }
+
+      - name: Run ALIA v3.1 smoke tests
+        shell: pwsh
+        run: |
+          $source = Get-Content .ALIA-v3.1.ps1 -Raw
+          foreach ($required in @(
+            'AUDIT HEALTH',
+            'Problems only',
+            'Device Details',
+            'Audit History',
+            'Coverage',
+            'RUN LICENSE AUDIT',
+            'Show Audit Log'
+          )) {
+            if ($source -notmatch [regex]::Escape($required)) {
+              throw "Expected GUI feature not found: $required"
+            }
+          }
+
+          $functions = @('Normalize-Serial','Normalize-Mac','Get-CentralHealthState','Get-AuditHealth')
+          foreach ($name in $functions) {
+            $pattern = "(?ms)^functions+$names*{.*?^}"
+            $match = [regex]::Match($source,$pattern)
+            if (-not $match.Success) { throw "Function not found: $name" }
+            . ([scriptblock]::Create($match.Value))
+          }
+
+          if ((Normalize-Serial ' cn-123 / ab ') -ne 'CN123AB') { throw 'Normalize-Serial smoke test failed.' }
+          if ((Normalize-Mac 'aa:bb-cc.dd') -ne 'AABBCCDD') { throw 'Normalize-Mac smoke test failed.' }
+          if ((Get-CentralHealthState 'ONLINE') -ne 'Online') { throw 'Get-CentralHealthState online test failed.' }
+          if ((Get-CentralHealthState 'offline') -ne 'Offline') { throw 'Get-CentralHealthState offline test failed.' }
+          if ((Get-AuditHealth 'LICENSED - MONITORED - ONLINE') -ne 'Healthy') { throw 'Get-AuditHealth healthy test failed.' }
+          if ((Get-AuditHealth 'LICENSED - PROVISIONED - NOT MONITORED') -ne 'Warning') { throw 'Get-AuditHealth warning test failed.' }
+          if ((Get-AuditHealth 'LICENSED - NOT IN CENTRAL INVENTORY') -ne 'Critical') { throw 'Get-AuditHealth critical test failed.' }
+
+          Write-Host 'ALIA v3.1 smoke tests passed.'
+
+      - name: Build ALIA v3.1 EXE
+        shell: powershell
+        run: |
+          .Build-ALIA-v3.1.ps1
+
+      - name: Verify EXE
+        shell: pwsh
+        run: |
+          $exe = Join-Path $PWD 'distALIA-v3.1.exe'
+          if (-not (Test-Path $exe)) {
+            throw "Expected EXE not found: $exe"
+          }
+          $item = Get-Item $exe
+          Write-Host "Built EXE size: $([Math]::Round($item.Length / 1MB,2)) MB"
