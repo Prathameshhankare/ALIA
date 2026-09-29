@@ -62,7 +62,6 @@ jobs:
             'Device Details',
             'Audit History',
             'Coverage',
-            'Audit Status',
             'All Audit Results',
             'RUN LICENSE AUDIT',
             'Show Audit Log',
@@ -81,7 +80,8 @@ jobs:
             'Normalize-Mac',
             'Get-CentralHealthState',
             'Get-AuditHealth',
-            'Update-AuditStatusFilterOptions'
+            'New-GridColumnFilterMenu',
+            'Get-GridBaseObjects'
           )) {
             if ($source.IndexOf("function $functionName", [System.StringComparison]::OrdinalIgnoreCase) -lt 0) {
               throw "Expected function not found: $functionName"
