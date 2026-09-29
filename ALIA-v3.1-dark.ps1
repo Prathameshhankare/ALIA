@@ -46,11 +46,20 @@ using System.Runtime.InteropServices;
 
 public static class ALIANativeMethods
 {
+    private delegate bool EnumChildProc(IntPtr hWnd, IntPtr lParam);
+
     [DllImport("dwmapi.dll")]
     private static extern int DwmSetWindowAttribute(
         IntPtr hwnd,
         int dwAttribute,
         ref int pvAttribute,
+        int cbAttribute);
+
+    [DllImport("dwmapi.dll")]
+    private static extern int DwmSetWindowAttribute(
+        IntPtr hwnd,
+        int dwAttribute,
+        ref uint pvAttribute,
         int cbAttribute);
 
     [DllImport("uxtheme.dll", CharSet = CharSet.Unicode, ExactSpelling = true)]
@@ -59,23 +68,36 @@ public static class ALIANativeMethods
         string pszSubAppName,
         string pszSubIdList);
 
-    [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-    private static extern IntPtr FindWindowEx(
-        IntPtr hwndParent,
-        IntPtr hwndChildAfter,
-        string lpszClass,
-        string lpszWindow);
+    [DllImport("user32.dll")]
+    private static extern bool EnumChildWindows(
+        IntPtr hWndParent,
+        EnumChildProc lpEnumFunc,
+        IntPtr lParam);
+
+    [DllImport("user32.dll")]
+    private static extern int GetClassName(
+        IntPtr hWnd,
+        System.Text.StringBuilder lpClassName,
+        int nMaxCount);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr SendMessage(
+        IntPtr hWnd,
+        uint Msg,
+        IntPtr wParam,
+        IntPtr lParam);
 
     private const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
     private const int DWMWA_BORDER_COLOR = 34;
     private const int DWMWA_CAPTION_COLOR = 35;
     private const int DWMWA_TEXT_COLOR = 36;
+    private const uint WM_THEMECHANGED = 0x031A;
 
     public static void SetDarkTitleBar(
         IntPtr hwnd,
-        int captionColor,
-        int textColor,
-        int borderColor)
+        uint captionColor,
+        uint textColor,
+        uint borderColor)
     {
         if (hwnd == IntPtr.Zero)
             return;
@@ -91,19 +113,19 @@ public static class ALIANativeMethods
             hwnd,
             DWMWA_CAPTION_COLOR,
             ref captionColor,
-            sizeof(int));
+            sizeof(uint));
 
         DwmSetWindowAttribute(
             hwnd,
             DWMWA_TEXT_COLOR,
             ref textColor,
-            sizeof(int));
+            sizeof(uint));
 
         DwmSetWindowAttribute(
             hwnd,
             DWMWA_BORDER_COLOR,
             ref borderColor,
-            sizeof(int));
+            sizeof(uint));
     }
 
     public static void SetDarkScrollbars(IntPtr parentHwnd)
@@ -111,29 +133,23 @@ public static class ALIANativeMethods
         if (parentHwnd == IntPtr.Zero)
             return;
 
-        IntPtr child = IntPtr.Zero;
-
-        while (true)
+        EnumChildWindows(parentHwnd, delegate(IntPtr child, IntPtr state)
         {
-            child = FindWindowEx(
-                parentHwnd,
-                child,
-                "ScrollBar",
-                null);
+            var className = new System.Text.StringBuilder(64);
+            GetClassName(child, className, className.Capacity);
 
-            if (child == IntPtr.Zero)
-                break;
+            if (string.Equals(className.ToString(), "ScrollBar", StringComparison.OrdinalIgnoreCase))
+            {
+                SetWindowTheme(child, "DarkMode_Explorer", "ScrollBar");
+                SendMessage(child, WM_THEMECHANGED, IntPtr.Zero, IntPtr.Zero);
+            }
 
-            SetWindowTheme(
-                child,
-                "DarkMode_Explorer",
-                "ScrollBar");
-        }
+            return true;
+        }, IntPtr.Zero);
     }
 }
 "@
 }
-
 # ---------------------------------------------------------------------------
 # Embedded startup splash
 # ---------------------------------------------------------------------------
@@ -4826,7 +4842,11 @@ function ConvertTo-COLORREF {
     )
 
     # Win32 COLORREF layout is 0x00BBGGRR.
-    return [int]($Color.R -bor ($Color.G -shl 8) -bor ($Color.B -shl 16))
+    return [uint32](
+        [int]$Color.R -bor
+        ([int]$Color.G -shl 8) -bor
+        ([int]$Color.B -shl 16)
+    )
 }
 
 function Set-ALIANativeWindowTheme {
