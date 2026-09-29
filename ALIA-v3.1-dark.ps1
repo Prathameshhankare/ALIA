@@ -36,8 +36,6 @@ Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 Add-Type -AssemblyName System.Data
 
-# Initialize common-control dark mode before any WinForms controls are created.
-try { [ALIANativeMethods]::EnableDarkAppMode() } catch {}
 # ---------------------------------------------------------------------------
 # Native Windows dark chrome helpers (Phase 3)
 # ---------------------------------------------------------------------------
@@ -95,6 +93,22 @@ public static class ALIANativeMethods
         IntPtr hWnd,
         StringBuilder lpClassName,
         int nMaxCount);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool SetWindowPos(
+        IntPtr hWnd,
+        IntPtr hWndInsertAfter,
+        int X,
+        int Y,
+        int cx,
+        int cy,
+        uint uFlags);
+
+    private const uint SWP_NOSIZE = 0x0001;
+    private const uint SWP_NOMOVE = 0x0002;
+    private const uint SWP_NOZORDER = 0x0004;
+    private const uint SWP_NOACTIVATE = 0x0010;
+    private const uint SWP_FRAMECHANGED = 0x0020;
 
     [DllImport("user32.dll")]
     private static extern IntPtr SendMessage(
@@ -180,12 +194,26 @@ public static class ALIANativeMethods
         AllowDarkModeForWindow(hwnd);
 
         int enabled = 1;
-        DwmSetWindowAttribute(
+
+        // Windows 11 uses attribute 20. Windows 10 compatibility builds may
+        // expose the dark-mode frame through attribute 19.
+        int hr20 = DwmSetWindowAttribute(
             hwnd,
             DWMWA_USE_IMMERSIVE_DARK_MODE,
             ref enabled,
             sizeof(int));
 
+        if (hr20 != 0)
+        {
+            DwmSetWindowAttribute(
+                hwnd,
+                19,
+                ref enabled,
+                sizeof(int));
+        }
+
+        // Explicit caption colors are supported by Windows 11. Harmlessly
+        // ignore the return code on Windows versions that do not support them.
         DwmSetWindowAttribute(
             hwnd,
             DWMWA_CAPTION_COLOR,
@@ -203,6 +231,26 @@ public static class ALIANativeMethods
             DWMWA_BORDER_COLOR,
             ref borderColor,
             sizeof(uint));
+
+        SetWindowPos(
+            hwnd,
+            IntPtr.Zero,
+            0, 0, 0, 0,
+            SWP_NOSIZE -bor
+            SWP_NOMOVE -bor
+            SWP_NOZORDER -bor
+            SWP_NOACTIVATE -bor
+            SWP_FRAMECHANGED);
+    }
+
+    public static void SetWindowThemeForHandle(IntPtr hwnd)
+    {
+        if (hwnd == IntPtr.Zero)
+            return;
+
+        AllowDarkModeForWindow(hwnd);
+        SetWindowTheme(hwnd, "DarkMode_Explorer", "ScrollBar");
+        SendMessage(hwnd, WM_THEMECHANGED, IntPtr.Zero, IntPtr.Zero);
     }
 
     public static void SetDarkScrollbars(IntPtr parentHwnd)
@@ -237,6 +285,10 @@ public static class ALIANativeMethods
 }
 "@
 }
+
+# Initialize common-control dark mode only after the native helper type exists.
+try { [ALIANativeMethods]::EnableDarkAppMode() } catch {}
+
 # ---------------------------------------------------------------------------
 # Embedded startup splash
 # ---------------------------------------------------------------------------
@@ -3682,11 +3734,15 @@ $script:grid.RowTemplate.Height = 26
 [void]$gridGroup.Controls.Add($script:grid)
 
 $script:grid.Add_HandleCreated({
-    try { Set-ALIADataGridScrollbars } catch {}
+    try {
+        $script:grid.BeginInvoke([Action]{ Set-ALIADataGridScrollbars }) | Out-Null
+    } catch {}
 })
 
 $script:grid.Add_DataBindingComplete({
-    try { Set-ALIADataGridScrollbars } catch {}
+    try {
+        $script:grid.BeginInvoke([Action]{ Set-ALIADataGridScrollbars }) | Out-Null
+    } catch {}
 })
 
 [void]$workspace.Panel1.Controls.Add($gridGroup)
@@ -4966,6 +5022,23 @@ function Set-ALIADataGridScrollbars {
 
         [ALIANativeMethods]::EnableDarkAppMode()
         [ALIANativeMethods]::SetDarkScrollbars($script:grid.Handle)
+
+        $flags = [System.Reflection.BindingFlags]::Instance -bor [System.Reflection.BindingFlags]::NonPublic
+
+        foreach ($propertyName in @('HorizontalScrollBar','VerticalScrollBar')) {
+            try {
+                $property = [System.Windows.Forms.DataGridView].GetProperty($propertyName, $flags)
+                if ($null -ne $property) {
+                    $scrollBar = $property.GetValue($script:grid, $null)
+                    if ($null -ne $scrollBar -and $scrollBar.IsHandleCreated) {
+                        [ALIANativeMethods]::SetWindowThemeForHandle($scrollBar.Handle)
+                    }
+                }
+            }
+            catch {
+                Write-AuditLog DEBUG "Direct $propertyName scrollbar theme application failed: $($_.Exception.Message)"
+            }
+        }
     }
     catch {
         try { Write-AuditLog DEBUG "Native DataGridView scrollbar theme could not be applied: $($_.Exception.Message)" } catch {}
