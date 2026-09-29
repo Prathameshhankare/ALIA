@@ -79,11 +79,17 @@ jobs:
             'Normalize-Serial',
             'Normalize-Mac',
             'Get-CentralHealthState',
-            'Get-AuditHealth'
+            'Get-AuditHealth',
+            'Update-AuditStatusFilterOptions'
           )) {
             if ($source.IndexOf("function $functionName", [System.StringComparison]::OrdinalIgnoreCase) -lt 0) {
               throw "Expected function not found: $functionName"
             }
+          }
+
+          if ($source.IndexOf('StatusButtons', [System.StringComparison]::OrdinalIgnoreCase) -ge 0 -or
+              $source.IndexOf('New-QuickViewButton', [System.StringComparison]::OrdinalIgnoreCase) -ge 0) {
+            throw "Legacy Audit Status button strip is still present."
           }
 
           Write-Host "ALIA v3.1 GUI smoke tests passed."
