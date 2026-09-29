@@ -35,6 +35,104 @@ $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 Add-Type -AssemblyName System.Data
+# ---------------------------------------------------------------------------
+# Native Windows dark chrome helpers (Phase 3)
+# ---------------------------------------------------------------------------
+# Keep this type guarded because ALIA can be reloaded in PowerShell ISE.
+if (-not ('ALIA.NativeMethods' -as [type])) {
+    Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+
+public static class ALIANativeMethods
+{
+    [DllImport("dwmapi.dll")]
+    private static extern int DwmSetWindowAttribute(
+        IntPtr hwnd,
+        int dwAttribute,
+        ref int pvAttribute,
+        int cbAttribute);
+
+    [DllImport("uxtheme.dll", CharSet = CharSet.Unicode, ExactSpelling = true)]
+    private static extern int SetWindowTheme(
+        IntPtr hwnd,
+        string pszSubAppName,
+        string pszSubIdList);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern IntPtr FindWindowEx(
+        IntPtr hwndParent,
+        IntPtr hwndChildAfter,
+        string lpszClass,
+        string lpszWindow);
+
+    private const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
+    private const int DWMWA_BORDER_COLOR = 34;
+    private const int DWMWA_CAPTION_COLOR = 35;
+    private const int DWMWA_TEXT_COLOR = 36;
+
+    public static void SetDarkTitleBar(
+        IntPtr hwnd,
+        int captionColor,
+        int textColor,
+        int borderColor)
+    {
+        if (hwnd == IntPtr.Zero)
+            return;
+
+        int enabled = 1;
+        DwmSetWindowAttribute(
+            hwnd,
+            DWMWA_USE_IMMERSIVE_DARK_MODE,
+            ref enabled,
+            sizeof(int));
+
+        DwmSetWindowAttribute(
+            hwnd,
+            DWMWA_CAPTION_COLOR,
+            ref captionColor,
+            sizeof(int));
+
+        DwmSetWindowAttribute(
+            hwnd,
+            DWMWA_TEXT_COLOR,
+            ref textColor,
+            sizeof(int));
+
+        DwmSetWindowAttribute(
+            hwnd,
+            DWMWA_BORDER_COLOR,
+            ref borderColor,
+            sizeof(int));
+    }
+
+    public static void SetDarkScrollbars(IntPtr parentHwnd)
+    {
+        if (parentHwnd == IntPtr.Zero)
+            return;
+
+        IntPtr child = IntPtr.Zero;
+
+        while (true)
+        {
+            child = FindWindowEx(
+                parentHwnd,
+                child,
+                "ScrollBar",
+                null);
+
+            if (child == IntPtr.Zero)
+                break;
+
+            SetWindowTheme(
+                child,
+                "DarkMode_Explorer",
+                "ScrollBar");
+        }
+    }
+}
+"@
+}
 
 # ---------------------------------------------------------------------------
 # Embedded startup splash
@@ -3479,6 +3577,11 @@ $script:grid.DefaultCellStyle.SelectionForeColor = [System.Drawing.Color]::White
 $script:grid.AlternatingRowsDefaultCellStyle.BackColor = [System.Drawing.Color]::FromArgb(14,27,43)
 $script:grid.RowTemplate.Height = 26
 [void]$gridGroup.Controls.Add($script:grid)
+
+$script:grid.Add_DataBindingComplete({
+    try { Set-ALIADataGridScrollbars } catch {}
+})
+
 [void]$workspace.Panel1.Controls.Add($gridGroup)
 
 $detailGroup = New-Object System.Windows.Forms.GroupBox
@@ -4156,6 +4259,7 @@ $script:frm.Add_Shown({
         $script:frm.ActiveControl = $script:btnShowAll
         Set-SearchPlaceholder
         $script:txtSearch.Refresh()
+        Apply-ALIAWindowChrome
     } catch {}
 })
 
@@ -4712,6 +4816,67 @@ Show-View -View Audit -Title 'All Audit Results'
 Close-StartupSplash
 
 # ---------------------------------------------------------------------------
+# Phase 3 - native Windows dark chrome
+# ---------------------------------------------------------------------------
+
+function ConvertTo-COLORREF {
+    param(
+        [Parameter(Mandatory)]
+        [System.Drawing.Color]$Color
+    )
+
+    # Win32 COLORREF layout is 0x00BBGGRR.
+    return [int]($Color.R -bor ($Color.G -shl 8) -bor ($Color.B -shl 16))
+}
+
+function Set-ALIANativeWindowTheme {
+    try {
+        if ($null -eq $script:frm -or $script:frm.IsDisposed) {
+            return
+        }
+
+        if (-not $script:frm.IsHandleCreated) {
+            return
+        }
+
+        $caption = ConvertTo-COLORREF ([System.Drawing.Color]::FromArgb(15,23,42))
+        $text    = ConvertTo-COLORREF ([System.Drawing.Color]::FromArgb(226,232,240))
+        $border  = ConvertTo-COLORREF ([System.Drawing.Color]::FromArgb(38,61,86))
+
+        [ALIANativeMethods]::SetDarkTitleBar(
+            $script:frm.Handle,
+            $caption,
+            $text,
+            $border)
+    }
+    catch {
+        try { Write-AuditLog DEBUG "Native title bar theme could not be applied: $($_.Exception.Message)" } catch {}
+    }
+}
+
+function Set-ALIADataGridScrollbars {
+    try {
+        if ($null -eq $script:grid -or $script:grid.IsDisposed) {
+            return
+        }
+
+        if (-not $script:grid.IsHandleCreated) {
+            return
+        }
+
+        [ALIANativeMethods]::SetDarkScrollbars($script:grid.Handle)
+    }
+    catch {
+        try { Write-AuditLog DEBUG "Native DataGridView scrollbar theme could not be applied: $($_.Exception.Message)" } catch {}
+    }
+}
+
+function Apply-ALIAWindowChrome {
+    Set-ALIANativeWindowTheme
+    Set-ALIADataGridScrollbars
+}
+
+# ---------------------------------------------------------------------------
 # ALIA Dark Mode - visual layer only
 # ---------------------------------------------------------------------------
 $script:ALIA_DARK = $true
@@ -4896,6 +5061,7 @@ function Apply-ALIAWindowTheme {
 }
 
 Apply-ALIAWindowTheme
+try { Apply-ALIAWindowChrome } catch {}
 try { Set-SearchPlaceholder } catch {}
 $script:DarkThemeTimer = New-Object System.Windows.Forms.Timer
 $script:DarkThemeTimer.Interval = 300
