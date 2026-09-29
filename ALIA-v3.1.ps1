@@ -2073,10 +2073,6 @@ function Update-Dashboard {
     $warningCount = @($script:AuditResults | Where-Object { (Get-AuditHealth -Status ([string]$_.AuditStatus)) -eq 'Warning' }).Count
     $criticalCount = @($script:AuditResults | Where-Object { (Get-AuditHealth -Status ([string]$_.AuditStatus)) -eq 'Critical' }).Count
 
-    $glAp = @($script:GreenLakeInventory | Where-Object { $_.NormalizedDeviceType -eq 'Access Point' }).Count
-    $glSwitch = @($script:GreenLakeInventory | Where-Object { $_.NormalizedDeviceType -eq 'Switch' }).Count
-    $glGateway = @($script:GreenLakeInventory | Where-Object { $_.NormalizedDeviceType -eq 'Gateway' }).Count
-
     if ($script:kpiGL) { $script:kpiGL.Value.Text = [string]$glCount }
     if ($script:kpiCentral) { $script:kpiCentral.Value.Text = [string]$centralCount }
     if ($script:kpiMonitored) { $script:kpiMonitored.Value.Text = [string]$monitoredCount }
@@ -2088,10 +2084,6 @@ function Update-Dashboard {
     if ($script:healthWarning) { $script:healthWarning.Text = [string]$warningCount }
     if ($script:healthCritical) { $script:healthCritical.Text = [string]$criticalCount }
     if ($script:healthCoverage) { $script:healthCoverage.Text = "$coverage%" }
-    if ($script:healthAP) { $script:healthAP.Text = [string]$glAp }
-    if ($script:healthSwitch) { $script:healthSwitch.Text = [string]$glSwitch }
-    if ($script:healthGateway) { $script:healthGateway.Text = [string]$glGateway }
-
     if ($script:healthHeadline) {
         if ($criticalCount -gt 0) {
             $script:healthHeadline.Text = 'ATTENTION REQUIRED'
