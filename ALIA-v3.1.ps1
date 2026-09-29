@@ -1842,6 +1842,81 @@ function Get-ViewProperties {
     }
 }
 
+function Get-GridFilterValue {
+    param(
+        [AllowNull()][object]$Object,
+        [Parameter(Mandatory)][string]$PropertyName
+    )
+
+    if ($null -eq $Object) {
+        return ''
+    }
+
+    $value = Get-ObjectPropertyString -Object $Object -PropertyName $PropertyName
+    if (-not [string]::IsNullOrWhiteSpace($value)) {
+        return $value
+    }
+
+    # Audit-result aliases/fallbacks. These keep the filter source aligned
+    # with the values displayed by the Audit grid.
+    switch ($PropertyName) {
+        'GreenLakeDeviceType' {
+            $value = Get-ObjectPropertyString -Object $Object -PropertyName 'NormalizedDeviceType'
+            if ([string]::IsNullOrWhiteSpace($value)) {
+                $value = Get-ObjectPropertyString -Object $Object -PropertyName 'DeviceType'
+            }
+        }
+
+        'FirmwareVersion' {
+            $value = Get-ObjectPropertyString -Object $Object -PropertyName 'ArubaMonitoredFirmware'
+        }
+
+        'ArubaInventoryPresent' {
+            $serial = Get-ObjectPropertyString -Object $Object -PropertyName 'ArubaInventorySerialNumber'
+            $mac = Get-ObjectPropertyString -Object $Object -PropertyName 'ArubaInventoryMACAddress'
+            $name = Get-ObjectPropertyString -Object $Object -PropertyName 'ArubaInventoryDeviceName'
+            if ($serial -or $mac -or $name) {
+                $value = 'Yes'
+            }
+            elseif ($Object.PSObject.Properties['ArubaInventoryPresent']) {
+                $value = [string]$Object.ArubaInventoryPresent
+            }
+            else {
+                $value = 'No'
+            }
+        }
+
+        'ArubaMonitoredPresent' {
+            $serial = Get-ObjectPropertyString -Object $Object -PropertyName 'ArubaMonitoredSerialNumber'
+            $mac = Get-ObjectPropertyString -Object $Object -PropertyName 'ArubaMonitoredMACAddress'
+            $name = Get-ObjectPropertyString -Object $Object -PropertyName 'ArubaMonitoredDeviceName'
+            if ($serial -or $mac -or $name) {
+                $value = 'Yes'
+            }
+            elseif ($Object.PSObject.Properties['ArubaMonitoredPresent']) {
+                $value = [string]$Object.ArubaMonitoredPresent
+            }
+            else {
+                $value = 'No'
+            }
+        }
+
+        'ArubaStatus' {
+            if ($Object.PSObject.Properties['AuditStatus']) {
+                $value = Get-CentralHealthState -Status (Get-ObjectPropertyString -Object $Object -PropertyName 'ArubaStatus')
+            }
+        }
+
+        'Health' {
+            $status = Get-ObjectPropertyString -Object $Object -PropertyName 'AuditStatus'
+            $licenseEnd = Get-ObjectPropertyString -Object $Object -PropertyName 'LicenseEnd'
+            $value = Get-AuditHealth -Status $status -LicenseEnd $licenseEnd
+        }
+    }
+
+    return [string]$value
+}
+
 function Get-GridBaseObjects {
     param([AllowNull()][string]$ExcludeColumn = '')
 
@@ -1868,7 +1943,7 @@ function Get-GridBaseObjects {
         $allowedValues = @($script:GridFilters[$propertyName])
         if ($allowedValues.Count -gt 0) {
             $base = @($base | Where-Object {
-                $value = Get-ObjectPropertyString -Object $_ -PropertyName $propertyName
+                $value = Get-GridFilterValue -Object $_ -PropertyName $propertyName
                 $allowedValues -contains $value
             })
         }
