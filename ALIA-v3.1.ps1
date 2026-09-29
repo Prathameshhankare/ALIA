@@ -2769,18 +2769,23 @@ function New-QuickViewButton {
     $b.Font = [System.Drawing.Font]::new('Segoe UI Semibold', 8.0)
     $b.TextAlign = [System.Drawing.ContentAlignment]::MiddleCenter
     $b.Cursor = [System.Windows.Forms.Cursors]::Hand
+    $b.UseMnemonic = $false
+    $b.AutoEllipsis = $false
+    $b.Padding = [System.Windows.Forms.Padding]::new(4,0,4,0)
 
     return $b
 }
 
 $quickPanel = New-Object System.Windows.Forms.FlowLayoutPanel
 $quickPanel.Dock = 'Left'
-$quickPanel.Width = 1000
+$quickPanel.Width = 1120
 $quickPanel.Height = 34
 $quickPanel.WrapContents = $false
 $quickPanel.FlowDirection = 'LeftToRight'
 $quickPanel.AutoScroll = $false
 $quickPanel.Padding = [System.Windows.Forms.Padding]::Empty
+
+$script:StatusButtons = @{}
 
 $titleMap = @{
     Audit = 'All Audit Results'
@@ -2797,17 +2802,67 @@ $titleMap = @{
 }
 
 foreach($qb in @(
-    (New-QuickViewButton 'All' 'Audit' 48),
-    (New-QuickViewButton 'Lic: Not Central' 'StatusLicensedNotInCentral' 115),
-    (New-QuickViewButton 'Lic: Not Monitored' 'StatusLicensedNotMonitored' 125),
-    (New-QuickViewButton 'Lic: Online' 'StatusLicensedOnline' 90),
-    (New-QuickViewButton 'Lic: Offline' 'StatusLicensedOffline' 90),
-    (New-QuickViewButton 'Lic: Unknown' 'StatusLicensedUnknown' 95),
-    (New-QuickViewButton 'Unlic: Not Central' 'StatusUnlicensedNotInCentral' 125),
-    (New-QuickViewButton 'Unlic: Not Monitored' 'StatusUnlicensedNotMonitored' 145),
-    (New-QuickViewButton 'Unlic: Monitored' 'StatusUnlicensedMonitored' 120)
+    (New-QuickViewButton 'All' 'Audit' 55),
+    (New-QuickViewButton 'Lic: Not Central' 'StatusLicensedNotInCentral' 130),
+    (New-QuickViewButton 'Lic: Not Monitored' 'StatusLicensedNotMonitored' 140),
+    (New-QuickViewButton 'Lic: Online' 'StatusLicensedOnline' 100),
+    (New-QuickViewButton 'Lic: Offline' 'StatusLicensedOffline' 100),
+    (New-QuickViewButton 'Lic: Unknown' 'StatusLicensedUnknown' 110),
+    (New-QuickViewButton 'Unlic: Not Central' 'StatusUnlicensedNotInCentral' 140),
+    (New-QuickViewButton 'Unlic: Not Monitored' 'StatusUnlicensedNotMonitored' 160),
+    (New-QuickViewButton 'Unlic: Monitored' 'StatusUnlicensedMonitored' 135)
 )){
-    $qb.Add_Click({
+    $script:StatusButtons[[string]$qb.Tag] = $qb
+
+     switch ([string]$qb.Tag) {
+         'Audit' {
+             $qb.BackColor = [System.Drawing.Color]::FromArgb(51,65,85)
+             $qb.ForeColor = [System.Drawing.Color]::White
+             $qb.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(51,65,85)
+         }
+         'StatusLicensedNotInCentral' {
+             $qb.BackColor = [System.Drawing.Color]::FromArgb(254,226,226)
+             $qb.ForeColor = [System.Drawing.Color]::FromArgb(185,28,28)
+             $qb.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(248,113,113)
+         }
+         'StatusLicensedNotMonitored' {
+             $qb.BackColor = [System.Drawing.Color]::FromArgb(254,243,199)
+             $qb.ForeColor = [System.Drawing.Color]::FromArgb(161,98,7)
+             $qb.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(234,179,8)
+         }
+         'StatusLicensedOnline' {
+             $qb.BackColor = [System.Drawing.Color]::FromArgb(220,252,231)
+             $qb.ForeColor = [System.Drawing.Color]::FromArgb(21,128,61)
+             $qb.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(74,222,128)
+         }
+         'StatusLicensedOffline' {
+             $qb.BackColor = [System.Drawing.Color]::FromArgb(254,226,226)
+             $qb.ForeColor = [System.Drawing.Color]::FromArgb(185,28,28)
+             $qb.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(248,113,113)
+         }
+         'StatusLicensedUnknown' {
+             $qb.BackColor = [System.Drawing.Color]::FromArgb(254,243,199)
+             $qb.ForeColor = [System.Drawing.Color]::FromArgb(161,98,7)
+             $qb.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(234,179,8)
+         }
+         'StatusUnlicensedNotInCentral' {
+             $qb.BackColor = [System.Drawing.Color]::FromArgb(241,245,249)
+             $qb.ForeColor = [System.Drawing.Color]::FromArgb(71,85,105)
+             $qb.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(148,163,184)
+         }
+         'StatusUnlicensedNotMonitored' {
+             $qb.BackColor = [System.Drawing.Color]::FromArgb(254,243,199)
+             $qb.ForeColor = [System.Drawing.Color]::FromArgb(161,98,7)
+             $qb.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(234,179,8)
+         }
+         'StatusUnlicensedMonitored' {
+             $qb.BackColor = [System.Drawing.Color]::FromArgb(254,243,199)
+             $qb.ForeColor = [System.Drawing.Color]::FromArgb(161,98,7)
+             $qb.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(234,179,8)
+         }
+     }
+
+         $qb.Add_Click({
         param($sender)
 
         try {
