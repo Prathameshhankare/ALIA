@@ -414,6 +414,10 @@ function Update-Progress {
 
     $Percent = [Math]::Max(0, [Math]::Min(100, $Percent))
     $script:progressBar.Value = $Percent
+    if ($null -ne $script:statusProgress) {
+        $script:statusProgress.Value = $Percent
+        $script:statusProgress.Visible = ($script:OperationMode -eq 'RunAudit')
+    }
     $script:lblProgress.Text = $Text
     try { $progressTip.SetToolTip($script:lblProgress, $Text) } catch {}
     if ($null -ne $script:lblProgressPercent) {
@@ -1769,7 +1773,7 @@ function Get-ViewProperties {
 
         default {
             return @(
-                'SerialNumber','MACAddress','GreenLakeDeviceType','Model','DeviceName',
+                'SerialNumber','MACAddress','GreenLakeDeviceType','Model','FirmwareVersion','DeviceName',
                 'LicenseTier','LicenseStart','LicenseEnd',
                 'ArubaInventoryPresent','ArubaProvisioned','ArubaMonitoredPresent',
                 'FirmwareVersion','ArubaStatus','ArubaHealth',
@@ -1813,9 +1817,9 @@ function Show-View {
     $properties = @(Get-ViewProperties -View $View)
     if ($View -eq 'Issues') {
         $properties = @(
-            'SerialNumber','MACAddress','GreenLakeDeviceType','Model','DeviceName',
+            'SerialNumber','MACAddress','GreenLakeDeviceType','Model','FirmwareVersion','DeviceName',
             'LicenseTier','LicenseEnd','ArubaInventoryPresent','ArubaProvisioned',
-            'ArubaMonitoredPresent','FirmwareVersion','ArubaStatus','ArubaHealth','AuditStatus','AuditReason'
+            'ArubaMonitoredPresent','ArubaStatus','ArubaHealth','AuditStatus','AuditReason'
         )
     }
 
@@ -2075,6 +2079,9 @@ function Update-Dashboard {
     $offlineCount = @($script:AuditResults | Where-Object { $_.AuditStatus -eq 'LICENSED - MONITORED - OFFLINE' }).Count
     $issueCount = Get-AuditIssueCount
     $coverage = Get-AuditCoveragePercent
+    $firmwareKnownCount = @($script:AuditResults | Where-Object {
+        -not [string]::IsNullOrWhiteSpace((Get-ObjectPropertyString -Object $_ -PropertyName 'FirmwareVersion'))
+    }).Count
 
     $healthyCount = @($script:AuditResults | Where-Object { (Get-AuditHealth -Status ([string]$_.AuditStatus)) -eq 'Healthy' }).Count
     $warningCount = @($script:AuditResults | Where-Object { (Get-AuditHealth -Status ([string]$_.AuditStatus)) -eq 'Warning' }).Count
@@ -2113,6 +2120,10 @@ function Update-Dashboard {
     if ($script:kpiIssues -and $script:kpiIssues.Trend) { Update-KpiTrend -Label $script:kpiIssues.Trend -Current $issueCount -Metric 'IssueCount' }
     if ($script:kpiExpired -and $script:kpiExpired.Trend) { Update-KpiTrend -Label $script:kpiExpired.Trend -Current $expiredCount -Metric 'ExpiredCount' }
     if ($script:kpiLicensed -and $script:kpiLicensed.Trend) { Update-KpiTrend -Label $script:kpiLicensed.Trend -Current $licensedCount -Metric 'LicensedCount' }
+    if ($script:kpiMonitored -and $script:kpiMonitored.Trend) {
+        $script:kpiMonitored.Trend.Text = "Firmware known: $firmwareKnownCount"
+        $script:kpiMonitored.Trend.ForeColor = [System.Drawing.Color]::FromArgb(100,116,139)
+    }
 }
 
 # ---------------------------------------------------------------------------
@@ -2154,6 +2165,7 @@ $root.BackColor = [System.Drawing.Color]::FromArgb(241,245,249)
 # absolute rows were collapsing on some WinForms/DPI combinations, which
 # caused the overview/KPI area to be reduced to a thin strip.
 $script:LogPanelOpen = $false
+$script:AuditHistoryCache = @()
 
 function Apply-RootLayout {
     try {
@@ -2681,7 +2693,7 @@ function New-QuickViewButton {
         'Issues'       { 76 }
         'Licensed'     { 82 }
         'Unlicensed'   { 88 }
-        'NotMonitored' { 96 }
+        'NotMonitored' { 125 }
         'Inventory'    { 82 }
         default        { 82 }
     }
@@ -2691,14 +2703,15 @@ function New-QuickViewButton {
     $b.FlatAppearance.BorderSize = 1
     $b.BackColor = [System.Drawing.Color]::White
     $b.ForeColor = [System.Drawing.Color]::FromArgb(51,65,85)
-    $b.Font = [System.Drawing.Font]::new('Segoe UI Semibold', 7.8)
+    $b.Font = [System.Drawing.Font]::new('Segoe UI Semibold', 8.2)
+    $b.TextAlign = [System.Drawing.ContentAlignment]::MiddleCenter
     $b.Cursor = [System.Windows.Forms.Cursors]::Hand
     return $b
 }
 
 $quickPanel = New-Object System.Windows.Forms.FlowLayoutPanel
 $quickPanel.Dock = 'Left'
-$quickPanel.Width = 575
+$quickPanel.Width = 650
 $quickPanel.WrapContents = $false
 $quickPanel.FlowDirection = 'LeftToRight'
 
@@ -3252,13 +3265,29 @@ function Get-HistoryProperty {
 }
 
 function Get-AuditHistory {
+    if ($script:AuditHistoryCache.Count -gt 0) {
+        return @($script:AuditHistoryCache)
+    }
+
     $path = Get-HistoryPath
     if (-not (Test-Path -LiteralPath $path)) { return @() }
+
     try {
         $raw = Get-Content -LiteralPath $path -Raw -ErrorAction Stop
         if ([string]::IsNullOrWhiteSpace($raw)) { return @() }
-        return @($raw | ConvertFrom-Json)
-    } catch {
+
+        $parsed = ConvertFrom-Json -InputObject $raw
+        if ($parsed -is [System.Array]) {
+            $script:AuditHistoryCache = @($parsed)
+        }
+        else {
+            $script:AuditHistoryCache = @($parsed)
+        }
+
+        return @($script:AuditHistoryCache)
+    }
+    catch {
+        Write-AuditLog DEBUG "Audit history could not be read: $($_.Exception.Message)"
         return @()
     }
 }
@@ -3280,7 +3309,16 @@ function Save-AuditHistory {
 
     $history = @(Get-AuditHistory)
     $history = @($record) + @($history | Select-Object -First 49)
-    $history | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Get-HistoryPath) -Encoding UTF8
+
+    $script:AuditHistoryCache = @($history)
+
+    $json = ConvertTo-Json -InputObject ([object[]]$history) -Depth 4
+    [System.IO.File]::WriteAllText(
+        (Get-HistoryPath),
+        $json,
+        [System.Text.UTF8Encoding]::new($false)
+    )
+
     return $record
 }
 
@@ -3402,6 +3440,14 @@ $script:lblStatus = New-Object System.Windows.Forms.ToolStripStatusLabel
 $script:lblStatus.Text = 'Ready'
 $script:lblStatus.ForeColor = [System.Drawing.Color]::FromArgb(51,65,85)
 
+$script:statusProgress = New-Object System.Windows.Forms.ToolStripProgressBar
+$script:statusProgress.Minimum = 0
+$script:statusProgress.Maximum = 100
+$script:statusProgress.Value = 0
+$script:statusProgress.Width = 180
+$script:statusProgress.AutoSize = $false
+$script:statusProgress.Visible = $false
+
 $logSpring = New-Object System.Windows.Forms.ToolStripStatusLabel
 $logSpring.Spring = $true
 
@@ -3419,6 +3465,7 @@ $logPath.ForeColor = [System.Drawing.Color]::FromArgb(100,116,139)
 
 [void]$statusStrip.Items.Add($script:statusIndicator)
 [void]$statusStrip.Items.Add($script:lblStatus)
+[void]$statusStrip.Items.Add($script:statusProgress)
 [void]$statusStrip.Items.Add($script:sessionAuditLabel)
 [void]$statusStrip.Items.Add($script:sessionDurationLabel)
 [void]$statusStrip.Items.Add($script:sessionCoverageLabel)
@@ -3864,6 +3911,7 @@ $script:btnClear.Add_Click({
     Update-Dashboard
     Update-Progress 0 'Ready'
     $script:progressBar.Visible = $false
+            if ($script:statusProgress) { $script:statusProgress.Visible = $false }
     Set-Status 'Ready.' 'Ready'
 
     Write-AuditLog INFO 'Results and connection state cleared.'
@@ -3985,6 +4033,7 @@ $script:WorkerTimer.Add_Tick({
             $script:lblProgress.Text = 'Connection test complete.'
             $script:progressBar.Value = 0
             $script:progressBar.Visible = $false
+            if ($script:statusProgress) { $script:statusProgress.Visible = $false }
 
             return
         }
@@ -4035,6 +4084,10 @@ $script:WorkerTimer.Add_Tick({
         }
 
         Update-Progress 100 'License audit completed.'
+        if ($script:statusProgress) {
+            $script:statusProgress.Value = 100
+            $script:statusProgress.Visible = $false
+        }
         Set-Status 'License audit completed successfully.' 'Success'
 
         $elapsed = (Get-Date) - $script:AuditStartTime
