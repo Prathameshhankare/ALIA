@@ -9,10 +9,10 @@ ALIA v3.1 introduces the Audit Workspace GUI redesign while preserving the v3.0 
 - Six compact KPI cards with audit-over-audit trend indicators
 - Primary Run License Audit workflow
 - Connection cards with status and show/hide secret controls
-- Simplified Audit Status filtering with one dropdown instead of status buttons
-- Audit Status options are dynamically limited to statuses available in the current view
-- Compact left-aligned filter toolbar reclaims the horizontal space formerly used by status buttons
-- Search plus Audit Status / Health / Device Type filters
+- Grid-native column sorting and filtering: click headers to sort and right-click headers to filter
+- Multi-value column filters with per-column and clear-all filter actions
+- Compact toolbar with All/raw reconciliation view and global search
+- Filtered columns are visually highlighted in the grid header
 - Read-only, full-row audit grid with frozen identity columns
 - Device detail pane showing GreenLake, Central, monitoring and audit state
 - Copy Cell / Row / Serial / MAC actions
