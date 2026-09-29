@@ -13,8 +13,11 @@ if (-not (Test-Path -LiteralPath $SourcePath)) {
 $source = Get-Content -LiteralPath $SourcePath -Raw -Encoding UTF8
 $marker = '[void]$script:frm.ShowDialog()'
 
-if ($source -notlike "*$marker*") {
-    throw 'Could not locate the ALIA main-form launch point.'
+# Do not use -like here. The marker contains '[' and ']', which are wildcard
+# character-class operators in PowerShell -like matching. Use an exact string
+# search instead.
+if (-not $source.Contains($marker)) {
+    throw "Could not locate the ALIA main-form launch point in '$SourcePath'. Expected: $marker"
 }
 
 $theme = @'
