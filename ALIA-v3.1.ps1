@@ -2623,6 +2623,39 @@ $script:kpiLicensed = New-KpiCard 'Licensed Devices' ([System.Drawing.Color]::Fr
 $script:kpiIssues = New-KpiCard 'Exceptions' ([System.Drawing.Color]::FromArgb(220,38,38))
 $script:kpiExpired = New-KpiCard 'Expired Licenses' ([System.Drawing.Color]::FromArgb(202,138,4))
 
+function Add-KpiTileClick {
+    param(
+        [Parameter(Mandatory)][psobject]$Kpi,
+        [Parameter(Mandatory)][string]$View,
+        [Parameter(Mandatory)][string]$Title
+    )
+
+    $handler = {
+        try {
+            Show-View -View $this.Tag.View -Title $this.Tag.Title
+        }
+        catch {
+            $message = Get-SafeErrorMessage $_
+            Write-AuditLog ERROR "KPI tile '$($this.Text)' failed: $message"
+            Show-ErrorDialog -Message $message -Title 'Dashboard Tile Error'
+        }
+    }
+
+    $tag = [PSCustomObject]@{ View=$View; Title=$Title }
+    foreach($control in @($Kpi.Panel,$Kpi.Caption,$Kpi.Value,$Kpi.Trend)) {
+        $control.Tag = $tag
+        $control.Cursor = [System.Windows.Forms.Cursors]::Hand
+        $control.Add_Click($handler)
+    }
+}
+
+Add-KpiTileClick -Kpi $script:kpiGL -View 'GreenLake' -Title 'HPE GreenLake Inventory'
+Add-KpiTileClick -Kpi $script:kpiCentral -View 'ArubaInventory' -Title 'Aruba Central Inventory'
+Add-KpiTileClick -Kpi $script:kpiMonitored -View 'ArubaMonitored' -Title 'Aruba Central Monitored Devices'
+Add-KpiTileClick -Kpi $script:kpiLicensed -View 'Licensed' -Title 'GreenLake Licensed Devices'
+Add-KpiTileClick -Kpi $script:kpiIssues -View 'Issues' -Title 'Exceptions Requiring Review'
+Add-KpiTileClick -Kpi $script:kpiExpired -View 'Expired' -Title 'Expired License Results'
+
 [void]$kpiPanel.Controls.Add($script:kpiGL.Panel,0,0)
 [void]$kpiPanel.Controls.Add($script:kpiCentral.Panel,1,0)
 [void]$kpiPanel.Controls.Add($script:kpiMonitored.Panel,2,0)
@@ -3172,10 +3205,17 @@ $script:txtLog.Font = [System.Drawing.Font]::new('Consolas', 8.5)
 [void]$logGroup.Controls.Add($script:txtLog)
 
 $script:btnToggleLog.Add_Click({
-    $script:LogPanelOpen = -not $script:LogPanelOpen
-    $logGroup.Visible = $script:LogPanelOpen
-    $script:btnToggleLog.Text = if ($script:LogPanelOpen) { 'Hide Audit Log ▴' } else { 'Show Audit Log ▾' }
-    Apply-RootLayout
+    try {
+        $script:LogPanelOpen = -not $script:LogPanelOpen
+        $logGroup.Visible = $script:LogPanelOpen
+        $script:btnToggleLog.Text = if ($script:LogPanelOpen) { 'Hide Audit Log ▴' } else { 'Show Audit Log ▾' }
+        Apply-RootLayout
+    }
+    catch {
+        $message = Get-SafeErrorMessage $_
+        Write-AuditLog ERROR "Audit log toggle failed: $message"
+        Show-ErrorDialog -Message $message -Title 'Audit Log Error'
+    }
 })
 
 function Get-HistoryPath {
@@ -3184,6 +3224,31 @@ function Get-HistoryPath {
         New-Item -ItemType Directory -Path $base -Force | Out-Null
     }
     return Join-Path $base 'audit-history.json'
+}
+
+function Get-HistoryProperty {
+    param(
+        [AllowNull()]
+        [object]$Record,
+        [Parameter(Mandatory)][string]$Name,
+        [string]$FallbackName = ''
+    )
+
+    if ($null -eq $Record) { return '' }
+
+    $property = $Record.PSObject.Properties[$Name]
+    if ($null -ne $property) {
+        return [string]$property.Value
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($FallbackName)) {
+        $fallback = $Record.PSObject.Properties[$FallbackName]
+        if ($null -ne $fallback) {
+            return [string]$fallback.Value
+        }
+    }
+
+    return ''
 }
 
 function Get-AuditHistory {
@@ -3249,15 +3314,15 @@ function Show-AuditHistoryDialog {
     [void]$list.Columns.Add('Coverage', 90)
 
     foreach($h in $history){
-        $item = New-Object System.Windows.Forms.ListViewItem([string]$h.Timestamp)
-        [void]$item.SubItems.Add([string]$h.Duration)
-        [void]$item.SubItems.Add([string]$h.GreenLakeCount)
-        [void]$item.SubItems.Add([string]$h.CentralCount)
-        [void]$item.SubItems.Add([string]$h.MonitoredCount)
-        [void]$item.SubItems.Add([string]$h.LicensedCount)
-        [void]$item.SubItems.Add([string]$h.IssueCount)
-        [void]$item.SubItems.Add([string]$h.ExpiredCount)
-        [void]$item.SubItems.Add("$([string]$h.CoveragePercent)%")
+        $item = New-Object System.Windows.Forms.ListViewItem((Get-HistoryProperty -Record $h -Name 'Timestamp' -FallbackName 'Date'))
+        [void]$item.SubItems.Add((Get-HistoryProperty -Record $h -Name 'Duration'))
+        [void]$item.SubItems.Add((Get-HistoryProperty -Record $h -Name 'GreenLakeCount'))
+        [void]$item.SubItems.Add((Get-HistoryProperty -Record $h -Name 'CentralCount'))
+        [void]$item.SubItems.Add((Get-HistoryProperty -Record $h -Name 'MonitoredCount'))
+        [void]$item.SubItems.Add((Get-HistoryProperty -Record $h -Name 'LicensedCount'))
+        [void]$item.SubItems.Add((Get-HistoryProperty -Record $h -Name 'IssueCount'))
+        [void]$item.SubItems.Add((Get-HistoryProperty -Record $h -Name 'ExpiredCount'))
+        [void]$item.SubItems.Add("$(Get-HistoryProperty -Record $h -Name 'CoveragePercent')%")
         [void]$list.Items.Add($item)
     }
 
@@ -3265,7 +3330,16 @@ function Show-AuditHistoryDialog {
     $form.ShowDialog($script:frm) | Out-Null
 }
 
-$script:btnHistory.Add_Click({ Show-AuditHistoryDialog })
+$script:btnHistory.Add_Click({
+    try {
+        Show-AuditHistoryDialog
+    }
+    catch {
+        $message = Get-SafeErrorMessage $_
+        Write-AuditLog ERROR "Audit history failed: $message"
+        Show-ErrorDialog -Message $message -Title 'Audit History Error'
+    }
+})
 
 $script:CurrentFilterDeviceType = 'All'
 $script:CurrentFilterHealth = 'All'
@@ -3303,9 +3377,9 @@ $script:frm.Add_KeyDown({
 function Update-SessionStatus {
     $last = @(Get-AuditHistory) | Select-Object -First 1
     if ($null -ne $last) {
-        $script:sessionAuditLabel.Text = "Last audit: $($last.Timestamp)"
-        $script:sessionDurationLabel.Text = "Duration: $($last.Duration)"
-        $script:sessionCoverageLabel.Text = "Coverage: $($last.CoveragePercent)%"
+        $script:sessionAuditLabel.Text = "Last audit: $(Get-HistoryProperty -Record $last -Name 'Timestamp' -FallbackName 'Date')"
+        $script:sessionDurationLabel.Text = "Duration: $(Get-HistoryProperty -Record $last -Name 'Duration')"
+        $script:sessionCoverageLabel.Text = "Coverage: $(Get-HistoryProperty -Record $last -Name 'CoveragePercent')%"
     }
     else {
         $script:sessionAuditLabel.Text = 'Last audit: —'
