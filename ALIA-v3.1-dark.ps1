@@ -125,6 +125,101 @@ public static class ALIANativeMethods
 
     private const int PreferredAppMode_ForceDark = 2;
 
+    private const int WCA_USEDARKMODECOLORS = 26;
+    private const uint SWP_NOSIZE = 0x0001;
+    private const uint SWP_NOMOVE = 0x0002;
+    private const uint SWP_NOZORDER = 0x0004;
+    private const uint SWP_NOACTIVATE = 0x0010;
+    private const uint SWP_FRAMECHANGED = 0x0020;
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct WINDOWCOMPOSITIONATTRIBDATA
+    {
+        public int Attrib;
+        public IntPtr pvData;
+        public int cbData;
+    }
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool SetWindowPos(
+        IntPtr hWnd,
+        IntPtr hWndInsertAfter,
+        int X,
+        int Y,
+        int cx,
+        int cy,
+        uint uFlags);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool RedrawWindow(
+        IntPtr hWnd,
+        IntPtr lprcUpdate,
+        IntPtr hrgnUpdate,
+        uint flags);
+
+    private delegate bool SetWindowCompositionAttributeDelegate(
+        IntPtr hwnd,
+        ref WINDOWCOMPOSITIONATTRIBDATA data);
+
+    private static SetWindowCompositionAttributeDelegate GetSetWindowCompositionAttribute()
+    {
+        try
+        {
+            IntPtr user32 = GetModuleHandle("user32.dll");
+            if (user32 == IntPtr.Zero)
+                return null;
+
+            IntPtr proc = GetProcAddress(
+                user32,
+                Marshal.StringToHGlobalAnsi("SetWindowCompositionAttribute"));
+
+            if (proc == IntPtr.Zero)
+                return null;
+
+            return (SetWindowCompositionAttributeDelegate)
+                Marshal.GetDelegateForFunctionPointer(
+                    proc,
+                    typeof(SetWindowCompositionAttributeDelegate));
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static void SetDarkCompositionMode(IntPtr hwnd, bool dark)
+    {
+        var proc = GetSetWindowCompositionAttribute();
+        if (proc == null || hwnd == IntPtr.Zero)
+            return;
+
+        int value = dark ? 1 : 0;
+        IntPtr valuePtr = IntPtr.Zero;
+
+        try
+        {
+            valuePtr = Marshal.AllocHGlobal(sizeof(int));
+            Marshal.WriteInt32(valuePtr, value);
+
+            var data = new WINDOWCOMPOSITIONATTRIBDATA
+            {
+                Attrib = WCA_USEDARKMODECOLORS,
+                pvData = valuePtr,
+                cbData = sizeof(int)
+            };
+
+            proc(hwnd, ref data);
+        }
+        catch
+        {
+        }
+        finally
+        {
+            if (valuePtr != IntPtr.Zero)
+                Marshal.FreeHGlobal(valuePtr);
+        }
+    }
+
     public static void EnableDarkAppMode()
     {
         try
@@ -137,15 +232,43 @@ public static class ALIANativeMethods
                 uxtheme,
                 new IntPtr(135));
 
-            if (preferred == IntPtr.Zero)
-                return;
+            if (preferred != IntPtr.Zero)
+            {
+                var setMode = (SetPreferredAppModeDelegate)
+                    Marshal.GetDelegateForFunctionPointer(
+                        preferred,
+                        typeof(SetPreferredAppModeDelegate));
 
-            var setMode = (SetPreferredAppModeDelegate)
-                Marshal.GetDelegateForFunctionPointer(
-                    preferred,
-                    typeof(SetPreferredAppModeDelegate));
+                setMode(PreferredAppMode_ForceDark);
+            }
 
-            setMode(PreferredAppMode_ForceDark);
+            IntPtr refresh = GetProcAddress(
+                uxtheme,
+                new IntPtr(104));
+
+            if (refresh != IntPtr.Zero)
+            {
+                var refreshPolicy = (Action)
+                    Marshal.GetDelegateForFunctionPointer(
+                        refresh,
+                        typeof(Action));
+
+                refreshPolicy();
+            }
+
+            IntPtr flush = GetProcAddress(
+                uxtheme,
+                new IntPtr(136));
+
+            if (flush != IntPtr.Zero)
+            {
+                var flushThemes = (Action)
+                    Marshal.GetDelegateForFunctionPointer(
+                        flush,
+                        typeof(Action));
+
+                flushThemes();
+            }
         }
         catch
         {
@@ -192,19 +315,18 @@ public static class ALIANativeMethods
             return;
 
         AllowDarkModeForWindow(hwnd);
+        SetWindowTheme(hwnd, "DarkMode_Explorer", null);
 
         int enabled = 1;
-
-        // Windows 11 uses attribute 20. Windows 10 compatibility builds may
-        // expose the dark-mode frame through attribute 19.
-        int hr20 = DwmSetWindowAttribute(
+        int hr = DwmSetWindowAttribute(
             hwnd,
             DWMWA_USE_IMMERSIVE_DARK_MODE,
             ref enabled,
             sizeof(int));
 
-        if (hr20 != 0)
+        if (hr != 0)
         {
+            // Older Windows 10 builds exposed the same feature as attribute 19.
             DwmSetWindowAttribute(
                 hwnd,
                 19,
@@ -212,8 +334,12 @@ public static class ALIANativeMethods
                 sizeof(int));
         }
 
-        // Explicit caption colors are supported by Windows 11. Harmlessly
-        // ignore the return code on Windows versions that do not support them.
+        // WCA_USEDARKMODECOLORS covers Windows 10 builds where the DWM
+        // attribute path is unavailable or ignored.
+        SetDarkCompositionMode(hwnd, true);
+
+        // These are supported on newer Windows builds. Ignore unsupported
+        // return values so the compatibility path above remains available.
         DwmSetWindowAttribute(
             hwnd,
             DWMWA_CAPTION_COLOR,
@@ -236,11 +362,17 @@ public static class ALIANativeMethods
             hwnd,
             IntPtr.Zero,
             0, 0, 0, 0,
-            SWP_NOSIZE -bor
-            SWP_NOMOVE -bor
-            SWP_NOZORDER -bor
-            SWP_NOACTIVATE -bor
+            SWP_NOSIZE |
+            SWP_NOMOVE |
+            SWP_NOZORDER |
+            SWP_NOACTIVATE |
             SWP_FRAMECHANGED);
+
+        RedrawWindow(
+            hwnd,
+            IntPtr.Zero,
+            IntPtr.Zero,
+            0x0401 | 0x0080);
     }
 
     public static void SetWindowThemeForHandle(IntPtr hwnd)
@@ -249,7 +381,8 @@ public static class ALIANativeMethods
             return;
 
         AllowDarkModeForWindow(hwnd);
-        SetWindowTheme(hwnd, "DarkMode_Explorer", "ScrollBar");
+        SetDarkCompositionMode(hwnd, true);
+        SetWindowTheme(hwnd, "DarkMode_Explorer", null);
         SendMessage(hwnd, WM_THEMECHANGED, IntPtr.Zero, IntPtr.Zero);
     }
 
@@ -4424,6 +4557,7 @@ $script:frm.Add_Shown({
         $script:txtSearch.Refresh()
         [ALIANativeMethods]::EnableDarkAppMode()
         Apply-ALIAWindowChrome
+        try { $script:frm.Refresh() } catch {}
     } catch {}
 })
 
@@ -5034,11 +5168,26 @@ function Set-ALIADataGridScrollbars {
                         [ALIANativeMethods]::SetWindowThemeForHandle($scrollBar.Handle)
                     }
                 }
-            }
-            catch {
-                Write-AuditLog DEBUG "Direct $propertyName scrollbar theme application failed: $($_.Exception.Message)"
+            } catch {}
+        }
+
+        # Fallback: DataGridView owns real WinForms HScrollBar/VScrollBar
+        # child controls. Apply the same theme to any such controls directly.
+        foreach ($child in @($script:grid.Controls)) {
+            if ($child -is [System.Windows.Forms.HScrollBar] -or
+                $child -is [System.Windows.Forms.VScrollBar]) {
+                try {
+                    if ($child.IsHandleCreated) {
+                        [ALIANativeMethods]::SetWindowThemeForHandle($child.Handle)
+                    }
+                } catch {}
             }
         }
+
+        try {
+            $script:grid.Invalidate()
+            $script:grid.Update()
+        } catch {}
     }
     catch {
         try { Write-AuditLog DEBUG "Native DataGridView scrollbar theme could not be applied: $($_.Exception.Message)" } catch {}
@@ -5240,7 +5389,10 @@ try { Apply-ALIAWindowChrome } catch {}
 try { Set-SearchPlaceholder } catch {}
 $script:DarkThemeTimer = New-Object System.Windows.Forms.Timer
 $script:DarkThemeTimer.Interval = 300
-$script:DarkThemeTimer.Add_Tick({ Apply-ALIAWindowTheme })
+$script:DarkThemeTimer.Add_Tick({
+    Apply-ALIAWindowTheme
+    try { if ($script:frm.IsHandleCreated) { Apply-ALIAWindowChrome } } catch {}
+})
 $script:DarkThemeTimer.Start()
 
 [void]$script:frm.ShowDialog()
