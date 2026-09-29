@@ -230,6 +230,7 @@ $script:AuditResults = @()
 $script:CentralNotMonitoredCache = $null
 $script:GLUnlicensedCentralMonitoredCache = $null
 $script:LicensedNotInMonitoredCache = $null
+$script:StatusButtons = @{}
 $script:CurrentView = 'Audit'
 $script:CurrentViewTitle = 'All Audit Results'
 
@@ -2143,6 +2144,29 @@ function Update-Dashboard {
     if ($script:healthWarning) { $script:healthWarning.Text = [string]$warningCount }
     if ($script:healthCritical) { $script:healthCritical.Text = [string]$criticalCount }
     if ($script:healthCoverage) { $script:healthCoverage.Text = "$coverage%" }
+    if ($null -ne $script:StatusButtons -and $script:StatusButtons.Count -gt 0) {
+        $statusCounts = @{
+            StatusLicensedNotInCentral = @($script:AuditResults | Where-Object { $_.AuditStatus -eq 'LICENSED - NOT IN CENTRAL INVENTORY' }).Count
+            StatusLicensedNotMonitored = @($script:AuditResults | Where-Object { $_.AuditStatus -eq 'LICENSED - NOT MONITORED' }).Count
+            StatusLicensedOnline = @($script:AuditResults | Where-Object { $_.AuditStatus -eq 'LICENSED - MONITORED - ONLINE' }).Count
+            StatusLicensedOffline = @($script:AuditResults | Where-Object { $_.AuditStatus -eq 'LICENSED - MONITORED - OFFLINE' }).Count
+            StatusLicensedUnknown = @($script:AuditResults | Where-Object { $_.AuditStatus -eq 'LICENSED - MONITORED - STATUS UNKNOWN' }).Count
+            StatusUnlicensedNotInCentral = @($script:AuditResults | Where-Object { $_.AuditStatus -eq 'UNLICENSED - NOT IN CENTRAL' }).Count
+            StatusUnlicensedNotMonitored = @($script:AuditResults | Where-Object { $_.AuditStatus -eq 'UNLICENSED - IN CENTRAL INVENTORY - NOT MONITORED' }).Count
+            StatusUnlicensedMonitored = @($script:AuditResults | Where-Object { $_.AuditStatus -eq 'UNLICENSED - MONITORED' }).Count
+        }
+
+        foreach($statusTag in $statusCounts.Keys){
+            if ($script:StatusButtons.ContainsKey($statusTag)) {
+                $script:StatusButtons[$statusTag].Visible = ($statusCounts[$statusTag] -gt 0)
+            }
+        }
+
+        if ($script:StatusButtons.ContainsKey('Audit')) {
+            $script:StatusButtons['Audit'].Visible = $true
+        }
+    }
+
     if ($script:healthHeadline) {
         if ($criticalCount -gt 0) {
             $script:healthHeadline.Text = 'ATTENTION REQUIRED'
@@ -2633,6 +2657,8 @@ foreach($healthMetric in @(
     $healthMetric[0].Add_Click({
         param($sender)
         try {
+            $script:CurrentFilterDeviceType = 'All'
+            $script:CurrentFilterHealth = 'All'
             $selection = $sender.Tag
             Show-View -View ([string]$selection.View) -Title ([string]$selection.Title)
             Invoke-CurrentSearch
@@ -2869,7 +2895,7 @@ foreach($qb in @(
             $script:SearchTimer.Stop()
             $script:CurrentFilterDeviceType = 'All'
             $script:CurrentFilterHealth = 'All'
-                                                Show-View -View ([string]$sender.Tag) -Title $titleMap[[string]$sender.Tag]
+            Show-View -View ([string]$sender.Tag) -Title $titleMap[[string]$sender.Tag]
             Invoke-CurrentSearch
         }
         catch {
