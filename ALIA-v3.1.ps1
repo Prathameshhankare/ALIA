@@ -2437,7 +2437,7 @@ function New-SecondaryButton {
     return $b
 }
 
-$script:btnTestConnections = New-SecondaryButton 'Test Connections' 106 ([System.Drawing.Color]::FromArgb(37,99,235))
+$script:btnTestConnections = New-SecondaryButton 'Test Connections' 120 ([System.Drawing.Color]::FromArgb(37,99,235))
 $script:btnExport = New-SecondaryButton 'Export' 65 ([System.Drawing.Color]::FromArgb(22,163,74))
 $script:btnClear = New-SecondaryButton 'Clear' 55 ([System.Drawing.Color]::FromArgb(71,85,105))
 $script:btnExport.Enabled = $false
@@ -2500,7 +2500,7 @@ $healthTitle.Height = 18
 
 $script:healthHeadline = New-Object System.Windows.Forms.Label
 $script:healthHeadline.Text = 'READY TO AUDIT'
-$script:healthHeadline.Font = [System.Drawing.Font]::new('Segoe UI Semibold', 15)
+$script:healthHeadline.Font = [System.Drawing.Font]::new('Segoe UI Semibold', 13.5)
 $script:healthHeadline.ForeColor = [System.Drawing.Color]::FromArgb(51,65,85)
 $script:healthHeadline.Dock = 'Top'
 $script:healthHeadline.Height = 28
@@ -2680,14 +2680,22 @@ foreach($qb in @(
 )){
     $qb.Add_Click({
         param($sender)
-        $script:SearchTimer.Stop()
-        $script:CurrentFilterDeviceType = 'All'
-        $script:CurrentFilterHealth = 'All'
-        $script:CurrentFilterLicense = 'All'
-        $script:CurrentFilterStatus = 'All'
-        $script:chkProblemsOnly.Checked = ($sender.Tag -eq 'Issues')
-        Show-View -View ([string]$sender.Tag) -Title $titleMap[[string]$sender.Tag]
-        Invoke-CurrentSearch
+
+        try {
+            $script:SearchTimer.Stop()
+            $script:CurrentFilterDeviceType = 'All'
+            $script:CurrentFilterHealth = 'All'
+            $script:CurrentFilterLicense = 'All'
+            $script:CurrentFilterStatus = 'All'
+            $script:chkProblemsOnly.Checked = ($sender.Tag -eq 'Issues')
+            Show-View -View ([string]$sender.Tag) -Title $titleMap[[string]$sender.Tag]
+            Invoke-CurrentSearch
+        }
+        catch {
+            $message = Get-SafeErrorMessage $_
+            Write-AuditLog ERROR "Quick view '$($sender.Text)' failed: $message"
+            Show-ErrorDialog -Message $message -Title 'Quick View Error'
+        }
     })
     [void]$quickPanel.Controls.Add($qb)
 }
@@ -3383,12 +3391,27 @@ Update-SessionStatus
 $script:SearchTimer = New-Object System.Windows.Forms.Timer
 $script:SearchTimer.Interval = 450
 
+function Get-ObjectPropertyString {
+    param(
+        [AllowNull()]
+        [object]$Object,
+        [Parameter(Mandatory)][string]$PropertyName
+    )
+
+    if ($null -eq $Object) { return '' }
+
+    $property = $Object.PSObject.Properties[$PropertyName]
+    if ($null -eq $property) { return '' }
+
+    return [string]$property.Value
+}
+
 function Invoke-CurrentSearch {
     $script:SearchTimer.Stop()
 
     if ($script:CurrentView -eq 'Issues') {
         $base = @($script:AuditResults | Where-Object {
-            (Get-AuditHealth -Status ([string]$_.AuditStatus)) -ne 'Healthy'
+            (Get-AuditHealth -Status (Get-ObjectPropertyString -Object $_ -PropertyName 'AuditStatus')) -ne 'Healthy'
         })
     }
     else {
@@ -3415,28 +3438,33 @@ function Invoke-CurrentSearch {
     $problemsOnly = $script:chkProblemsOnly.Checked
 
     if ($licenseFilter -eq 'Licensed') {
-        $base = @($base | Where-Object { -not [string]::IsNullOrWhiteSpace($_.LicenseTier) })
+        $base = @($base | Where-Object {
+            -not [string]::IsNullOrWhiteSpace((Get-ObjectPropertyString -Object $_ -PropertyName 'LicenseTier'))
+        })
     }
     elseif ($licenseFilter -eq 'Unlicensed') {
-        $base = @($base | Where-Object { [string]::IsNullOrWhiteSpace($_.LicenseTier) })
+        $base = @($base | Where-Object {
+            [string]::IsNullOrWhiteSpace((Get-ObjectPropertyString -Object $_ -PropertyName 'LicenseTier'))
+        })
     }
     elseif ($licenseFilter -eq 'Expired') {
         $base = @($base | Where-Object {
-            if ([string]::IsNullOrWhiteSpace($_.LicenseEnd)) { return $false }
-            try { ([datetime]$_.LicenseEnd) -lt (Get-Date) } catch { return $false }
+            $licenseEnd = Get-ObjectPropertyString -Object $_ -PropertyName 'LicenseEnd'
+            if ([string]::IsNullOrWhiteSpace($licenseEnd)) { return $false }
+            try { ([datetime]$licenseEnd) -lt (Get-Date) } catch { return $false }
         })
     }
 
     if ($healthFilter -ne 'All') {
         $base = @($base | Where-Object {
-            (Get-AuditHealth -Status ([string]$_.AuditStatus)) -eq $healthFilter
+            (Get-AuditHealth -Status (Get-ObjectPropertyString -Object $_ -PropertyName 'AuditStatus')) -eq $healthFilter
         })
     }
 
     if ($deviceFilter -ne 'All') {
         $base = @($base | Where-Object {
-            [string]$_.GreenLakeDeviceType -eq $deviceFilter -or
-            [string]$_.NormalizedDeviceType -eq $deviceFilter
+            (Get-ObjectPropertyString -Object $_ -PropertyName 'GreenLakeDeviceType') -eq $deviceFilter -or
+            (Get-ObjectPropertyString -Object $_ -PropertyName 'NormalizedDeviceType') -eq $deviceFilter
         })
     }
 
