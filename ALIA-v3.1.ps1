@@ -163,6 +163,14 @@ function Close-StartupSplash {
 
 $script:StartupSplash = Show-StartupSplash
 
+# Any startup exception after the splash is shown must close it before the
+# error is rethrown; otherwise a failed initialization can leave the splash
+# visible while PowerShell has already stopped executing the application.
+trap {
+    Close-StartupSplash
+    throw
+}
+
 # ---------------------------------------------------------------------------
 # Application configuration
 # ---------------------------------------------------------------------------
@@ -2704,10 +2712,67 @@ $resultsHeader.Add_Resize({ Position-ViewHeader })
 $workspace = New-Object System.Windows.Forms.SplitContainer
 $workspace.Dock = 'Fill'
 $workspace.Orientation = [System.Windows.Forms.Orientation]::Vertical
-$workspace.Panel1MinSize = 650
-$workspace.Panel2MinSize = 300
-$workspace.SplitterDistance = 900
+
+# Do not set Panel1MinSize/Panel2MinSize during construction.  WinForms may
+# still report a zero/very small client width before the SplitContainer is
+# attached to the form, and assigning both minimums at that point can throw:
+# "SplitterDistance must be between Panel1MinSize and Width - Panel2MinSize."
+$workspace.Panel1MinSize = 0
+$workspace.Panel2MinSize = 0
+$workspace.SplitterDistance = 1
 $workspace.BackColor = [System.Drawing.Color]::FromArgb(226,232,240)
+
+function Position-Workspace {
+    try {
+        if ($null -eq $workspace -or $workspace.IsDisposed) { return }
+
+        $width = $workspace.ClientSize.Width
+        if ($width -lt 1) { return }
+
+        # The normal layout has enough room for a 650px grid pane and a 300px
+        # details pane.  Only apply the minimums after the control has a real
+        # width so WinForms can validate them safely.
+        if ($width -ge 980) {
+            $workspace.Panel1MinSize = 650
+            $workspace.Panel2MinSize = 300
+
+            $minimumDistance = 651
+            $maximumDistance = $width - 301
+            $preferredDistance = [int]($width * 0.72)
+
+            $workspace.SplitterDistance = [Math]::Min(
+                $maximumDistance,
+                [Math]::Max($minimumDistance, $preferredDistance)
+            )
+        }
+        else {
+            # Graceful fallback for small/RDP viewports.
+            $panel2Min = [Math]::Max(140, [int]($width * 0.25))
+            $panel1Min = [Math]::Max(260, $width - $panel2Min - 2)
+
+            if (($panel1Min + $panel2Min) -ge $width) {
+                $panel1Min = [Math]::Max(220, $width - $panel2Min - 2)
+            }
+
+            $workspace.Panel1MinSize = $panel1Min
+            $workspace.Panel2MinSize = $panel2Min
+
+            $minimumDistance = $panel1Min + 1
+            $maximumDistance = $width - $panel2Min - 1
+            $preferredDistance = [int]($width * 0.68)
+
+            if ($maximumDistance -gt $minimumDistance) {
+                $workspace.SplitterDistance = [Math]::Min(
+                    $maximumDistance,
+                    [Math]::Max($minimumDistance, $preferredDistance)
+                )
+            }
+        }
+    }
+    catch {
+        Write-AuditLog DEBUG "Workspace layout adjustment deferred: $($_.Exception.Message)"
+    }
+}
 
 $gridGroup = New-Object System.Windows.Forms.GroupBox
 $gridGroup.Text = ' Audit Results '
@@ -3175,9 +3240,7 @@ $script:frm.Add_Resize({
         Position-Toolbar
         Position-ViewHeader
         Position-ProgressBar
-        if ($workspace.ClientSize.Width -gt 0) {
-            $workspace.SplitterDistance = [Math]::Max(650, [int]($workspace.ClientSize.Width * 0.72))
-        }
+        Position-Workspace
     } catch {}
 })
 
@@ -3185,6 +3248,7 @@ Position-Header
 Position-Toolbar
 Position-ViewHeader
 Position-ProgressBar
+Position-Workspace
 Update-SessionStatus
 
 # ---------------------------------------------------------------------------
