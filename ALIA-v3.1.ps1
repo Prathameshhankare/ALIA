@@ -1891,104 +1891,174 @@ function Update-GridFilterIndicators {
     }
 }
 
-function New-GridColumnFilterMenu {
+function Show-GridColumnFilterDialog {
     param([Parameter(Mandatory)][int]$ColumnIndex)
 
-    $column = $script:grid.Columns[$ColumnIndex]
-    $propertyName = [string]$column.DataPropertyName
-    if ([string]::IsNullOrWhiteSpace($propertyName)) { $propertyName = [string]$column.Name }
-
-    $menu = New-Object System.Windows.Forms.ContextMenuStrip
-
-    $sortAsc = $menu.Items.Add("Sort '$($column.HeaderText)' A → Z")
-    $sortAscHandler = {
-        $script:grid.Sort($column, [System.ComponentModel.ListSortDirection]::Ascending)
-    }.GetNewClosure()
-    $sortAsc.Add_Click($sortAscHandler)
-
-    $sortDesc = $menu.Items.Add("Sort '$($column.HeaderText)' Z → A")
-    $sortDescHandler = {
-        $script:grid.Sort($column, [System.ComponentModel.ListSortDirection]::Descending)
-    }.GetNewClosure()
-    $sortDesc.Add_Click($sortDescHandler)
-
-    [void]$menu.Items.Add('-')
-
-    $clearColumn = $menu.Items.Add('Clear Filter for This Column')
-    $clearColumn.Enabled = $script:GridFilters.ContainsKey($propertyName)
-    $clearColumnHandler = {
-        if ($script:GridFilters.ContainsKey($propertyName)) {
-            $script:GridFilters.Remove($propertyName)
+    try {
+        if ($ColumnIndex -lt 0 -or $ColumnIndex -ge $script:grid.Columns.Count) {
+            return
         }
-        Invoke-CurrentSearch
-    }.GetNewClosure()
-    $clearColumn.Add_Click($clearColumnHandler)
 
-    $clearAll = $menu.Items.Add('Clear All Column Filters')
-    $clearAllHandler = {
-        $script:GridFilters.Clear()
-        Invoke-CurrentSearch
-    }.GetNewClosure()
-    $clearAll.Add_Click($clearAllHandler)
+        $column = $script:grid.Columns[$ColumnIndex]
+        $propertyName = [string]$column.DataPropertyName
+        if ([string]::IsNullOrWhiteSpace($propertyName)) {
+            $propertyName = [string]$column.Name
+        }
 
-    [void]$menu.Items.Add('-')
+        # Build candidate values from the current view while ignoring the
+        # column currently being edited. This preserves multi-column filter
+        # behavior without depending on ContextMenuStrip variable closures.
+        $candidateObjects = @(Get-GridBaseObjects -ExcludeColumn $propertyName)
+        $uniqueValues = @(
+            $candidateObjects |
+                ForEach-Object {
+                    Get-ObjectPropertyString -Object $_ -PropertyName $propertyName
+                } |
+                Sort-Object -Unique
+        )
 
-    $candidateObjects = @(Get-GridBaseObjects -ExcludeColumn $propertyName)
-    $uniqueValues = @(
-        $candidateObjects |
-            ForEach-Object {
-                Get-ObjectPropertyString -Object $_ -PropertyName $propertyName
-            } |
-            Sort-Object -Unique
-    )
+        if ($uniqueValues.Count -eq 0) {
+            [System.Windows.Forms.MessageBox]::Show(
+                $script:frm,
+                "There are no values available for '$($column.HeaderText)' in the current view.",
+                'Column Filter',
+                [System.Windows.Forms.MessageBoxButtons]::OK,
+                [System.Windows.Forms.MessageBoxIcon]::Information
+            ) | Out-Null
+            return
+        }
 
-    if ($uniqueValues.Count -eq 0) {
-        $empty = $menu.Items.Add('(No values in current view)')
-        $empty.Enabled = $false
-        return $menu
-    }
+        $dialog = New-Object System.Windows.Forms.Form
+        $dialog.Text = "Filter: $($column.HeaderText)"
+        $dialog.StartPosition = 'CenterParent'
+        $dialog.Size = [System.Drawing.Size]::new(420, 520)
+        $dialog.MinimumSize = [System.Drawing.Size]::new(360, 420)
+        $dialog.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::FixedDialog
+        $dialog.MaximizeBox = $false
+        $dialog.MinimizeBox = $false
+        $dialog.ShowInTaskbar = $false
+        $dialog.BackColor = [System.Drawing.Color]::White
 
-    $label = $menu.Items.Add("Filter by '$($column.HeaderText)'")
-    $label.Enabled = $false
+        $title = New-Object System.Windows.Forms.Label
+        $title.Text = "Select values for $($column.HeaderText)"
+        $title.Font = [System.Drawing.Font]::new('Segoe UI Semibold', 10)
+        $title.ForeColor = [System.Drawing.Color]::FromArgb(15,23,42)
+        $title.Dock = 'Top'
+        $title.Height = 38
+        $title.Padding = [System.Windows.Forms.Padding]::new(12,10,12,0)
+        [void]$dialog.Controls.Add($title)
 
-    $valueItems = New-Object System.Collections.Generic.List[object]
-    $selectedValues = if ($script:GridFilters.ContainsKey($propertyName)) {
-        @($script:GridFilters[$propertyName])
-    }
-    else {
-        @($uniqueValues)
-    }
+        $hint = New-Object System.Windows.Forms.Label
+        $hint.Text = 'Check the values to keep. Uncheck values to exclude.'
+        $hint.Font = [System.Drawing.Font]::new('Segoe UI', 8.5)
+        $hint.ForeColor = [System.Drawing.Color]::FromArgb(100,116,139)
+        $hint.Dock = 'Top'
+        $hint.Height = 30
+        $hint.Padding = [System.Windows.Forms.Padding]::new(12,2,12,4)
+        [void]$dialog.Controls.Add($hint)
 
-    foreach ($value in $uniqueValues) {
-        $displayValue = if ([string]::IsNullOrWhiteSpace($value)) {
-            '(Blank)'
+        $list = New-Object System.Windows.Forms.CheckedListBox
+        $list.Dock = 'Fill'
+        $list.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
+        $list.CheckOnClick = $true
+        $list.IntegralHeight = $false
+        $list.Font = [System.Drawing.Font]::new('Segoe UI', 9)
+        $list.BackColor = [System.Drawing.Color]::White
+        $list.ForeColor = [System.Drawing.Color]::FromArgb(15,23,42)
+
+        $hasExistingFilter = $script:GridFilters.ContainsKey($propertyName)
+        $selectedValues = if ($hasExistingFilter) {
+            @($script:GridFilters[$propertyName])
         }
         else {
-            $value
+            @($uniqueValues)
         }
 
-        $item = New-Object System.Windows.Forms.ToolStripMenuItem
-        $item.Text = $displayValue
-        $item.CheckOnClick = $true
-        $item.Checked = ($selectedValues -contains $value)
-        $item.Tag = $value
-        [void]$valueItems.Add($item)
-        [void]$menu.Items.Add($item)
-    }
+        foreach ($value in $uniqueValues) {
+            $displayValue = if ([string]::IsNullOrWhiteSpace($value)) {
+                '(Blank)'
+            }
+            else {
+                [string]$value
+            }
 
-    [void]$menu.Items.Add('-')
+            $index = $list.Items.Add($displayValue)
+            $list.Items[$index] = $displayValue
+            if ($selectedValues -contains [string]$value) {
+                $list.SetItemChecked($index, $true)
+            }
+        }
 
-    $apply = $menu.Items.Add('Apply Filter')
-    $apply.Font = [System.Drawing.Font]::new('Segoe UI Semibold', 8.5)
+        [void]$dialog.Controls.Add($list)
 
-    # Event handlers fire after this function returns. Use GetNewClosure()
-    # so the handler retains valueItems, uniqueValues and propertyName.
-    $applyHandler = {
-        $checkedValues = @(
-            $valueItems |
-                Where-Object { $_.Checked } |
-                ForEach-Object { [string]$_.Tag }
-        )
+        $buttonPanel = New-Object System.Windows.Forms.Panel
+        $buttonPanel.Dock = 'Bottom'
+        $buttonPanel.Height = 48
+        $buttonPanel.Padding = [System.Windows.Forms.Padding]::new(10,8,10,8)
+        $buttonPanel.BackColor = [System.Drawing.Color]::FromArgb(248,250,252)
+
+        $btnSelectAll = New-Object System.Windows.Forms.Button
+        $btnSelectAll.Text = 'Select All'
+        $btnSelectAll.Width = 78
+        $btnSelectAll.Height = 28
+        $btnSelectAll.Tag = $list
+        $btnSelectAll.Add_Click({
+            $target = [System.Windows.Forms.CheckedListBox]$sender.Tag
+            for ($i = 0; $i -lt $target.Items.Count; $i++) {
+                $target.SetItemChecked($i, $true)
+            }
+        })
+
+        $btnClearAll = New-Object System.Windows.Forms.Button
+        $btnClearAll.Text = 'Clear All'
+        $btnClearAll.Width = 78
+        $btnClearAll.Height = 28
+        $btnClearAll.Left = 84
+        $btnClearAll.Tag = $list
+        $btnClearAll.Add_Click({
+            $target = [System.Windows.Forms.CheckedListBox]$sender.Tag
+            for ($i = 0; $i -lt $target.Items.Count; $i++) {
+                $target.SetItemChecked($i, $false)
+            }
+        })
+
+        $btnCancel = New-Object System.Windows.Forms.Button
+        $btnCancel.Text = 'Cancel'
+        $btnCancel.Width = 78
+        $btnCancel.Height = 28
+        $btnCancel.Anchor = 'Bottom,Right'
+        $btnCancel.Left = 226
+        $btnCancel.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
+
+        $btnApply = New-Object System.Windows.Forms.Button
+        $btnApply.Text = 'Apply Filter'
+        $btnApply.Width = 92
+        $btnApply.Height = 28
+        $btnApply.Anchor = 'Bottom,Right'
+        $btnApply.Left = 310
+        $btnApply.DialogResult = [System.Windows.Forms.DialogResult]::OK
+
+        [void]$buttonPanel.Controls.Add($btnSelectAll)
+        [void]$buttonPanel.Controls.Add($btnClearAll)
+        [void]$buttonPanel.Controls.Add($btnCancel)
+        [void]$buttonPanel.Controls.Add($btnApply)
+        [void]$dialog.Controls.Add($buttonPanel)
+
+        $dialog.AcceptButton = $btnApply
+        $dialog.CancelButton = $btnCancel
+
+        $result = $dialog.ShowDialog($script:frm)
+        if ($result -ne [System.Windows.Forms.DialogResult]::OK) {
+            $dialog.Dispose()
+            return
+        }
+
+        $checkedValues = @()
+        for ($i = 0; $i -lt $list.Items.Count; $i++) {
+            if ($list.GetItemChecked($i)) {
+                $checkedValues += [string]$uniqueValues[$i]
+            }
+        }
 
         if ($checkedValues.Count -eq 0 -or $checkedValues.Count -eq $uniqueValues.Count) {
             if ($script:GridFilters.ContainsKey($propertyName)) {
@@ -1999,10 +2069,90 @@ function New-GridColumnFilterMenu {
             $script:GridFilters[$propertyName] = @($checkedValues)
         }
 
+        $dialog.Dispose()
         Invoke-CurrentSearch
-    }.GetNewClosure()
+    }
+    catch {
+        try { if ($dialog) { $dialog.Dispose() } } catch {}
+        $message = Get-SafeErrorMessage $_
+        Write-AuditLog ERROR "Column filter dialog failed: $message"
+        Show-ErrorDialog -Message $message -Title 'Column Filter Error'
+    }
+}
 
-    $apply.Add_Click($applyHandler)
+function New-GridColumnFilterMenu {
+    param([Parameter(Mandatory)][int]$ColumnIndex)
+
+    $column = $script:grid.Columns[$ColumnIndex]
+    $propertyName = [string]$column.DataPropertyName
+    if ([string]::IsNullOrWhiteSpace($propertyName)) {
+        $propertyName = [string]$column.Name
+    }
+
+    $menu = New-Object System.Windows.Forms.ContextMenuStrip
+
+    $sortAsc = $menu.Items.Add("Sort '$($column.HeaderText)' A → Z")
+    $sortAsc.Tag = $ColumnIndex
+    $sortAsc.Add_Click({
+        $index = [int]$sender.Tag
+        if ($index -ge 0 -and $index -lt $script:grid.Columns.Count) {
+            $script:grid.Sort(
+                $script:grid.Columns[$index],
+                [System.ComponentModel.ListSortDirection]::Ascending
+            )
+        }
+    })
+
+    $sortDesc = $menu.Items.Add("Sort '$($column.HeaderText)' Z → A")
+    $sortDesc.Tag = $ColumnIndex
+    $sortDesc.Add_Click({
+        $index = [int]$sender.Tag
+        if ($index -ge 0 -and $index -lt $script:grid.Columns.Count) {
+            $script:grid.Sort(
+                $script:grid.Columns[$index],
+                [System.ComponentModel.ListSortDirection]::Descending
+            )
+        }
+    })
+
+    [void]$menu.Items.Add('-')
+
+    $filter = $menu.Items.Add("Filter '$($column.HeaderText)'...")
+    $filter.Tag = $ColumnIndex
+    $filter.Add_Click({
+        Show-GridColumnFilterDialog -ColumnIndex ([int]$sender.Tag)
+    })
+
+    $clearColumn = $menu.Items.Add('Clear Filter for This Column')
+    $clearColumn.Tag = $propertyName
+    $clearColumn.Enabled = $script:GridFilters.ContainsKey($propertyName)
+    $clearColumn.Add_Click({
+        $name = [string]$sender.Tag
+        try {
+            if ($script:GridFilters.ContainsKey($name)) {
+                [void]$script:GridFilters.Remove($name)
+            }
+            Invoke-CurrentSearch
+        }
+        catch {
+            $message = Get-SafeErrorMessage $_
+            Write-AuditLog ERROR "Clear column filter failed: $message"
+            Show-ErrorDialog -Message $message -Title 'Column Filter Error'
+        }
+    })
+
+    $clearAll = $menu.Items.Add('Clear All Column Filters')
+    $clearAll.Add_Click({
+        try {
+            $script:GridFilters.Clear()
+            Invoke-CurrentSearch
+        }
+        catch {
+            $message = Get-SafeErrorMessage $_
+            Write-AuditLog ERROR "Clear all column filters failed: $message"
+            Show-ErrorDialog -Message $message -Title 'Column Filter Error'
+        }
+    })
 
     return $menu
 }
