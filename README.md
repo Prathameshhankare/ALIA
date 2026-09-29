@@ -122,7 +122,7 @@ The repository includes a production EXE builder:
 Build-ALIA-v3.1.ps1
 ```
 
-The builder uses **PS2EXE** to compile `ALIA-v3.0.ps1` into a 64-bit, GUI-only Windows executable with DPI-aware metadata and an embedded application icon.
+The builder uses **PS2EXE** to compile the canonical `ALIA-v3.1.ps1` source into a 64-bit, GUI-only Windows executable with DPI-aware metadata and an embedded application icon.
 
 Run it from **Windows PowerShell 5.1**:
 
@@ -163,8 +163,11 @@ Before deploying ALIA in a production environment, review the script and the con
 
 ```text
 ALIA/
-├── ALIA-v3.0.ps1          # Main Windows PowerShell application
-├── Build-ALIA-v3.1.ps1    # Production EXE builder using PS2EXE
+├── ALIA-v3.1.ps1          # Canonical v3.1 Windows PowerShell application
+├── Build-ALIA-v3.1.ps1    # Production v3.1 EXE builder using PS2EXE
+├── ALIA-v3.0.ps1          # Retained legacy v3.0 application
+├── Build-ALIA-v3.0.ps1    # Retained legacy v3.0 builder
+├── CHANGELOG-v3.1.md      # v3.1 release notes
 ├── README.md              # Project documentation
 ├── LICENSE                # GPL-3.0 license
 └── .gitignore             # Repository exclusions
@@ -225,12 +228,12 @@ Run:
 
 ```powershell
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-.\\ALIA-v3.1.ps1
+.\ALIA-v3.1.ps1
 ```
 
 Build the production EXE:
 
 ```powershell
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-.\\Build-ALIA-v3.1.ps1
+.\Build-ALIA-v3.1.ps1
 ```
