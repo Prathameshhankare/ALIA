@@ -101,6 +101,28 @@ jobs:
             throw "All button is not wired to the raw Audit view."
           }
 
+          foreach ($gridFeature in @(
+            'New-GridColumnFilterMenu',
+            'CellContextMenuStripNeeded',
+            'Clear All Column Filters',
+            'Right-click a column header to filter'
+          )) {
+            if ($source.IndexOf($gridFeature, [System.StringComparison]::OrdinalIgnoreCase) -lt 0) {
+              throw "Expected grid filtering feature not found: $gridFeature"
+            }
+          }
+
+          foreach ($legacyControl in @(
+            'cmbAuditStatus',
+            'cmbHealth',
+            'cmbDeviceType',
+            'btnResetFilters'
+          )) {
+            if ($source.IndexOf($legacyControl, [System.StringComparison]::OrdinalIgnoreCase) -ge 0) {
+              throw "Legacy standalone filter control is still present: $legacyControl"
+            }
+          }
+
           Write-Host "ALIA v3.1 GUI smoke tests passed."
 
       - name: Build ALIA v3.1 EXE
