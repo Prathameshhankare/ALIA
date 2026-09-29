@@ -1763,7 +1763,7 @@ function Show-View {
     try { Position-ViewHeader } catch {}
 
     if ($View -eq 'Issues') {
-        $objects = @($script:AuditResults | Where-Object { (Get-AuditHealth -Status ([string]$_.AuditStatus)) -ne 'Healthy' })
+        $objects = @($script:AuditResults | Where-Object { (Get-AuditHealth -Status ([string]$_.AuditStatus) -LicenseEnd ([string]$_.LicenseEnd)) -ne 'Healthy' })
     }
     else {
         $objects = @(Get-ViewObjects -View $View)
@@ -1800,7 +1800,10 @@ function Show-View {
 
         foreach ($row in $script:grid.Rows) {
             if ($script:grid.Columns.Contains('AuditStatus')) {
-                $health = Get-AuditHealth -Status ([string]$row.Cells['AuditStatus'].Value)
+                $licenseEndValue = if ($script:grid.Columns.Contains('LicenseEnd')) {
+                    [string]$row.Cells['LicenseEnd'].Value
+                } else { '' }
+                $health = Get-AuditHealth -Status ([string]$row.Cells['AuditStatus'].Value) -LicenseEnd $licenseEndValue
                 switch ($health) {
                     'Critical' { $row.DefaultCellStyle.BackColor = [System.Drawing.Color]::FromArgb(254,242,242) }
                     'Warning'  { $row.DefaultCellStyle.BackColor = [System.Drawing.Color]::FromArgb(255,251,235) }
@@ -1943,7 +1946,18 @@ function New-DashboardTile {
 }
 
 function Get-AuditHealth {
-    param([string]$Status)
+    param(
+        [string]$Status,
+        [string]$LicenseEnd
+    )
+
+    if (-not [string]::IsNullOrWhiteSpace($LicenseEnd)) {
+        try {
+            if ([datetime]$LicenseEnd -lt (Get-Date)) {
+                return 'Critical'
+            }
+        } catch {}
+    }
 
     if ([string]::IsNullOrWhiteSpace($Status)) { return 'Healthy' }
 
@@ -1961,7 +1975,7 @@ function Get-AuditHealth {
 
 function Get-AuditIssueCount {
     return @($script:AuditResults | Where-Object {
-        (Get-AuditHealth -Status ([string]$_.AuditStatus)) -ne 'Healthy'
+        (Get-AuditHealth -Status ([string]$_.AuditStatus) -LicenseEnd ([string]$_.LicenseEnd)) -ne 'Healthy'
     }).Count
 }
 
@@ -1984,7 +1998,8 @@ function Update-KpiTrend {
         return
     }
 
-    $previous = $history[0].PSObject.Properties[$Metric]
+    $comparisonRecord = if ($history.Count -gt 1) { $history[1] } else { $history[0] }
+    $previous = $comparisonRecord.PSObject.Properties[$Metric]
     if ($null -eq $previous) {
         $Label.Text = ''
         return
@@ -2446,7 +2461,7 @@ $kpiPanel = New-Object System.Windows.Forms.TableLayoutPanel
 $kpiPanel.Dock = 'Fill'
 $kpiPanel.ColumnCount = 3
 $kpiPanel.RowCount = 2
-for($i=0;$i -lt 3;$i++){ [void]$kpiPanel.ColumnStyles.Add([System.Windows.Forms.ColumnStyle]::new([System.Drawing.SizeType]::Percent,33.333)) }
+for($i=0;$i -lt 3;$i++){ [void]$kpiPanel.ColumnStyles.Add([System.Windows.Forms.ColumnStyle]::new([System.Windows.Forms.SizeType]::Percent,33.333)) }
 for($i=0;$i -lt 2;$i++){ [void]$kpiPanel.RowStyles.Add([System.Windows.Forms.RowStyle]::new([System.Windows.Forms.SizeType]::Percent,50)) }
 
 function New-KpiCard {
@@ -2803,7 +2818,7 @@ function Update-DetailPanelFromSelection {
     $reason = V 'AuditReason'
 
     $script:detailTitle.Text = if (-not [string]::IsNullOrWhiteSpace($device)) { $device } elseif ($serial) { $serial } else { 'Device Details' }
-    $healthState = Get-AuditHealth -Status $status
+    $healthState = Get-AuditHealth -Status $status -LicenseEnd $licenseEnd
     $script:detailStatus.ForeColor = switch ($healthState) {
         'Critical' { [System.Drawing.Color]::FromArgb(185,28,28) }
         'Warning' { [System.Drawing.Color]::FromArgb(161,98,7) }
@@ -3072,9 +3087,6 @@ $script:chkProblemsOnly.Add_CheckedChanged({ Invoke-CurrentSearch })
 
 $resultsHeader.Visible = $true
 
-$script:SearchTimer = New-Object System.Windows.Forms.Timer
-$script:SearchTimer.Interval = 450
-
 $script:txtSearch.Add_TextChanged({
     $script:SearchTimer.Stop()
     if ([string]::IsNullOrWhiteSpace($script:txtSearch.Text)) {
@@ -3193,12 +3205,11 @@ Position-ProgressBar
 Update-SessionStatus
 
 # ---------------------------------------------------------------------------
-# Search / grid helpers# ---------------------------------------------------------------------------
-# Search / grid helpers
+
 # ---------------------------------------------------------------------------
 
 $script:SearchTimer = New-Object System.Windows.Forms.Timer
-$script:SearchTimer.Interval = 600
+$script:SearchTimer.Interval = 450
 
 function Invoke-CurrentSearch {
     $script:SearchTimer.Stop()
@@ -3287,7 +3298,10 @@ function Invoke-CurrentSearch {
         if ($script:grid.Columns.Contains('MACAddress')) { $script:grid.Columns['MACAddress'].Frozen = $true }
         foreach ($row in $script:grid.Rows) {
             if ($script:grid.Columns.Contains('AuditStatus')) {
-                switch (Get-AuditHealth -Status ([string]$row.Cells['AuditStatus'].Value)) {
+                $licenseEndValue = if ($script:grid.Columns.Contains('LicenseEnd')) {
+                    [string]$row.Cells['LicenseEnd'].Value
+                } else { '' }
+                switch (Get-AuditHealth -Status ([string]$row.Cells['AuditStatus'].Value) -LicenseEnd $licenseEndValue) {
                     'Critical' { $row.DefaultCellStyle.BackColor = [System.Drawing.Color]::FromArgb(254,242,242) }
                     'Warning'  { $row.DefaultCellStyle.BackColor = [System.Drawing.Color]::FromArgb(255,251,235) }
                 }
@@ -3302,7 +3316,7 @@ function Invoke-CurrentSearch {
     Write-AuditLog DEBUG "Search/filter applied: view='$script:CurrentView'; term='$term'; license='$licenseFilter'; health='$healthFilter'; device='$deviceFilter'; problemsOnly=$problemsOnly; results=$($base.Count)."
     try { Update-DetailPanelFromSelection } catch {}
 }
-$script:SearchTimer.Add_Tick$script:SearchTimer.Add_Tick({
+$script:SearchTimer.Add_Tick({
     Invoke-CurrentSearch
 })
 
