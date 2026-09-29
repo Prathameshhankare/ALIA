@@ -1741,8 +1741,8 @@ function Get-ViewProperties {
         'ArubaInventory' {
             return @(
                 'SerialNumber','MACAddress','NormalizedDeviceType','Model',
-                'DeviceName','SiteName','IsProvisioned','DeviceGroupName',
-                'DeviceFunction','Deployment','DeviceIp','ClusterName'
+                'FirmwareVersion','DeviceName','SiteName','IsProvisioned',
+                'DeviceGroupName','DeviceFunction','Deployment','DeviceIp','ClusterName'
             )
         }
 
