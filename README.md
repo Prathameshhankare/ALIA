@@ -213,3 +213,24 @@ Network & Security Engineering
 ## License
 
 ALIA is distributed under the **GNU General Public License v3.0**. See [`LICENSE`](LICENSE) for the complete license text.
+
+
+## ALIA v3.1 GUI Workspace
+
+The v3.1 application is available as a redesigned workspace on the `v3.1-gui-redesign` branch.
+
+Highlights include audit health, reconciliation coverage, compact KPI cards, audit-over-audit trends, quick views, advanced filters, problems-only mode, a read-only audit grid, device detail inspection, collapsible diagnostics, audit history, and a responsive enterprise layout.
+
+Run:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\\ALIA-v3.1.ps1
+```
+
+Build the EXE:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\\Build-ALIA-v3.1.ps1
+```
