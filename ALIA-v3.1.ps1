@@ -4226,7 +4226,9 @@ $script:btnRunAudit.Add_Click({
 
 $script:btnExport.Add_Click({
     try {
-        $objects = @(Get-ViewObjects -View $script:CurrentView)
+        # Export exactly what the current Audit Workspace view is showing,
+        # including global search and all active column filters.
+        $objects = @(Get-GridBaseObjects)
 
         if ($objects.Count -eq 0) {
             [System.Windows.Forms.MessageBox]::Show(
