@@ -4786,7 +4786,16 @@ function Set-ALIAKpiIcons {
 }
 
 function Set-ALIAHealthIcons {
-    try{$healthTitleIconHost.Image=New-ALIAIconBitmap -Type Health -Color $script:DarkTheme.Critical -Size 22;$healthHeadlineIconHost.Image=New-ALIAIconBitmap -Type Health -Color $script:DarkTheme.Critical -Size 20;$healthTitleIconHost.BringToFront();$healthHeadlineIconHost.BringToFront()}catch{}
+    try {
+        if ($null -eq $healthTitleIconHost.Image) {
+            $healthTitleIconHost.Image = New-ALIAIconBitmap -Type Health -Color $script:DarkTheme.Critical -Size 22
+        }
+        if ($null -eq $healthHeadlineIconHost.Image) {
+            $healthHeadlineIconHost.Image = New-ALIAIconBitmap -Type Health -Color $script:DarkTheme.Critical -Size 20
+        }
+        $healthTitleIconHost.BringToFront()
+        $healthHeadlineIconHost.BringToFront()
+    } catch {}
 }
 
 function Apply-ALIAWindowTheme {
