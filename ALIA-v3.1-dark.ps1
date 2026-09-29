@@ -39,7 +39,7 @@ Add-Type -AssemblyName System.Data
 # Native Windows dark chrome helpers (Phase 3)
 # ---------------------------------------------------------------------------
 # Keep this type guarded because ALIA can be reloaded in PowerShell ISE.
-if (-not ('ALIA.NativeMethods' -as [type])) {
+if (-not ('ALIANativeMethods' -as [type])) {
     Add-Type -TypeDefinition @"
 using System;
 using System.Runtime.InteropServices;
