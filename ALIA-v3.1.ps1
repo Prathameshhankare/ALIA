@@ -865,6 +865,28 @@ function Set-Status {
     }
 }
 
+function Set-WorkspaceProgressRow {
+    try {
+        if ($null -eq $workspaceHost -or $workspaceHost.IsDisposed) {
+            return
+        }
+
+        if ($workspaceHost.RowStyles.Count -lt 3) {
+            return
+        }
+
+        $isActive = ($null -ne $script:OperationMode -and $script:OperationMode -eq 'RunAudit')
+        $height = if ($isActive) { 34 } else { 20 }
+
+        $workspaceHost.RowStyles[2].SizeType = [System.Windows.Forms.SizeType]::Absolute
+        $workspaceHost.RowStyles[2].Height = $height
+        $workspaceHost.PerformLayout()
+    }
+    catch {
+        try { Write-AuditLog DEBUG "Progress row layout update failed: $($_.Exception.Message)" } catch {}
+    }
+}
+
 function Update-Progress {
     param(
         [int]$Percent,
@@ -883,6 +905,7 @@ function Update-Progress {
         $script:lblProgressPercent.Text = if ($script:OperationMode -eq 'RunAudit') { "$Percent%" } else { '' }
     }
     $script:progressBar.Visible = ($script:OperationMode -eq 'RunAudit')
+    Set-WorkspaceProgressRow
     $script:progressBar.Refresh()
     $progressPanel.Refresh()
 }
@@ -4185,6 +4208,7 @@ function Position-ProgressBar {
 }
 $progressPanel.Add_Resize({ Position-ProgressBar })
 [void]$workspaceHost.Controls.Add($progressPanel,0,2)
+Set-WorkspaceProgressRow
 
 $script:btnToggleLog = New-Object System.Windows.Forms.Button
 $script:btnToggleLog.Text = 'Show Audit Log ▾'
@@ -5054,6 +5078,8 @@ $script:WorkerTimer.Add_Tick({
             $script:progressBar.Value = 0
             $script:progressBar.Visible = $false
             if ($script:statusProgress) { $script:statusProgress.Visible = $false }
+            $script:OperationMode = $null
+            Set-WorkspaceProgressRow
 
             return
         }
@@ -5110,6 +5136,8 @@ $script:WorkerTimer.Add_Tick({
             $script:statusProgress.Value = 100
             $script:statusProgress.Visible = $false
         }
+        $script:OperationMode = $null
+        Set-WorkspaceProgressRow
         Set-Status 'License audit completed successfully.' 'Success'
 
         $elapsed = (Get-Date) - $script:AuditStartTime
@@ -5202,6 +5230,7 @@ Update-ResponsiveLayout
 Update-Dashboard
 $script:progressBar.Visible = $false
 $script:lblProgress.Text = 'Ready'
+Set-WorkspaceProgressRow
 Show-View -View Audit -Title 'All Audit Results'
 [System.Windows.Forms.Application]::DoEvents()
 Close-StartupSplash
