@@ -102,20 +102,17 @@ ALIA currently provides this workflow:
 
 ALIA combines three logical datasets:
 
-```text
-                 HPE GreenLake
-                      │
-                      │ Device inventory + licensing
-                      ▼
-              ┌───────────────┐
-              │      ALIA     │
-              │ Reconciliation│
-              └───────────────┘
-                 ▲     ▲     │
-                 │     │     │ Monitoring state
-       Inventory │     │     ▼
-                 │     │  Audit Results
-          Aruba Central
+```mermaid
+flowchart LR
+    GL["HPE GreenLake<br/>Device inventory + licensing"]
+    AC["Aruba Central<br/>Device inventory"]
+    MON["Aruba Central<br/>Monitoring state"]
+
+    GL --> ALIA["ALIA<br/>Reconciliation"]
+    AC --> ALIA
+    MON --> ALIA
+
+    ALIA --> AR["Audit Results"]
 ```
 
 The audit can identify conditions including:
@@ -132,7 +129,6 @@ The audit can identify conditions including:
 The dashboard provides the operational summary; the audit grid provides device-level evidence and the device detail pane explains the selected record.
 
 ---
-
 ## Dashboard
 
 The v3.1 dashboard exposes these primary counters:
