@@ -3162,7 +3162,7 @@ function Apply-RootLayout {
         $overview.Height = 184
 
         $toolbar.Dock = [System.Windows.Forms.DockStyle]::Top
-        $toolbar.Height = 66
+        $toolbar.Height = 52
 
         $logHost.Dock = [System.Windows.Forms.DockStyle]::Bottom
         $logHost.Height = if ($script:LogPanelOpen) { 194 } else { 34 }
@@ -3787,9 +3787,9 @@ function Position-Toolbar {
         $script:btnShowAll.Left = $left
         $script:txtSearch.Left = $script:btnShowAll.Right + 8
         $gridFilterHint.Left = [Math]::Max($script:txtSearch.Right + 16, $toolbar.ClientSize.Width - $gridFilterHint.Width - 14)
-        $script:btnShowAll.Top = 10
-        $script:txtSearch.Top = 10
-        $gridFilterHint.Top = 15
+        $script:btnShowAll.Top = 7
+        $script:txtSearch.Top = 7
+        $gridFilterHint.Top = 12
     } catch {}
 }
 $toolbar.Add_Resize({ Position-Toolbar })
