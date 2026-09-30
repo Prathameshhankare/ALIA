@@ -3156,7 +3156,7 @@ function Apply-RootLayout {
         $header.Height = 78
 
         $connectionPanel.Dock = [System.Windows.Forms.DockStyle]::Top
-        $connectionPanel.Height = 112
+        $connectionPanel.Height = 116
 
         $overview.Dock = [System.Windows.Forms.DockStyle]::Top
         $overview.Height = 184
@@ -3177,9 +3177,8 @@ function Apply-RootLayout {
             $root.Controls.SetChildIndex($logHost, 1)
             $root.Controls.SetChildIndex($toolbar, 2)
             $root.Controls.SetChildIndex($overview, 3)
-            $root.Controls.SetChildIndex($dashboardGap, 4)
-            $root.Controls.SetChildIndex($connectionPanel, 5)
-            $root.Controls.SetChildIndex($header, 6)
+            $root.Controls.SetChildIndex($connectionPanel, 4)
+            $root.Controls.SetChildIndex($header, 5)
         }
         finally {
             $root.ResumeLayout($true)
@@ -3257,7 +3256,7 @@ $header.Add_Resize({ Position-Header })
 
 $connectionPanel = New-Object System.Windows.Forms.TableLayoutPanel
 $connectionPanel.Dock = 'Fill'
-$connectionPanel.Padding = [System.Windows.Forms.Padding]::new(14, 7, 14, 7)
+$connectionPanel.Padding = [System.Windows.Forms.Padding]::new(14, 7, 14, 11)
 $connectionPanel.ColumnCount = 3
 $connectionPanel.RowCount = 1
 [void]$connectionPanel.ColumnStyles.Add([System.Windows.Forms.ColumnStyle]::new([System.Windows.Forms.SizeType]::Percent, 37))
@@ -3483,12 +3482,6 @@ $overview = New-Object System.Windows.Forms.TableLayoutPanel
 $overview.Dock = 'Fill'
 $overview.Padding = [System.Windows.Forms.Padding]::new(14, 5, 14, 5)
 
-# Explicit visual gap between the credential/action row and dashboard cards.
-$dashboardGap = New-Object System.Windows.Forms.Panel
-$dashboardGap.Dock = [System.Windows.Forms.DockStyle]::Top
-$dashboardGap.Height = 8
-$dashboardGap.Margin = [System.Windows.Forms.Padding]::Empty
-$dashboardGap.BackColor = [System.Drawing.Color]::FromArgb(7,15,28)
 $overview.ColumnCount = 2
 $overview.RowCount = 1
 [void]$overview.ColumnStyles.Add([System.Windows.Forms.ColumnStyle]::new([System.Windows.Forms.SizeType]::Absolute, 404))
@@ -4477,7 +4470,6 @@ $logPath.ForeColor = [System.Drawing.Color]::FromArgb(100,116,139)
 
 [void]$root.Controls.Add($header)
 [void]$root.Controls.Add($connectionPanel)
-[void]$root.Controls.Add($dashboardGap)
 [void]$root.Controls.Add($overview)
 [void]$root.Controls.Add($toolbar)
 [void]$root.Controls.Add($workspaceHost)
