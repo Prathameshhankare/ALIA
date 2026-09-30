@@ -3159,7 +3159,7 @@ function Apply-RootLayout {
         $connectionPanel.Height = 116
 
         $overview.Dock = [System.Windows.Forms.DockStyle]::Top
-        $overview.Height = 184
+        $overview.Height = 186
 
         $toolbar.Dock = [System.Windows.Forms.DockStyle]::Top
         $toolbar.Height = 58
@@ -3480,7 +3480,7 @@ $connectionPanel.Add_Resize({ Position-ActionPanel })
 
 $overview = New-Object System.Windows.Forms.TableLayoutPanel
 $overview.Dock = 'Fill'
-$overview.Padding = [System.Windows.Forms.Padding]::new(14, 5, 14, 5)
+$overview.Padding = [System.Windows.Forms.Padding]::new(14, 5, 14, 13)
 
 $overview.ColumnCount = 2
 $overview.RowCount = 1
