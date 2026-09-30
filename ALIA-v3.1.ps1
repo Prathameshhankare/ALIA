@@ -106,6 +106,7 @@ public static class ALIANativeMethods
     private const int DWMWA_CAPTION_COLOR = 35;
     private const int DWMWA_TEXT_COLOR = 36;
     private const uint WM_THEMECHANGED = 0x031A;
+    private const uint WM_SETREDRAW = 0x000B;
 
     private const int PreferredAppMode_ForceDark = 2;
 
@@ -368,6 +369,18 @@ public static class ALIANativeMethods
         SetDarkCompositionMode(hwnd, true);
         SetWindowTheme(hwnd, "DarkMode_Explorer", null);
         SendMessage(hwnd, WM_THEMECHANGED, IntPtr.Zero, IntPtr.Zero);
+    }
+
+    public static void SetWindowRedraw(IntPtr hwnd, bool enable)
+    {
+        if (hwnd == IntPtr.Zero)
+            return;
+
+        SendMessage(
+            hwnd,
+            WM_SETREDRAW,
+            enable ? new IntPtr(1) : IntPtr.Zero,
+            IntPtr.Zero);
     }
 
     public static void SetDarkScrollbars(IntPtr parentHwnd)
@@ -861,26 +874,15 @@ function Set-Status {
     }
 }
 
-function Set-WorkspaceProgressRow {
+function Set-ALIAGridRedraw {
+    param([bool]$Enable)
+
     try {
-        if ($null -eq $workspaceHost -or $workspaceHost.IsDisposed) {
-            return
+        if ($null -ne $script:grid -and $script:grid.IsHandleCreated) {
+            [ALIANativeMethods]::SetWindowRedraw($script:grid.Handle, $Enable)
         }
-
-        if ($workspaceHost.RowStyles.Count -lt 3) {
-            return
-        }
-
-        # The visible audit progress/status is rendered by the bottom StatusStrip.
-        # The workspace progress panel does not contribute useful visible UI in the
-        # current design, so reclaim its reserved row for the Audit Results grid.
-        $workspaceHost.RowStyles[2].SizeType = [System.Windows.Forms.SizeType]::Absolute
-        $workspaceHost.RowStyles[2].Height = 0
-        $workspaceHost.PerformLayout()
     }
-    catch {
-        try { Write-AuditLog DEBUG "Progress row layout update failed: $($_.Exception.Message)" } catch {}
-    }
+    catch {}
 }
 
 function Update-Progress {
@@ -2805,6 +2807,7 @@ function Show-View {
 
     $table = New-DataTableFromObjects -Items $objects -Properties $properties
 
+    Set-ALIAGridRedraw -Enable $false
     $script:grid.SuspendLayout()
     try {
         $script:grid.DataSource = $null
@@ -2845,6 +2848,11 @@ function Show-View {
     }
     finally {
         $script:grid.ResumeLayout()
+        Set-ALIAGridRedraw -Enable $true
+        try {
+            $script:grid.Invalidate()
+            $script:grid.Update()
+        } catch {}
     }
 
     if ($script:lblRecordCount) {
@@ -3845,7 +3853,7 @@ $workspaceHost.Dock = 'Fill'
 $workspaceHost.RowCount = 3
 [void]$workspaceHost.RowStyles.Add([System.Windows.Forms.RowStyle]::new([System.Windows.Forms.SizeType]::Absolute,38))
 [void]$workspaceHost.RowStyles.Add([System.Windows.Forms.RowStyle]::new([System.Windows.Forms.SizeType]::Percent,100))
-[void]$workspaceHost.RowStyles.Add([System.Windows.Forms.RowStyle]::new([System.Windows.Forms.SizeType]::Absolute,34))
+[void]$workspaceHost.RowStyles.Add([System.Windows.Forms.RowStyle]::new([System.Windows.Forms.SizeType]::Absolute,0))
 [void]$workspaceHost.ColumnStyles.Add([System.Windows.Forms.ColumnStyle]::new([System.Windows.Forms.SizeType]::Percent,100))
 
 $resultsHeader = New-Object System.Windows.Forms.Panel
@@ -4231,7 +4239,6 @@ function Position-ProgressBar {
 }
 $progressPanel.Add_Resize({ Position-ProgressBar })
 [void]$workspaceHost.Controls.Add($progressPanel,0,2)
-Set-WorkspaceProgressRow
 
 $script:btnToggleLog = New-Object System.Windows.Forms.Button
 $script:btnToggleLog.Text = 'Show Audit Log ▾'
@@ -4625,6 +4632,7 @@ function Invoke-CurrentSearch {
     }
 
     $searchTable = New-DataTableFromObjects -Items $base -Properties $properties
+    Set-ALIAGridRedraw -Enable $false
     $script:grid.SuspendLayout()
     try {
         $script:grid.DataSource = $null
@@ -4657,7 +4665,14 @@ function Invoke-CurrentSearch {
         }
         Update-GridFilterIndicators
     }
-    finally { $script:grid.ResumeLayout() }
+    finally {
+        $script:grid.ResumeLayout()
+        Set-ALIAGridRedraw -Enable $true
+        try {
+            $script:grid.Invalidate()
+            $script:grid.Update()
+        } catch {}
+    }
 
     $script:lblRecordCount.Text = "Records: $($base.Count)"
     Write-AuditLog DEBUG "Search/filter applied: view='$script:CurrentView'; term='$(Get-SearchTerm)'; columnFilters=$($script:GridFilters.Count); results=$($base.Count)."
@@ -4834,7 +4849,6 @@ $script:btnRunAudit.Add_Click({
     try {
         $script:OperationMode = 'RunAudit'
         $script:AuditStartTime = Get-Date
-        Set-WorkspaceProgressRow
         $script:progressBar.Visible = $true
         Set-ConnectionIndicator -Platform GreenLake -State Testing -Message 'Testing...'
         Set-ConnectionIndicator -Platform ArubaCentral -State Testing -Message 'Testing...'
@@ -5104,7 +5118,6 @@ $script:WorkerTimer.Add_Tick({
             $script:progressBar.Visible = $false
             if ($script:statusProgress) { $script:statusProgress.Visible = $false }
             $script:OperationMode = $null
-            Set-WorkspaceProgressRow
 
             return
         }
@@ -5162,7 +5175,6 @@ $script:WorkerTimer.Add_Tick({
             $script:statusProgress.Visible = $false
         }
         $script:OperationMode = $null
-        Set-WorkspaceProgressRow
         Set-Status 'License audit completed successfully.' 'Success'
 
         $elapsed = (Get-Date) - $script:AuditStartTime
@@ -5255,7 +5267,7 @@ Update-ResponsiveLayout
 Update-Dashboard
 $script:progressBar.Visible = $false
 $script:lblProgress.Text = 'Ready'
-Set-WorkspaceProgressRow
+
 Show-View -View Audit -Title 'All Audit Results'
 [System.Windows.Forms.Application]::DoEvents()
 Close-StartupSplash
