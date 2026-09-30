@@ -901,7 +901,6 @@ function Update-Progress {
         $script:lblProgressPercent.Text = if ($script:OperationMode -eq 'RunAudit') { "$Percent%" } else { '' }
     }
     $script:progressBar.Visible = ($script:OperationMode -eq 'RunAudit')
-    Set-WorkspaceProgressRow
     $script:progressBar.Refresh()
     $progressPanel.Refresh()
 }
@@ -4816,6 +4815,7 @@ $script:btnRunAudit.Add_Click({
     try {
         $script:OperationMode = 'RunAudit'
         $script:AuditStartTime = Get-Date
+        Set-WorkspaceProgressRow
         $script:progressBar.Visible = $true
         Set-ConnectionIndicator -Platform GreenLake -State Testing -Message 'Testing...'
         Set-ConnectionIndicator -Platform ArubaCentral -State Testing -Message 'Testing...'
