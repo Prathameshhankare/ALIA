@@ -370,24 +370,6 @@ public static class ALIANativeMethods
         SendMessage(hwnd, WM_THEMECHANGED, IntPtr.Zero, IntPtr.Zero);
     }
 
-    public static void SetEditTextRect(IntPtr hwnd, int x, int y, int right, int bottom)
-    {
-        if (hwnd == IntPtr.Zero)
-            return;
-
-        try
-        {
-            var rect = new RECT { Left = x, Top = y, Right = right, Bottom = bottom };
-            SendMessage(hwnd, 0x00B3, IntPtr.Zero, Marshal.AllocHGlobal(Marshal.SizeOf(typeof(RECT))));
-            // TextBox single-line vertical centering is native; this helper is
-            // intentionally conservative and primarily normalizes horizontal
-            // text insets so the baseline matches the adjacent button.
-        }
-        catch
-        {
-        }
-    }
-
     public static void SetDarkScrollbars(IntPtr parentHwnd)
     {
         if (parentHwnd == IntPtr.Zero)
@@ -3816,21 +3798,10 @@ $script:txtSearch.Font = [System.Drawing.Font]::new('Segoe UI', 8.8)
 $script:txtSearch.AutoSize = $false
 $script:txtSearch.Width = 260
 $script:txtSearch.Height = 24
-$script:txtSearch.TextAlign = [System.Windows.Forms.HorizontalAlignment]::Left
 $script:txtSearch.Text = 'Search devices...'
 $script:txtSearch.ForeColor = [System.Drawing.Color]::FromArgb(100,116,139)
 $script:txtSearch.BackColor = [System.Drawing.Color]::FromArgb(10,20,34)
 $script:txtSearch.Anchor = 'Top,Left'
-$script:txtSearch.Add_HandleCreated({
-    try {
-        $rect = New-Object System.Drawing.Rectangle
-        $rect.X = 2
-        $rect.Y = 0
-        $rect.Width = [Math]::Max(1, $script:txtSearch.ClientSize.Width - 4)
-        $rect.Height = [Math]::Max(1, $script:txtSearch.ClientSize.Height)
-        [ALIANativeMethods]::SetEditTextRect($script:txtSearch.Handle, $rect.X, $rect.Y, $rect.Width, $rect.Height)
-    } catch {}
-})
 $script:SearchPlaceholderActive = $true
 $searchTip = New-Object System.Windows.Forms.ToolTip
 $searchTip.SetToolTip($script:txtSearch, 'Search across all visible reconciliation fields')
