@@ -3176,7 +3176,7 @@ function Apply-RootLayout {
         # Use standard WinForms docking for the six top-level sections.
         # This avoids DPI/layout-order races from manually calling SetBounds.
         $header.Dock = [System.Windows.Forms.DockStyle]::Top
-        $header.Height = 78
+        $header.Height = 72
 
         $connectionPanel.Dock = [System.Windows.Forms.DockStyle]::Top
         $connectionPanel.Height = 116
