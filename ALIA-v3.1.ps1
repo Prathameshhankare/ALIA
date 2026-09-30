@@ -3795,6 +3795,7 @@ $allTip.SetToolTip($script:btnShowAll, 'Show the raw reconciliation with all aud
 
 $script:txtSearch = New-Object System.Windows.Forms.TextBox
 $script:txtSearch.Font = [System.Drawing.Font]::new('Segoe UI', 8.8)
+$script:txtSearch.AutoSize = $false
 $script:txtSearch.Width = 260
 $script:txtSearch.Height = 28
 $script:txtSearch.Text = 'Search devices...'
