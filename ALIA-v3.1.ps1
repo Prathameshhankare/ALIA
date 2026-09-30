@@ -3542,7 +3542,7 @@ $overview.RowCount = 1
 
 $healthCard = New-Object System.Windows.Forms.Panel
 $healthCard.Dock = 'Fill'
-$healthCard.BackColor = [System.Drawing.Color]::FromArgb(15,25,39)
+$healthCard.BackColor = [System.Drawing.Color]::FromArgb(17,30,46)
 $healthCard.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
 $healthCard.Padding = [System.Windows.Forms.Padding]::new(10,5,10,6)
 
@@ -3695,7 +3695,7 @@ function New-KpiCard {
     $p.Dock = 'Fill'
     $p.Margin = [System.Windows.Forms.Padding]::new(4,0,0,4)
     $p.Padding = [System.Windows.Forms.Padding]::new(8,4,10,3)
-    $p.BackColor = [System.Drawing.Color]::FromArgb(15,25,39)
+    $p.BackColor = [System.Drawing.Color]::FromArgb(17,30,46)
     $p.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
 
     $iconHost = New-Object System.Windows.Forms.PictureBox
@@ -5279,7 +5279,7 @@ $script:ALIA_DARK = $true
 
 $script:DarkTheme = @{
     Window      = [System.Drawing.Color]::FromArgb(7,15,28)
-    Panel       = [System.Drawing.Color]::FromArgb(15,25,39)
+    Panel       = [System.Drawing.Color]::FromArgb(17,30,46)
     Panel2      = [System.Drawing.Color]::FromArgb(17,30,46)
     Input       = [System.Drawing.Color]::FromArgb(10,20,34)
     Grid        = [System.Drawing.Color]::FromArgb(11,22,36)
