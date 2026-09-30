@@ -3340,7 +3340,9 @@ function New-CredentialCardV31 {
 
     $idBox = New-Object System.Windows.Forms.TextBox
     $idBox.Dock = 'Fill'
-    $idBox.Margin = [System.Windows.Forms.Padding]::new(0,1,4,1)
+    $idBox.AutoSize = $false
+    $idBox.Height = 24
+    $idBox.Margin = [System.Windows.Forms.Padding]::new(0,2,4,2)
     $idBox.Font = [System.Drawing.Font]::new('Segoe UI', 10)
 
     $idPad = New-Object System.Windows.Forms.Label
@@ -3357,14 +3359,18 @@ function New-CredentialCardV31 {
 
     $secretBox = New-Object System.Windows.Forms.TextBox
     $secretBox.Dock = 'Fill'
-    $secretBox.Margin = [System.Windows.Forms.Padding]::new(0,1,4,1)
+    $secretBox.AutoSize = $false
+    $secretBox.Height = 24
+    $secretBox.Margin = [System.Windows.Forms.Padding]::new(0,2,4,2)
     $secretBox.Font = [System.Drawing.Font]::new('Segoe UI', 10)
     $secretBox.UseSystemPasswordChar = $true
 
     $show = New-Object System.Windows.Forms.Button
     $show.Text = 'Show'
     $show.Dock = 'Fill'
-    $show.Margin = [System.Windows.Forms.Padding]::new(0,1,0,1)
+    $show.AutoSize = $false
+    $show.Height = 24
+    $show.Margin = [System.Windows.Forms.Padding]::new(0,2,0,2)
     $show.FlatStyle = 'Flat'
     $show.FlatAppearance.BorderSize = 1
     $show.BackColor = [System.Drawing.Color]::FromArgb(248,250,252)
