@@ -3159,10 +3159,10 @@ function Apply-RootLayout {
         $connectionPanel.Height = 116
 
         $overview.Dock = [System.Windows.Forms.DockStyle]::Top
-        $overview.Height = 186
+        $overview.Height = 184
 
         $toolbar.Dock = [System.Windows.Forms.DockStyle]::Top
-        $toolbar.Height = 58
+        $toolbar.Height = 66
 
         $logHost.Dock = [System.Windows.Forms.DockStyle]::Bottom
         $logHost.Height = if ($script:LogPanelOpen) { 194 } else { 34 }
@@ -3480,7 +3480,7 @@ $connectionPanel.Add_Resize({ Position-ActionPanel })
 
 $overview = New-Object System.Windows.Forms.TableLayoutPanel
 $overview.Dock = 'Fill'
-$overview.Padding = [System.Windows.Forms.Padding]::new(14, 5, 14, 13)
+$overview.Padding = [System.Windows.Forms.Padding]::new(14, 5, 14, 5)
 
 $overview.ColumnCount = 2
 $overview.RowCount = 1
@@ -3787,9 +3787,9 @@ function Position-Toolbar {
         $script:btnShowAll.Left = $left
         $script:txtSearch.Left = $script:btnShowAll.Right + 8
         $gridFilterHint.Left = [Math]::Max($script:txtSearch.Right + 16, $toolbar.ClientSize.Width - $gridFilterHint.Width - 14)
-        $script:btnShowAll.Top = 2
-        $script:txtSearch.Top = 2
-        $gridFilterHint.Top = 7
+        $script:btnShowAll.Top = 10
+        $script:txtSearch.Top = 10
+        $gridFilterHint.Top = 15
     } catch {}
 }
 $toolbar.Add_Resize({ Position-Toolbar })
