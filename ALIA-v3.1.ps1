@@ -5449,9 +5449,14 @@ function Set-ALIAHealthIcons {
 }
 
 function Apply-ALIAWindowTheme {
-    foreach ($form in [System.Windows.Forms.Application]::OpenForms) {
-        try { Set-ALIAControlTheme -Control $form } catch {}
-    }
+    # Theme the actual ALIA form tree directly. Using Application.OpenForms here
+    # is timing-dependent before ShowDialog() and behaved differently on older
+    # Windows Server/WinForms visual-style stacks.
+    try {
+        if ($null -ne $script:frm -and -not $script:frm.IsDisposed) {
+            Set-ALIAControlTheme -Control $script:frm
+        }
+    } catch {}
     try { Set-ALIAKpiIcons } catch {}
     try { Set-ALIAHealthIcons } catch {}
 }
