@@ -875,11 +875,11 @@ function Set-WorkspaceProgressRow {
             return
         }
 
-        $isActive = ($null -ne $script:OperationMode -and $script:OperationMode -eq 'RunAudit')
-        $height = if ($isActive) { 34 } else { 20 }
-
+        # The visible audit progress/status is rendered by the bottom StatusStrip.
+        # The workspace progress panel does not contribute useful visible UI in the
+        # current design, so reclaim its reserved row for the Audit Results grid.
         $workspaceHost.RowStyles[2].SizeType = [System.Windows.Forms.SizeType]::Absolute
-        $workspaceHost.RowStyles[2].Height = $height
+        $workspaceHost.RowStyles[2].Height = 0
         $workspaceHost.PerformLayout()
     }
     catch {
