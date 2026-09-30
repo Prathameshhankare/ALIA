@@ -4071,18 +4071,18 @@ $detailGroup = New-Object System.Windows.Forms.GroupBox
 $detailGroup.Text = ' Device Details '
 $detailGroup.Font = $fontSection
 $detailGroup.Dock = 'Fill'
-$detailGroup.BackColor = [System.Drawing.Color]::FromArgb(15,25,39)
+$detailGroup.BackColor = [System.Drawing.Color]::FromArgb(17,30,46)
 $detailGroup.Padding = [System.Windows.Forms.Padding]::new(10,8,10,8)
 
 $detailPanel = New-Object System.Windows.Forms.Panel
 $detailPanel.Dock = 'Fill'
 $detailPanel.AutoScroll = $false
-$detailPanel.BackColor = [System.Drawing.Color]::FromArgb(15,25,39)
+$detailPanel.BackColor = [System.Drawing.Color]::FromArgb(10,20,34)
 
 $detailHeader = New-Object System.Windows.Forms.Panel
 $detailHeader.Dock = 'Top'
 $detailHeader.Height = 58
-$detailHeader.BackColor = [System.Drawing.Color]::FromArgb(15,25,39)
+$detailHeader.BackColor = [System.Drawing.Color]::FromArgb(17,30,46)
 
 $script:detailTitle = New-Object System.Windows.Forms.Label
 $script:detailTitle.Text = 'Select a device'
@@ -4636,8 +4636,7 @@ foreach ($surface in @(
     $script:kpiLicensed.Panel,
     $script:kpiIssues.Panel,
     $script:kpiExpired.Panel,
-    $gridGroup,
-    $detailGroup
+    $gridGroup
 )) {
     try { Add-ALIA3DSurface -Control $surface } catch {}
 }
