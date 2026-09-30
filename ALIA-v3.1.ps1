@@ -901,8 +901,6 @@ function Update-Progress {
         $script:lblProgressPercent.Text = if ($script:OperationMode -eq 'RunAudit') { "$Percent%" } else { '' }
     }
     $script:progressBar.Visible = ($script:OperationMode -eq 'RunAudit')
-    $script:progressBar.Refresh()
-    $progressPanel.Refresh()
 }
 
 function Set-ConnectionIndicator {
@@ -3122,6 +3120,26 @@ function Update-Dashboard {
     }
 }
 
+function Enable-ALIADoubleBuffering {
+    param([System.Windows.Forms.Control]$Control)
+
+    if ($null -eq $Control -or $Control.IsDisposed) {
+        return
+    }
+
+    try {
+        $flags = [System.Reflection.BindingFlags]::Instance -bor [System.Reflection.BindingFlags]::NonPublic
+        $property = $Control.GetType().GetProperty('DoubleBuffered', $flags)
+        if ($null -ne $property -and $property.CanWrite) {
+            $property.SetValue($Control, $true, $null)
+        }
+    } catch {}
+
+    foreach ($child in @($Control.Controls)) {
+        Enable-ALIADoubleBuffering -Control $child
+    }
+}
+
 # ---------------------------------------------------------------------------
 # v3.1 GUI layout - Audit Workspace
 # ---------------------------------------------------------------------------
@@ -4540,6 +4558,7 @@ $script:frm.Add_Shown({
     } catch {}
 })
 
+Enable-ALIADoubleBuffering -Control $script:frm
 Apply-RootLayout
 Position-ActionPanel
 Position-Header
