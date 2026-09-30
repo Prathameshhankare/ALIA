@@ -102,7 +102,7 @@ ALIA currently provides this workflow:
 
 ALIA combines three logical datasets:
 
-\`\`\`text
+```text
                  HPE GreenLake
                       │
                       │ Device inventory + licensing
@@ -116,7 +116,7 @@ ALIA combines three logical datasets:
        Inventory │     │     ▼
                  │     │  Audit Results
           Aruba Central
-\`\`\`
+```
 
 The audit can identify conditions including:
 
@@ -177,10 +177,10 @@ The script is also documented as compatible with **PowerShell ISE**.
 
 Run the canonical v3.1 source from Windows PowerShell 5.1:
 
-\`\`\`powershell
+```powershell
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 .\\ALIA-v3.1.ps1
-\`\`\`
+```
 
 Credentials are entered at runtime through the GUI.
 
@@ -192,10 +192,10 @@ Credentials are entered at runtime through the GUI.
 
 The repository includes the production v3.1 EXE builder:
 
-\`\`\`powershell
+```powershell
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 .\\Build-ALIA-v3.1.ps1
-\`\`\`
+```
 
 The builder:
 
@@ -208,9 +208,9 @@ The builder:
 
 Output:
 
-\`\`\`text
+```text
 dist\\ALIA-v3.1.exe
-\`\`\`
+```
 
 The \`dist\` directory and generated executables are excluded from Git.
 
@@ -234,7 +234,7 @@ Before production deployment, review the configured endpoints, credentials handl
 
 ## Project structure
 
-\`\`\`text
+```text
 ALIA/
 ├── ALIA-v3.1.ps1          # Canonical v3.1 application
 ├── Build-ALIA-v3.1.ps1    # Production v3.1 EXE builder
@@ -246,7 +246,7 @@ ALIA/
 ├── README.md
 ├── LICENSE
 └── .gitignore
-\`\`\`
+```
 
 Generated EXE/build output and runtime audit logs are intentionally excluded from Git.
 
