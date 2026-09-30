@@ -3339,10 +3339,11 @@ function New-CredentialCardV31 {
     $idLabel.ForeColor = [System.Drawing.Color]::FromArgb(148,163,184)
 
     $idBox = New-Object System.Windows.Forms.TextBox
-    $idBox.Dock = 'Fill'
+    $idBox.Dock = 'None'
+    $idBox.Anchor = [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right
     $idBox.AutoSize = $false
-    $idBox.Height = 24
-    $idBox.Margin = [System.Windows.Forms.Padding]::new(0,2,4,2)
+    $idBox.Height = 22
+    $idBox.Margin = [System.Windows.Forms.Padding]::new(0,3,4,3)
     $idBox.Font = [System.Drawing.Font]::new('Segoe UI', 10)
 
     $idPad = New-Object System.Windows.Forms.Label
@@ -3358,19 +3359,21 @@ function New-CredentialCardV31 {
     $secretLabel.ForeColor = [System.Drawing.Color]::FromArgb(148,163,184)
 
     $secretBox = New-Object System.Windows.Forms.TextBox
-    $secretBox.Dock = 'Fill'
+    $secretBox.Dock = 'None'
+    $secretBox.Anchor = [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right
     $secretBox.AutoSize = $false
-    $secretBox.Height = 24
-    $secretBox.Margin = [System.Windows.Forms.Padding]::new(0,2,4,2)
+    $secretBox.Height = 22
+    $secretBox.Margin = [System.Windows.Forms.Padding]::new(0,3,4,3)
     $secretBox.Font = [System.Drawing.Font]::new('Segoe UI', 10)
     $secretBox.UseSystemPasswordChar = $true
 
     $show = New-Object System.Windows.Forms.Button
     $show.Text = 'Show'
-    $show.Dock = 'Fill'
+    $show.Dock = 'None'
+    $show.Anchor = [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right
     $show.AutoSize = $false
-    $show.Height = 24
-    $show.Margin = [System.Windows.Forms.Padding]::new(0,2,0,2)
+    $show.Height = 22
+    $show.Margin = [System.Windows.Forms.Padding]::new(0,3,0,3)
     $show.FlatStyle = 'Flat'
     $show.FlatAppearance.BorderSize = 1
     $show.BackColor = [System.Drawing.Color]::FromArgb(248,250,252)
