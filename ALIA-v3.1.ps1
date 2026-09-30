@@ -477,10 +477,6 @@ function global:Set-ALIADataGridScrollbars {
             }
         }
 
-        try {
-            $script:grid.Invalidate()
-            $script:grid.Update()
-        } catch {}
     }
     catch {
         try { Write-AuditLog DEBUG "Native DataGridView scrollbar theme could not be applied: $($_.Exception.Message)" } catch {}
@@ -5432,12 +5428,4 @@ function Apply-ALIAWindowTheme {
 Apply-ALIAWindowTheme
 try { Apply-ALIAWindowChrome } catch {}
 try { Set-SearchPlaceholder } catch {}
-$script:DarkThemeTimer = New-Object System.Windows.Forms.Timer
-$script:DarkThemeTimer.Interval = 300
-$script:DarkThemeTimer.Add_Tick({
-    Apply-ALIAWindowTheme
-    try { if ($script:frm.IsHandleCreated) { Apply-ALIAWindowChrome } } catch {}
-})
-$script:DarkThemeTimer.Start()
-
 [void]$script:frm.ShowDialog()
