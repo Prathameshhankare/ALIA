@@ -3148,6 +3148,73 @@ function Enable-ALIADoubleBuffering {
     }
 }
 
+function Add-ALIA3DButton {
+    param([Parameter(Mandatory)][System.Windows.Forms.Button]$Button)
+
+    if ($null -eq $Button -or $Button.IsDisposed) {
+        return
+    }
+
+    $Button.Add_Paint({
+        param($sender, $eventArgs)
+
+        try {
+            $r = $sender.ClientRectangle
+            if ($r.Width -lt 8 -or $r.Height -lt 8) {
+                return
+            }
+
+            $pressed = ([System.Windows.Forms.Control]::MouseButtons -band [System.Windows.Forms.MouseButtons]::Left) -ne 0
+            $tag = [string]$sender.Tag
+
+            $highlight = switch ($tag) {
+                'ALIA_PRIMARY' { [System.Drawing.Color]::FromArgb(80,240,145) }
+                'ALIA_TEST'    { [System.Drawing.Color]::FromArgb(112,165,255) }
+                'ALIA_EXPORT'  { [System.Drawing.Color]::FromArgb(86,220,125) }
+                'ALIA_CLEAR'   { [System.Drawing.Color]::FromArgb(148,163,184) }
+                default        { [System.Drawing.Color]::FromArgb(90,110,132) }
+            }
+
+            $shadow = switch ($tag) {
+                'ALIA_PRIMARY' { [System.Drawing.Color]::FromArgb(0,110,55) }
+                'ALIA_TEST'    { [System.Drawing.Color]::FromArgb(18,55,120) }
+                'ALIA_EXPORT'  { [System.Drawing.Color]::FromArgb(8,92,36) }
+                'ALIA_CLEAR'   { [System.Drawing.Color]::FromArgb(30,41,59) }
+                default        { [System.Drawing.Color]::FromArgb(12,20,31) }
+            }
+
+            if ($pressed) {
+                $highlight = $shadow
+                $shadow = [System.Drawing.Color]::FromArgb(120,145,170)
+            }
+
+            $g = $eventArgs.Graphics
+            $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::None
+
+            $lightPen = New-Object System.Drawing.Pen($highlight, 1)
+            $darkPen = New-Object System.Drawing.Pen($shadow, 1)
+            try {
+                $g.DrawLine($lightPen, 1, 1, $r.Width-2, 1)
+                $g.DrawLine($lightPen, 1, 1, 1, $r.Height-2)
+                $g.DrawLine($darkPen, 1, $r.Height-2, $r.Width-2, $r.Height-2)
+                $g.DrawLine($darkPen, $r.Width-2, 1, $r.Width-2, $r.Height-2)
+            }
+            finally {
+                $lightPen.Dispose()
+                $darkPen.Dispose()
+            }
+        }
+        catch {}
+    })
+
+    foreach ($eventName in @('MouseEnter','MouseLeave','MouseDown','MouseUp')) {
+        $Button."Add_$eventName"({
+            param($sender, $eventArgs)
+            try { $sender.Invalidate() } catch {}
+        })
+    }
+}
+
 function Add-ALIA3DSurface {
     param(
         [Parameter(Mandatory)][System.Windows.Forms.Control]$Control,
@@ -4629,6 +4696,15 @@ $script:frm.Add_Shown({
 })
 
 # Subtle 3D surface treatment for the major UI surfaces.
+foreach ($button in @(
+    $script:btnRunAudit,
+    $script:btnTestConnections,
+    $script:btnExport,
+    $script:btnClear
+)) {
+    try { Add-ALIA3DButton -Button $button } catch {}
+}
+
 foreach ($surface in @(
     $glCard.Group,
     $arubaCard.Group,
