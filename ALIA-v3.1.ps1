@@ -3956,6 +3956,9 @@ $resultsHeader.Add_Resize({ Position-ViewHeader })
 $workspace = New-Object System.Windows.Forms.SplitContainer
 $workspace.Dock = 'Fill'
 $workspace.Orientation = [System.Windows.Forms.Orientation]::Vertical
+$workspace.BorderStyle = [System.Windows.Forms.BorderStyle]::None
+$workspace.SplitterWidth = 8
+$workspace.BackColor = [System.Drawing.Color]::FromArgb(7,15,28)
 
 # Do not set Panel1MinSize/Panel2MinSize during construction.  WinForms may
 # still report a zero/very small client width before the SplitContainer is
@@ -3964,7 +3967,7 @@ $workspace.Orientation = [System.Windows.Forms.Orientation]::Vertical
 $workspace.Panel1MinSize = 0
 $workspace.Panel2MinSize = 0
 $workspace.SplitterDistance = 1
-$workspace.BackColor = [System.Drawing.Color]::FromArgb(38,61,86)
+$workspace.BackColor = [System.Drawing.Color]::FromArgb(7,15,28)
 
 function Position-Workspace {
     try {
