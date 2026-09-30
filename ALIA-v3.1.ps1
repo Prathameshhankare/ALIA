@@ -3148,6 +3148,66 @@ function Enable-ALIADoubleBuffering {
     }
 }
 
+function Add-ALIA3DSurface {
+    param(
+        [Parameter(Mandatory)][System.Windows.Forms.Control]$Control,
+        [int]$Radius = 0
+    )
+
+    if ($null -eq $Control -or $Control.IsDisposed) {
+        return
+    }
+
+    $Control.Add_Paint({
+        param($sender, $eventArgs)
+
+        try {
+            $r = $sender.ClientRectangle
+            if ($r.Width -lt 6 -or $r.Height -lt 6) {
+                return
+            }
+
+            $g = $eventArgs.Graphics
+            $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::HighQuality
+
+            # Subtle raised surface. Keep the delta small so the effect remains
+            # enterprise/dark rather than looking glossy.
+            $topColor = [System.Drawing.Color]::FromArgb(20,34,51)
+            $bottomColor = [System.Drawing.Color]::FromArgb(14,25,39)
+
+            $brush = New-Object System.Drawing.Drawing2D.LinearGradientBrush(
+                [System.Drawing.Point]::new(0,0),
+                [System.Drawing.Point]::new(0,[Math]::Max(1,$r.Height-1)),
+                $topColor,
+                $bottomColor
+            )
+            try {
+                $g.FillRectangle($brush, 1, 1, $r.Width-2, $r.Height-2)
+            }
+            finally {
+                $brush.Dispose()
+            }
+
+            $lightPen = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(61,82,105), 1)
+            $shadowPen = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(3,9,17), 1)
+
+            try {
+                $g.DrawLine($lightPen, 1, 1, $r.Width-2, 1)
+                $g.DrawLine($lightPen, 1, 1, 1, $r.Height-2)
+                $g.DrawLine($shadowPen, 1, $r.Height-2, $r.Width-2, $r.Height-2)
+                $g.DrawLine($shadowPen, $r.Width-2, 1, $r.Width-2, $r.Height-2)
+            }
+            finally {
+                $lightPen.Dispose()
+                $shadowPen.Dispose()
+            }
+        }
+        catch {}
+    })
+
+    try { $Control.Invalidate() } catch {}
+}
+
 # ---------------------------------------------------------------------------
 # v3.1 GUI layout - Audit Workspace
 # ---------------------------------------------------------------------------
@@ -4564,6 +4624,23 @@ $script:frm.Add_Shown({
         Position-ProgressBar
     } catch {}
 })
+
+# Subtle 3D surface treatment for the major UI surfaces.
+foreach ($surface in @(
+    $glCard.Group,
+    $arubaCard.Group,
+    $healthCard,
+    $script:kpiGL.Panel,
+    $script:kpiCentral.Panel,
+    $script:kpiMonitored.Panel,
+    $script:kpiLicensed.Panel,
+    $script:kpiIssues.Panel,
+    $script:kpiExpired.Panel,
+    $gridGroup,
+    $detailGroup
+)) {
+    try { Add-ALIA3DSurface -Control $surface } catch {}
+}
 
 Enable-ALIADoubleBuffering -Control $script:frm
 Apply-RootLayout
