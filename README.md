@@ -57,6 +57,8 @@ Run the audit repeatedly, investigate the current view, export the current resul
 
 ![ALIA v3.1 Audit Workspace preview](docs/ALIA-v3.1-preview.svg)
 
+![ALIA v3.1 workflow demo](docs/ALIA-v3.1-demo.svg)
+
 The v3.1 workspace uses a dark enterprise-style Windows Forms interface with a dashboard summary, audit health, KPI cards, searchable and filterable audit results, and a device detail pane.
 
 > The preview uses representative audit values for presentation; live counts are produced by the audit run.
@@ -144,6 +146,10 @@ ALIA currently provides this workflow:
 10. Allow searching, filtering and CSV export of the current audit view.
 
 ---
+
+## Architecture
+
+![ALIA reconciliation architecture](docs/architecture.svg)
 
 ## Reconciliation model
 
