@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>How to audit Aruba licenses with HPE GreenLake and Aruba Central | ALIA</title>
+<meta name="description" content="A practical guide to reconciling HPE GreenLake licensing with Aruba Central inventory and monitoring state using ALIA.">
+<link rel="canonical" href="https://prathameshhankare.github.io/ALIA/aruba-license-audit-greenlake-aruba-central.html">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How to audit Aruba licenses with HPE GreenLake and Aruba Central">
+<meta property="og:description" content="How ALIA correlates HPE GreenLake licensing, Aruba Central inventory and monitoring state to find device-level reconciliation exceptions.">
+<meta property="og:image" content="https://prathameshhankare.github.io/ALIA/ALIA-v3.1-preview.svg">
+<script type="application/ld+json">
+{
+  "@context":"https://schema.org",
+  "@type":"TechArticle",
+  "headline":"How to audit Aruba licenses with HPE GreenLake and Aruba Central",
+  "description":"A practical technical guide to Aruba license and inventory reconciliation using ALIA.",
+  "author":{"@type":"Person","name":"Prathamesh Hankare"},
+  "datePublished":"2026-10-01",
+  "dateModified":"2026-10-01",
+  "mainEntityOfPage":"https://prathameshhankare.github.io/ALIA/aruba-license-audit-greenlake-aruba-central.html",
+  "image":"https://prathameshhankare.github.io/ALIA/ALIA-v3.1-preview.svg"
+}
+</script>
+<style>
+body{margin:0;background:#07111f;color:#dbe3ed;font:16px/1.7 Segoe UI,Arial,sans-serif}.wrap{max-width:920px;margin:auto;padding:42px 24px 72px}a{color:#93c5fd}h1{font-size:42px;line-height:1.12}h2{margin-top:38px;font-size:27px}p,li{color:#b9c7d6}.hero{width:100%;border:1px solid #314a66;border-radius:12px}.note{background:#0f1d2d;border-left:4px solid #2dd4bf;padding:14px 18px;margin:18px 0;border-radius:6px}.code{background:#0a1422;border:1px solid #263d56;border-radius:8px;padding:15px;overflow:auto}.back{display:inline-block;margin-bottom:24px}.small{color:#64748b}
+</style>
+</head>
+<body><main class="wrap">
+<a class="back" href="./">← Back to ALIA</a>
+<h1>How to audit Aruba licenses with HPE GreenLake and Aruba Central</h1>
+<p class="small">Technical guide • ALIA v3.1.0 • Updated October 1, 2026</p>
+<img class="hero" src="ALIA-v3.1-preview.svg" alt="ALIA v3.1 audit workspace preview">
+
+<h2>The problem</h2>
+<p>Aruba environments can have inventory, licensing and monitoring information represented in different systems. A device can be visible in HPE GreenLake but absent from Aruba Central, licensed but not monitored, or present in Central without corresponding GreenLake licensing information.</p>
+<p>Checking these conditions manually becomes repetitive as the device population grows. The useful output is not just three lists; it is a device-level reconciliation that explains what is different.</p>
+
+<h2>What ALIA combines</h2>
+<ul>
+<li><strong>HPE GreenLake</strong> — device inventory and licensing information.</li>
+<li><strong>Aruba Central inventory</strong> — the device population visible in Central.</li>
+<li><strong>Aruba Central monitored devices</strong> — the devices represented in the monitored-device dataset.</li>
+</ul>
+
+<h2>How device matching works</h2>
+<p>ALIA builds a reconciliation dataset by matching devices primarily on <strong>serial number</strong> and secondarily on <strong>MAC address</strong>. The resulting record contains the GreenLake data, Central presence, monitoring state and audit classification together.</p>
+<div class="code">GreenLake inventory + licensing
+        ↓
+Aruba Central inventory
+        ↓
+Aruba Central monitoring state
+        ↓
+Normalize + match
+        ↓
+Device-level audit result</div>
+
+<h2>What the audit can identify</h2>
+<ul>
+<li>Licensed devices.</li>
+<li>Devices without GreenLake license information.</li>
+<li>Expired licenses.</li>
+<li>Licensed devices not present in Aruba Central.</li>
+<li>Licensed devices not present in Central monitored-device data.</li>
+<li>Central inventory devices that are not monitored.</li>
+<li>GreenLake-unlicensed devices that appear in monitored data.</li>
+<li>Other reconciliation mismatches implemented by the audit engine.</li>
+</ul>
+
+<h2>Why the dashboard matters</h2>
+<p>ALIA turns the reconciliation dataset into an operational dashboard with GreenLake inventory, Central inventory, Central monitored, licensed devices, exceptions, expired licenses, audit health and coverage. The KPI cards are navigation points into more focused views rather than static reporting widgets.</p>
+
+<h2>Investigating a device</h2>
+<p>The audit grid is designed for investigation. You can sort by columns, right-click column headers for filtering, use the global search, and select a row to populate the Device Details pane with the combined GreenLake, Aruba Central, monitoring and audit state.</p>
+
+<h2>Export and audit history</h2>
+<p>Export follows the current audit view, so filters and search context are preserved. Audit history is stored locally under <code>%LOCALAPPDATA%\ALIA\audit-history.json</code> and is therefore available again when ALIA is reopened for the same Windows user.</p>
+
+<h2>Deployment</h2>
+<p>ALIA v3.1 targets Windows PowerShell 5.1 and Windows Forms. The repository contains the canonical PowerShell application and a builder that packages the application as a Windows EXE using PS2EXE.</p>
+
+<div class="note"><strong>Project:</strong> <a href="https://github.com/PrathameshHankare/ALIA">github.com/PrathameshHankare/ALIA</a></div>
+</main></body></html>
