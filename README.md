@@ -2,9 +2,56 @@
 
 ## Aruba License Inventory Audit
 
-**ALIA (Aruba License Inventory Audit)** is an enterprise-oriented Windows PowerShell application for reconciling **HPE GreenLake device inventory and licensing** with **Aruba Central inventory and monitoring state**.
+**ALIA (Aruba License Inventory Audit)** is an open-source Windows PowerShell application for auditing and reconciling **Aruba device inventory and licensing across HPE GreenLake and Aruba Central**.
 
-ALIA is designed for infrastructure and network teams that need a single operational view of licensing, inventory presence, monitoring state, and reconciliation exceptions.
+It helps network and infrastructure teams identify **licensed devices missing from Aruba Central, devices that are not monitored, expired licenses, unlicensed devices, inventory mismatches, and other license reconciliation exceptions**.
+
+ALIA combines HPE GreenLake inventory and licensing, Aruba Central inventory, and Aruba Central monitored-device state, then correlates devices primarily by **serial number** and secondarily by **MAC address** to produce a device-level audit.
+
+**Project website:** https://prathameshhankare.github.io/ALIA/  
+**Technical guide:** https://prathameshhankare.github.io/ALIA/aruba-license-audit-greenlake-aruba-central.html  
+**GitHub:** https://github.com/PrathameshHankare/ALIA
+
+---
+
+## What problem does ALIA solve?
+
+Aruba environments can represent inventory, licensing and monitoring information across multiple systems. ALIA brings those datasets into one repeatable reconciliation workflow so teams can move from raw inventories to actionable, device-level evidence.
+
+Typical questions ALIA helps answer:
+
+- Which Aruba devices are licensed in HPE GreenLake?
+- Which licensed devices are missing from Aruba Central?
+- Which licensed devices are not present in Central monitored-device data?
+- Which licenses are expired?
+- Which devices appear in Central but do not have GreenLake license information?
+- Which reconciliation exceptions need investigation?
+
+---
+
+## Use cases
+
+### Aruba license audit
+
+Review Aruba device licensing using HPE GreenLake license and inventory information.
+
+### Aruba Central inventory reconciliation
+
+Compare HPE GreenLake device inventory against Aruba Central inventory.
+
+### Aruba monitoring reconciliation
+
+Identify licensed devices that are missing from Aruba Central monitored-device data.
+
+### Network inventory cleanup
+
+Find devices that are present in one operational system but inconsistent or absent in another.
+
+### Repeatable operational reporting
+
+Run the audit repeatedly, investigate the current view, export the current results, and retain previous audit metrics locally.
+
+---
 
 ## v3.1 Preview
 
@@ -232,13 +279,23 @@ Before production deployment, review the configured endpoints, credentials handl
 
 ```text
 ALIA/
-├── ALIA-v3.1.ps1          # Canonical v3.1 application
-├── Build-ALIA-v3.1.ps1    # Production v3.1 EXE builder
-├── CHANGELOG-v3.1.md      # v3.1 release notes
+├── ALIA-v3.1.ps1                         # Canonical v3.1 application
+├── Build-ALIA-v3.1.ps1                   # Production v3.1 EXE builder
+├── CHANGELOG-v3.1.md                     # v3.1 release notes
 ├── docs/
-│   └── ALIA-v3.1-preview.svg
-├── ALIA-v3.0.ps1          # Retained legacy v3.0 application
-├── Build-ALIA-v3.0.ps1    # Retained legacy v3.0 builder
+│   ├── index.html                        # GitHub Pages project site
+│   ├── aruba-license-audit-greenlake-aruba-central.html
+│   ├── architecture.svg                  # Reconciliation architecture diagram
+│   ├── ALIA-v3.1-preview.svg             # Final GUI preview
+│   ├── ALIA-v3.1-demo.svg                # Workflow demo visualization
+│   ├── sitemap.xml
+│   ├── robots.txt
+│   └── 404.html
+├── .github/
+│   └── workflows/
+│       └── deploy-pages.yml              # GitHub Pages deployment
+├── ALIA-v3.0.ps1                         # Retained legacy v3.0 application
+├── Build-ALIA-v3.0.ps1                   # Retained legacy v3.0 builder
 ├── README.md
 ├── LICENSE
 └── .gitignore
@@ -283,6 +340,17 @@ ALIA remains a single PowerShell/Windows Forms application so it can be deployed
 Long-running inventory and reconciliation operations use background execution/runspace handling so the GUI can remain responsive during API collection.
 
 The dashboard and audit grid are intended to support operational review and reconciliation; they do not replace the authoritative HPE GreenLake or Aruba Central systems.
+
+---
+
+## Project website and technical guide
+
+ALIA has a dedicated static project site for people who discover the tool through search rather than directly through GitHub:
+
+- **Project site:** https://prathameshhankare.github.io/ALIA/
+- **Technical guide:** https://prathameshhankare.github.io/ALIA/aruba-license-audit-greenlake-aruba-central.html
+
+The site explains the reconciliation model, common use cases, workflow, audit conditions, deployment model, and FAQ.
 
 ---
 
