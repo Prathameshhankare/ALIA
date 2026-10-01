@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 520" role="img" aria-labelledby="title desc">
+<title id="title">ALIA reconciliation architecture</title>
+<desc id="desc">HPE GreenLake inventory and licensing, Aruba Central inventory, and Aruba Central monitoring state feed into ALIA reconciliation and produce audit results.</desc>
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#081321"/><stop offset="1" stop-color="#0f1e30"/></linearGradient>
+  <linearGradient id="card" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#16283d"/><stop offset="1" stop-color="#0e1b2b"/></linearGradient>
+  <filter id="shadow"><feDropShadow dx="0" dy="5" stdDeviation="8" flood-opacity=".28"/></filter>
+  <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#60a5fa"/></marker>
+</defs>
+<rect width="1200" height="520" rx="22" fill="url(#bg)"/>
+<text x="50" y="58" fill="#f8fafc" font-family="Segoe UI,Arial" font-size="30" font-weight="700">ALIA reconciliation model</text>
+<text x="50" y="88" fill="#94a3b8" font-family="Segoe UI,Arial" font-size="15">Three operational datasets → device-level reconciliation → actionable audit results</text>
+
+<g filter="url(#shadow)">
+<rect x="55" y="140" width="300" height="105" rx="16" fill="url(#card)" stroke="#3b82f6" stroke-width="2"/>
+<rect x="55" y="275" width="300" height="105" rx="16" fill="url(#card)" stroke="#a855f7" stroke-width="2"/>
+<rect x="55" y="410" width="300" height="75" rx="16" fill="url(#card)" stroke="#22d3ee" stroke-width="2"/>
+<rect x="445" y="205" width="305" height="155" rx="20" fill="url(#card)" stroke="#2dd4bf" stroke-width="3"/>
+<rect x="835" y="205" width="310" height="155" rx="20" fill="url(#card)" stroke="#22c55e" stroke-width="3"/>
+</g>
+
+<text x="80" y="174" fill="#60a5fa" font-family="Segoe UI,Arial" font-size="16" font-weight="700">HPE GreenLake</text>
+<text x="80" y="201" fill="#dbe3ed" font-family="Segoe UI,Arial" font-size="14">Device inventory + licensing</text>
+
+<text x="80" y="309" fill="#c084fc" font-family="Segoe UI,Arial" font-size="16" font-weight="700">Aruba Central</text>
+<text x="80" y="336" fill="#dbe3ed" font-family="Segoe UI,Arial" font-size="14">Device inventory</text>
+
+<text x="80" y="444" fill="#22d3ee" font-family="Segoe UI,Arial" font-size="16" font-weight="700">Monitoring state</text>
+<text x="245" y="444" fill="#94a3b8" font-family="Segoe UI,Arial" font-size="12">Central monitored devices</text>
+
+<text x="597" y="255" text-anchor="middle" fill="#2dd4bf" font-family="Segoe UI,Arial" font-size="20" font-weight="700">ALIA</text>
+<text x="597" y="285" text-anchor="middle" fill="#f8fafc" font-family="Segoe UI,Arial" font-size="24" font-weight="700">Reconciliation</text>
+<text x="597" y="315" text-anchor="middle" fill="#94a3b8" font-family="Segoe UI,Arial" font-size="13">Serial → MAC matching</text>
+<text x="597" y="338" text-anchor="middle" fill="#94a3b8" font-family="Segoe UI,Arial" font-size="13">Classification + audit rules</text>
+
+<text x="990" y="255" text-anchor="middle" fill="#22c55e" font-family="Segoe UI,Arial" font-size="18" font-weight="700">Audit Results</text>
+<text x="990" y="285" text-anchor="middle" fill="#dbe3ed" font-family="Segoe UI,Arial" font-size="14">Licensing + inventory</text>
+<text x="990" y="309" text-anchor="middle" fill="#dbe3ed" font-family="Segoe UI,Arial" font-size="14">Monitoring exceptions</text>
+<text x="990" y="333" text-anchor="middle" fill="#dbe3ed" font-family="Segoe UI,Arial" font-size="14">Device-level evidence</text>
+
+<path d="M355 192 C395 192 395 235 445 235" stroke="#60a5fa" stroke-width="4" fill="none" marker-end="url(#arrow)"/>
+<path d="M355 327 C395 327 400 300 445 300" stroke="#a855f7" stroke-width="4" fill="none" marker-end="url(#arrow)"/>
+<path d="M355 448 C405 448 405 350 445 350" stroke="#22d3ee" stroke-width="4" fill="none" marker-end="url(#arrow)"/>
+<path d="M750 283 L835 283" stroke="#2dd4bf" stroke-width="4" fill="none" marker-end="url(#arrow)"/>
+</svg>
