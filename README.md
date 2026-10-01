@@ -319,7 +319,7 @@ The canonical v3.1 source is \`ALIA-v3.1.ps1\`.
 
 The v3.0 source and builder remain in the repository as the legacy application line for comparison and rollback.
 
-The \`v3.1-gui-redesign\` branch contains the finalized v3.1 workspace and associated packaging/validation changes.
+The repository maintains separate \`v3.0\` and \`v3.1\` release branches in addition to \`main\`.
 
 ---
 
