@@ -1,133 +1,67 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" width="1600" height="1000" role="img" aria-labelledby="title desc">
-  <title id="title">ALIA v3.1 Audit Workspace preview</title>
-  <desc id="desc">Dark enterprise-style ALIA v3.1 dashboard preview with connection cards, audit health, KPI tiles, audit results grid and device details.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900" role="img" aria-labelledby="title desc">
+  <title id="title">ALIA v3.1.0 final Audit Workspace</title>
+  <desc id="desc">Final ALIA v3.1 dark enterprise audit workspace with raised cards, beveled action buttons, aligned search controls, audit results grid, gutter and nested device details surface.</desc>
   <defs>
-    <linearGradient id="bg" x1="0" x2="0" y1="0" y2="1">
-      <stop offset="0" stop-color="#0f172a"/>
-      <stop offset="1" stop-color="#07101d"/>
-    </linearGradient>
-    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="4" stdDeviation="7" flood-color="#000000" flood-opacity=".35"/>
-    </filter>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0b1626"/><stop offset="1" stop-color="#07111f"/></linearGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#142237"/><stop offset="0.55" stop-color="#111e2e"/><stop offset="1" stop-color="#0e1928"/></linearGradient>
+    <linearGradient id="green" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#11e66c"/><stop offset="1" stop-color="#00b957"/></linearGradient>
+    <filter id="shadow" x="-20%" y="-30%" width="140%" height="160%"><feDropShadow dx="0" dy="3" stdDeviation="5" flood-color="#000" flood-opacity=".38"/></filter>
   </defs>
-  <rect width="1600" height="1000" rx="14" fill="#020914"/>
-  <rect x="8" y="8" width="1584" height="984" rx="12" fill="url(#bg)" stroke="#263d56" stroke-width="2"/>
+  <rect width="1600" height="900" fill="url(#bg)"/>
+  <rect x="1" y="1" width="1598" height="898" fill="none" stroke="#172a40"/>
+  <rect width="1600" height="72" fill="#0a1422"/>
+  <text x="20" y="19" fill="#e2e8f0" font-family="Segoe UI,Arial" font-size="12">HPE Aruba License Inventory Audit - v3.1.0</text>
+  <text x="20" y="48" fill="#f8fafc" font-family="Segoe UI,Arial" font-size="31" font-weight="700">ALIA</text>
+  <text x="20" y="66" fill="#94a3b8" font-family="Segoe UI,Arial" font-size="13">Aruba License Inventory Audit  |  GreenLake + Aruba Central reconciliation</text>
+  <rect x="1405" y="16" width="95" height="28" rx="4" fill="#111f31" stroke="#30465f"/><text x="1418" y="35" fill="#dbe3ed" font-family="Segoe UI,Arial" font-size="11">Audit History</text>
+  <circle cx="1520" cy="30" r="4" fill="#2dd4bf"/><text x="1532" y="34" fill="#2dd4bf" font-family="Segoe UI,Arial" font-size="11">Ready</text><text x="1570" y="34" fill="#94a3b8" font-family="Segoe UI,Arial" font-size="11">v3.1.0</text>
 
-  <rect x="8" y="8" width="1584" height="34" rx="12" fill="#101827"/>
-  <text x="30" y="31" fill="#e2e8f0" font-family="Segoe UI,Arial,sans-serif" font-size="14">HPE Aruba License Inventory Audit - v3.1.0</text>
-  <text x="1490" y="31" fill="#94a3b8" font-family="Segoe UI,Arial,sans-serif" font-size="13">— □ ×</text>
-
-  <text x="30" y="72" fill="#f8fafc" font-family="Segoe UI,Arial,sans-serif" font-size="34" font-weight="700">ALIA</text>
-  <text x="30" y="94" fill="#94a3b8" font-family="Segoe UI,Arial,sans-serif" font-size="14">Aruba License Inventory Audit  |  GreenLake + Aruba Central reconciliation</text>
-  <rect x="1395" y="55" width="105" height="30" rx="4" fill="#0f1928" stroke="#263d56"/>
-  <text x="1411" y="75" fill="#cbd5e1" font-family="Segoe UI,Arial,sans-serif" font-size="12">Audit History</text>
-  <circle cx="1530" cy="71" r="4" fill="#22d3b2"/>
-  <text x="1542" y="76" fill="#22d3b2" font-family="Segoe UI,Arial,sans-serif" font-size="12">Ready</text>
-
-  <!-- connection cards -->
-  <rect x="20" y="112" width="565" height="90" rx="6" fill="#0f1928" stroke="#263d56"/>
-  <text x="36" y="137" fill="#f1f5f9" font-family="Segoe UI,Arial,sans-serif" font-size="15" font-weight="700">HPE GreenLake</text>
-  <text x="520" y="137" fill="#22c55e" font-family="Segoe UI,Arial,sans-serif" font-size="12">● Connected</text>
-  <text x="36" y="160" fill="#94a3b8" font-family="Segoe UI,Arial,sans-serif" font-size="12">Client ID</text>
-  <rect x="105" y="147" width="420" height="24" rx="2" fill="#0a1422" stroke="#3a526d"/>
-  <text x="36" y="191" fill="#94a3b8" font-family="Segoe UI,Arial,sans-serif" font-size="12">Secret</text>
-  <rect x="105" y="178" width="420" height="24" rx="2" fill="#0a1422" stroke="#3a526d"/>
-
-  <rect x="600" y="112" width="565" height="90" rx="6" fill="#0f1928" stroke="#263d56"/>
-  <text x="616" y="137" fill="#f1f5f9" font-family="Segoe UI,Arial,sans-serif" font-size="15" font-weight="700">Aruba Central</text>
-  <text x="1100" y="137" fill="#22c55e" font-family="Segoe UI,Arial,sans-serif" font-size="12">● Connected</text>
-  <text x="616" y="160" fill="#94a3b8" font-family="Segoe UI,Arial,sans-serif" font-size="12">Client ID</text>
-  <rect x="685" y="147" width="420" height="24" rx="2" fill="#0a1422" stroke="#3a526d"/>
-  <text x="616" y="191" fill="#94a3b8" font-family="Segoe UI,Arial,sans-serif" font-size="12">Secret</text>
-  <rect x="685" y="178" width="420" height="24" rx="2" fill="#0a1422" stroke="#3a526d"/>
-
-  <rect x="1182" y="112" width="396" height="46" rx="4" fill="#00c853"/>
-  <text x="1379" y="141" text-anchor="middle" fill="#ffffff" font-family="Segoe UI,Arial,sans-serif" font-size="17" font-weight="700">RUN LICENSE AUDIT</text>
-  <text x="1380" y="183" text-anchor="middle" fill="#94a3b8" font-family="Segoe UI,Arial,sans-serif" font-size="11">Collect inventory, licensing and monitoring state</text>
-
-  <!-- audit health -->
-  <rect x="20" y="215" width="330" height="140" rx="6" fill="#0f1928" stroke="#263d56"/>
-  <text x="38" y="240" fill="#94a3b8" font-family="Segoe UI,Arial,sans-serif" font-size="12">⚠ AUDIT HEALTH</text>
-  <text x="38" y="270" fill="#34d399" font-family="Segoe UI,Arial,sans-serif" font-size="19" font-weight="700">AUDIT HEALTHY</text>
-  <text x="40" y="297" fill="#94a3b8" font-family="Segoe UI,Arial,sans-serif" font-size="10">Healthy</text>
-  <text x="112" y="297" fill="#94a3b8" font-family="Segoe UI,Arial,sans-serif" font-size="10">Warning</text>
-  <text x="185" y="297" fill="#94a3b8" font-family="Segoe UI,Arial,sans-serif" font-size="10">Critical</text>
-  <text x="258" y="297" fill="#94a3b8" font-family="Segoe UI,Arial,sans-serif" font-size="10">Coverage</text>
-  <text x="42" y="328" fill="#22c55e" font-family="Segoe UI,Arial,sans-serif" font-size="18" font-weight="700">2787</text>
-  <text x="116" y="328" fill="#facc15" font-family="Segoe UI,Arial,sans-serif" font-size="18" font-weight="700">591</text>
-  <text x="186" y="328" fill="#f87171" font-family="Segoe UI,Arial,sans-serif" font-size="18" font-weight="700">127</text>
-  <text x="258" y="328" fill="#60a5fa" font-family="Segoe UI,Arial,sans-serif" font-size="18" font-weight="700">86.16%</text>
-
-  <!-- KPI tiles -->
   <g filter="url(#shadow)">
-    <rect x="365" y="215" width="390" height="68" rx="5" fill="#0f1928" stroke="#263d56"/>
-    <rect x="765" y="215" width="390" height="68" rx="5" fill="#0f1928" stroke="#263d56"/>
-    <rect x="1167" y="215" width="411" height="68" rx="5" fill="#0f1928" stroke="#263d56"/>
-    <rect x="365" y="291" width="390" height="68" rx="5" fill="#0f1928" stroke="#263d56"/>
-    <rect x="765" y="291" width="390" height="68" rx="5" fill="#0f1928" stroke="#263d56"/>
-    <rect x="1167" y="291" width="411" height="68" rx="5" fill="#0f1928" stroke="#263d56"/>
+    <rect x="14" y="84" width="688" height="70" rx="5" fill="url(#card)" stroke="#314a66"/><line x1="15" y1="85" x2="701" y2="85" stroke="#46637f"/><line x1="15" y1="153" x2="701" y2="153" stroke="#07101c"/>
+    <rect x="716" y="84" width="506" height="70" rx="5" fill="url(#card)" stroke="#314a66"/><line x1="717" y1="85" x2="1221" y2="85" stroke="#46637f"/><line x1="717" y1="153" x2="1221" y2="153" stroke="#07101c"/>
   </g>
-  <g font-family="Segoe UI,Arial,sans-serif">
-    <text x="392" y="239" fill="#60a5fa" font-size="12">▤</text><text x="418" y="239" fill="#e2e8f0" font-size="13">GreenLake Inventory</text><text x="418" y="263" fill="#f8fafc" font-size="24" font-weight="700">3505</text><text x="418" y="278" fill="#64748b" font-size="10">No change</text>
-    <text x="792" y="239" fill="#c084fc" font-size="12">◉</text><text x="818" y="239" fill="#e2e8f0" font-size="13">Central Inventory</text><text x="818" y="263" fill="#f8fafc" font-size="24" font-weight="700">3020</text><text x="818" y="278" fill="#64748b" font-size="10">No change</text>
-    <text x="1194" y="239" fill="#22d3ee" font-size="12">▣</text><text x="1220" y="239" fill="#e2e8f0" font-size="13">Central Monitored</text><text x="1220" y="263" fill="#f8fafc" font-size="24" font-weight="700">2336</text><text x="1220" y="278" fill="#64748b" font-size="10">Firmware known: 2345</text>
-    <text x="392" y="315" fill="#22c55e" font-size="12">▣</text><text x="418" y="315" fill="#e2e8f0" font-size="13">Licensed Devices</text><text x="418" y="339" fill="#f8fafc" font-size="24" font-weight="700">2407</text><text x="418" y="354" fill="#64748b" font-size="10">No change</text>
-    <text x="792" y="315" fill="#f87171" font-size="12">△</text><text x="818" y="315" fill="#e2e8f0" font-size="13">Exceptions</text><text x="818" y="339" fill="#f8fafc" font-size="24" font-weight="700">718</text><text x="818" y="354" fill="#22c55e" font-size="10">▼ 2 vs last audit</text>
-    <text x="1194" y="315" fill="#facc15" font-size="12">◷</text><text x="1220" y="315" fill="#e2e8f0" font-size="13">Expired Licenses</text><text x="1220" y="339" fill="#f8fafc" font-size="24" font-weight="700">0</text><text x="1220" y="354" fill="#64748b" font-size="10">No change</text>
+  <text x="28" y="103" fill="#f1f5f9" font-family="Segoe UI,Arial" font-size="13" font-weight="700">HPE GreenLake</text><circle cx="674" cy="101" r="4" fill="#64748b"/><text x="686" y="105" text-anchor="end" fill="#94a3b8" font-family="Segoe UI,Arial" font-size="10">Not tested</text>
+  <text x="28" y="125" fill="#94a3b8" font-family="Segoe UI,Arial" font-size="11">Client ID</text><rect x="92" y="113" width="487" height="21" fill="#0a1422" stroke="#334b66"/>
+  <text x="28" y="149" fill="#94a3b8" font-family="Segoe UI,Arial" font-size="11">Secret</text><rect x="92" y="137" width="567" height="21" fill="#0a1422" stroke="#334b66"/><rect x="662" y="137" width="32" height="21" rx="2" fill="#101d2d" stroke="#334b66"/><text x="678" y="151" text-anchor="middle" fill="#dbe3ed" font-family="Segoe UI,Arial" font-size="10">Show</text>
+
+  <text x="730" y="103" fill="#f1f5f9" font-family="Segoe UI,Arial" font-size="13" font-weight="700">Aruba Central</text><circle cx="1190" cy="101" r="4" fill="#64748b"/><text x="1202" y="105" text-anchor="end" fill="#94a3b8" font-family="Segoe UI,Arial" font-size="10">Not tested</text>
+  <text x="730" y="125" fill="#94a3b8" font-family="Segoe UI,Arial" font-size="11">Client ID</text><rect x="795" y="113" width="360" height="21" fill="#0a1422" stroke="#334b66"/>
+  <text x="730" y="149" fill="#94a3b8" font-family="Segoe UI,Arial" font-size="11">Secret</text><rect x="795" y="137" width="394" height="21" fill="#0a1422" stroke="#334b66"/><rect x="1192" y="137" width="30" height="21" rx="2" fill="#101d2d" stroke="#334b66"/><text x="1207" y="151" text-anchor="middle" fill="#dbe3ed" font-family="Segoe UI,Arial" font-size="10">Show</text>
+
+  <g filter="url(#shadow)"><rect x="1236" y="84" width="350" height="36" rx="3" fill="url(#green)" stroke="#56f695"/><line x1="1238" y1="85" x2="1584" y2="85" stroke="#7dffae"/><line x1="1238" y1="118" x2="1584" y2="118" stroke="#007f3d"/></g>
+  <text x="1411" y="107" text-anchor="middle" fill="#fff" font-family="Segoe UI,Arial" font-size="13" font-weight="700">RUN LICENSE AUDIT</text>
+  <text x="1411" y="132" text-anchor="middle" fill="#94a3b8" font-family="Segoe UI,Arial" font-size="10">Collect inventory, licensing and monitoring state</text>
+  <g filter="url(#shadow)"><rect x="1236" y="141" width="96" height="22" rx="2" fill="#2563eb" stroke="#6d9bff"/><rect x="1338" y="141" width="56" height="22" rx="2" fill="#16a34a" stroke="#67d98a"/><rect x="1400" y="141" width="56" height="22" rx="2" fill="#475569" stroke="#8090a5"/></g>
+  <text x="1284" y="156" text-anchor="middle" fill="#fff" font-family="Segoe UI,Arial" font-size="9">Test Connections</text><text x="1366" y="156" text-anchor="middle" fill="#fff" font-family="Segoe UI,Arial" font-size="9">Export</text><text x="1428" y="156" text-anchor="middle" fill="#fff" font-family="Segoe UI,Arial" font-size="9">Clear</text>
+
+  <g filter="url(#shadow)">
+    <rect x="14" y="174" width="274" height="116" rx="4" fill="url(#card)" stroke="#314a66"/>
+    <rect x="298" y="174" width="410" height="55" rx="4" fill="url(#card)" stroke="#314a66"/><rect x="714" y="174" width="410" height="55" rx="4" fill="url(#card)" stroke="#314a66"/><rect x="1130" y="174" width="456" height="55" rx="4" fill="url(#card)" stroke="#314a66"/>
+    <rect x="298" y="233" width="410" height="57" rx="4" fill="url(#card)" stroke="#314a66"/><rect x="714" y="233" width="410" height="57" rx="4" fill="url(#card)" stroke="#314a66"/><rect x="1130" y="233" width="456" height="57" rx="4" fill="url(#card)" stroke="#314a66"/>
   </g>
+  <text x="28" y="192" fill="#f87171" font-family="Segoe UI,Arial" font-size="11">△ AUDIT HEALTH</text><text x="28" y="217" fill="#22c55e" font-family="Segoe UI,Arial" font-size="16" font-weight="700">AUDIT HEALTHY</text>
+  <text x="33" y="239" fill="#94a3b8" font-family="Segoe UI,Arial" font-size="9">Healthy</text><text x="102" y="239" fill="#94a3b8" font-family="Segoe UI,Arial" font-size="9">Warning</text><text x="173" y="239" fill="#94a3b8" font-family="Segoe UI,Arial" font-size="9">Critical</text><text x="242" y="239" fill="#94a3b8" font-family="Segoe UI,Arial" font-size="9">Coverage</text>
+  <text x="47" y="272" fill="#22c55e" font-family="Segoe UI,Arial" font-size="16" font-weight="700">2787</text><text x="117" y="272" fill="#facc15" font-family="Segoe UI,Arial" font-size="16" font-weight="700">591</text><text x="184" y="272" fill="#f87171" font-family="Segoe UI,Arial" font-size="16" font-weight="700">127</text><text x="246" y="272" fill="#60a5fa" font-family="Segoe UI,Arial" font-size="16" font-weight="700">86.16%</text>
+  <g font-family="Segoe UI,Arial"><text x="322" y="196" fill="#60a5fa" font-size="11">▤</text><text x="346" y="196" fill="#e2e8f0" font-size="11">GreenLake Inventory</text><text x="346" y="216" fill="#f8fafc" font-size="20" font-weight="700">3505</text><text x="346" y="226" fill="#64748b" font-size="8">No change</text>
+  <text x="738" y="196" fill="#c084fc" font-size="11">◉</text><text x="762" y="196" fill="#e2e8f0" font-size="11">Central Inventory</text><text x="762" y="216" fill="#f8fafc" font-size="20" font-weight="700">3020</text><text x="762" y="226" fill="#64748b" font-size="8">No change</text>
+  <text x="1154" y="196" fill="#22d3ee" font-size="11">▣</text><text x="1178" y="196" fill="#e2e8f0" font-size="11">Central Monitored</text><text x="1178" y="216" fill="#f8fafc" font-size="20" font-weight="700">2336</text><text x="1178" y="226" fill="#64748b" font-size="8">Firmware known: 2345</text>
+  <text x="322" y="255" fill="#22c55e" font-size="11">▣</text><text x="346" y="255" fill="#e2e8f0" font-size="11">Licensed Devices</text><text x="346" y="276" fill="#f8fafc" font-size="20" font-weight="700">2407</text><text x="346" y="287" fill="#22c55e" font-size="8">▼ 2409 vs last audit</text>
+  <text x="738" y="255" fill="#f87171" font-size="11">△</text><text x="762" y="255" fill="#e2e8f0" font-size="11">Exceptions</text><text x="762" y="276" fill="#f8fafc" font-size="20" font-weight="700">731</text><text x="762" y="287" fill="#22c55e" font-size="8">▼ 731 vs last audit</text>
+  <text x="1154" y="255" fill="#facc15" font-size="11">◷</text><text x="1178" y="255" fill="#e2e8f0" font-size="11">Expired Licenses</text><text x="1178" y="276" fill="#f8fafc" font-size="20" font-weight="700">0</text><text x="1178" y="287" fill="#64748b" font-size="8">No change</text></g>
 
-  <!-- toolbar -->
-  <rect x="20" y="374" width="1558" height="44" rx="4" fill="#07111f"/>
-  <rect x="25" y="382" width="55" height="28" rx="3" fill="#0f1928" stroke="#263d56"/><text x="39" y="401" fill="#e2e8f0" font-family="Segoe UI,Arial,sans-serif" font-size="12">All ▾</text>
-  <rect x="86" y="382" width="280" height="28" rx="3" fill="#0a1422" stroke="#263d56"/><text x="99" y="401" fill="#64748b" font-family="Segoe UI,Arial,sans-serif" font-size="12">Search devices...</text>
-  <text x="1190" y="401" fill="#94a3b8" font-family="Segoe UI,Arial,sans-serif" font-size="11">Click a column header to sort  •  Right-click a column header to filter</text>
+  <rect x="14" y="305" width="1572" height="38" fill="#07111f"/><rect x="14" y="312" width="43" height="21" rx="2" fill="#101d2d" stroke="#334b66"/><text x="35" y="326" text-anchor="middle" fill="#dbe3ed" font-family="Segoe UI,Arial" font-size="10">All ▾</text><rect x="61" y="312" width="176" height="21" rx="2" fill="#0a1422" stroke="#334b66"/><text x="71" y="326" fill="#64748b" font-family="Segoe UI,Arial" font-size="10">Search devices...</text><text x="1240" y="326" fill="#94a3b8" font-family="Segoe UI,Arial" font-size="9">Click a column header to sort  •  Right-click a column header to filter</text>
+  <text x="14" y="369" fill="#f8fafc" font-family="Segoe UI,Arial" font-size="15" font-weight="700">All Audit Results</text><text x="119" y="369" fill="#94a3b8" font-family="Segoe UI,Arial" font-size="11">Records: 3505</text>
 
-  <text x="20" y="452" fill="#f8fafc" font-family="Segoe UI,Arial,sans-serif" font-size="17" font-weight="700">All Audit Results</text>
-  <text x="180" y="452" fill="#94a3b8" font-family="Segoe UI,Arial,sans-serif" font-size="13">Records: 3505</text>
-  <text x="1496" y="452" fill="#94a3b8" font-family="Segoe UI,Arial,sans-serif" font-size="11">All Audit Results</text>
+  <g filter="url(#shadow)"><rect x="4" y="390" width="1305" height="454" rx="3" fill="#0b1624" stroke="#314a66"/><rect x="1320" y="390" width="266" height="454" rx="3" fill="#111e2e" stroke="#314a66"/></g><rect x="1309" y="390" width="11" height="454" fill="#07111f"/>
+  <rect x="9" y="402" width="1295" height="27" fill="#142336"/><g fill="#e2e8f0" font-family="Segoe UI,Arial" font-size="9"><text x="14" y="420">SerialNumber</text><text x="98" y="420">MACAddress</text><text x="181" y="420">GreenLakeDeviceType</text><text x="356" y="420">Model</text><text x="418" y="420">FirmwareVersion</text><text x="532" y="420">DeviceName</text><text x="615" y="420">LicenseTier</text><text x="702" y="420">LicenseStart</text><text x="799" y="420">LicenseEnd</text><text x="890" y="420">ArubaInventoryPresent</text><text x="1050" y="420">ArubaMonitoredPresent</text><text x="1201" y="420">ArubaStatus</text><text x="1275" y="420">Health</text></g>
+  <rect x="9" y="429" width="1295" height="29" fill="#184c96"/><text x="14" y="448" fill="#dbeafe" font-family="Segoe UI,Arial" font-size="9">CN35HL20S0</text><text x="98" y="448" fill="#dbeafe" font-family="Segoe UI,Arial" font-size="9">A4:0E:75:6D:7E:A0</text><text x="181" y="448" fill="#dbeafe" font-family="Segoe UI,Arial" font-size="9">Switch</text><text x="356" y="448" fill="#dbeafe" font-family="Segoe UI,Arial" font-size="9">2930F</text><text x="418" y="448" fill="#dbeafe" font-family="Segoe UI,Arial" font-size="9">WC.16.11.0030</text><text x="615" y="448" fill="#dbeafe" font-family="Segoe UI,Arial" font-size="9">FOUNDATION_SWITCH_6200</text><text x="702" y="448" fill="#dbeafe" font-family="Segoe UI,Arial" font-size="9">2023-07-18</text><text x="799" y="448" fill="#dbeafe" font-family="Segoe UI,Arial" font-size="9">2027-10-30</text><text x="890" y="448" fill="#dbeafe" font-family="Segoe UI,Arial" font-size="9">Yes</text>
+  <g stroke="#223b58"><line x1="9" y1="458" x2="1304" y2="458"/><line x1="9" y1="487" x2="1304" y2="487"/><line x1="9" y1="516" x2="1304" y2="516"/><line x1="9" y1="545" x2="1304" y2="545"/><line x1="9" y1="574" x2="1304" y2="574"/><line x1="9" y1="603" x2="1304" y2="603"/><line x1="9" y1="632" x2="1304" y2="632"/><line x1="9" y1="661" x2="1304" y2="661"/><line x1="9" y1="690" x2="1304" y2="690"/><line x1="9" y1="719" x2="1304" y2="719"/></g><rect x="12" y="817" width="1289" height="19" fill="#0b0f14"/><rect x="20" y="822" width="360" height="8" rx="4" fill="#737f8e"/>
 
-  <!-- grid -->
-  <rect x="18" y="470" width="1290" height="454" rx="5" fill="#0b1624" stroke="#263d56"/>
-  <rect x="24" y="480" width="1278" height="36" fill="#142336"/>
-  <g fill="#e2e8f0" font-family="Segoe UI,Arial,sans-serif" font-size="11">
-    <text x="32" y="503">SerialNumber</text><text x="135" y="503">MACAddress</text><text x="252" y="503">GreenLakeDeviceType</text><text x="405" y="503">Model</text><text x="470" y="503">FirmwareVersion</text><text x="590" y="503">DeviceName</text><text x="690" y="503">LicenseTier</text><text x="790" y="503">LicenseStart</text><text x="920" y="503">LicenseEnd</text><text x="1040" y="503">ArubaInventoryPresent</text>
-  </g>
-  <rect x="24" y="516" width="1278" height="32" fill="#184c96"/>
-  <g fill="#dbeafe" font-family="Segoe UI,Arial,sans-serif" font-size="10">
-    <text x="32" y="537">CN35HL20S0</text><text x="135" y="537">A4:0E:75:6D:7E:A0</text><text x="252" y="537">Switch</text><text x="405" y="537">2930F</text><text x="470" y="537">WC.16.11.0030</text><text x="590" y="537">—</text><text x="690" y="537">FOUNDATION_SWITCH_6200</text><text x="790" y="537">2023-07-18</text><text x="920" y="537">2027-10-30</text><text x="1040" y="537">Yes</text>
-  </g>
-  <g stroke="#223b58" stroke-width="1">
-    <line x1="24" y1="548" x2="1302" y2="548"/><line x1="24" y1="580" x2="1302" y2="580"/><line x1="24" y1="612" x2="1302" y2="612"/><line x1="24" y1="644" x2="1302" y2="644"/><line x1="24" y1="676" x2="1302" y2="676"/><line x1="24" y1="708" x2="1302" y2="708"/><line x1="24" y1="740" x2="1302" y2="740"/><line x1="24" y1="772" x2="1302" y2="772"/>
-  </g>
-  <rect x="24" y="892" width="1278" height="24" fill="#0b0f14"/>
-  <rect x="32" y="898" width="420" height="10" rx="5" fill="#737f8e"/>
+  <text x="1332" y="413" fill="#e2e8f0" font-family="Segoe UI,Arial" font-size="12" font-weight="700">Device Details</text><text x="1332" y="441" fill="#f8fafc" font-family="Segoe UI,Arial" font-size="18" font-weight="700">CN35HL20S0</text><text x="1332" y="460" fill="#22c55e" font-family="Segoe UI,Arial" font-size="9">LICENSED - MONITORED - ONLINE</text>
+  <rect x="1330" y="474" width="246" height="350" rx="2" fill="#0a1422" stroke="#314a66"/><text x="1340" y="494" fill="#94a3b8" font-family="Segoe UI,Arial" font-size="8">DEVICE</text><line x1="1340" y1="501" x2="1566" y2="501" stroke="#3a526d"/><text x="1340" y="517" fill="#dbe3ed" font-family="Segoe UI,Arial" font-size="8">Serial Number : CN35HL20S0</text><text x="1340" y="532" fill="#dbe3ed" font-family="Segoe UI,Arial" font-size="8">MAC Address  : A4:0E:75:6D:7E:A0</text><text x="1340" y="547" fill="#dbe3ed" font-family="Segoe UI,Arial" font-size="8">Model        : 2930F</text>
+  <text x="1340" y="566" fill="#94a3b8" font-family="Segoe UI,Arial" font-size="8">GREENLAKE</text><line x1="1340" y1="573" x2="1566" y2="573" stroke="#3a526d"/><text x="1340" y="590" fill="#dbe3ed" font-family="Segoe UI,Arial" font-size="8">License      : FOUNDATION_SWITCH_6200</text><text x="1340" y="605" fill="#dbe3ed" font-family="Segoe UI,Arial" font-size="8">License End  : 2027-10-30</text>
+  <text x="1340" y="624" fill="#94a3b8" font-family="Segoe UI,Arial" font-size="8">ARUBA CENTRAL</text><line x1="1340" y1="631" x2="1566" y2="631" stroke="#3a526d"/><text x="1340" y="648" fill="#dbe3ed" font-family="Segoe UI,Arial" font-size="8">Inventory    : Yes</text><text x="1340" y="663" fill="#dbe3ed" font-family="Segoe UI,Arial" font-size="8">Monitored    : Yes</text>
+  <text x="1340" y="682" fill="#94a3b8" font-family="Segoe UI,Arial" font-size="8">AUDIT</text><line x1="1340" y1="689" x2="1566" y2="689" stroke="#3a526d"/><text x="1340" y="706" fill="#dbe3ed" font-family="Segoe UI,Arial" font-size="8">Status       : LICENSED - MONITORED - ONLINE</text>
 
-  <!-- details -->
-  <rect x="1320" y="470" width="258" height="454" rx="5" fill="#0f1928" stroke="#263d56"/>
-  <text x="1338" y="500" fill="#e2e8f0" font-family="Segoe UI,Arial,sans-serif" font-size="15" font-weight="700">Device Details</text>
-  <text x="1338" y="535" fill="#f8fafc" font-family="Segoe UI,Arial,sans-serif" font-size="19" font-weight="700">CN35HL20S0</text>
-  <text x="1338" y="557" fill="#22c55e" font-family="Segoe UI,Arial,sans-serif" font-size="11">LICENSED - MONITORED - ONLINE</text>
-  <line x1="1338" y1="575" x2="1560" y2="575" stroke="#3a526d"/>
-  <text x="1338" y="600" fill="#94a3b8" font-family="Segoe UI,Arial,sans-serif" font-size="10">DEVICE</text>
-  <text x="1338" y="620" fill="#dbe3ed" font-family="Segoe UI,Arial,sans-serif" font-size="10">Serial Number  : CN35HL20S0</text>
-  <text x="1338" y="638" fill="#dbe3ed" font-family="Segoe UI,Arial,sans-serif" font-size="10">Model         : 2930F</text>
-  <text x="1338" y="665" fill="#94a3b8" font-family="Segoe UI,Arial,sans-serif" font-size="10">GREENLAKE</text>
-  <line x1="1338" y1="675" x2="1560" y2="675" stroke="#3a526d"/>
-  <text x="1338" y="698" fill="#dbe3ed" font-family="Segoe UI,Arial,sans-serif" font-size="10">License       : FOUNDATION_SWITCH_6200</text>
-  <text x="1338" y="716" fill="#dbe3ed" font-family="Segoe UI,Arial,sans-serif" font-size="10">License End   : 2027-10-30</text>
-  <text x="1338" y="744" fill="#94a3b8" font-family="Segoe UI,Arial,sans-serif" font-size="10">ARUBA CENTRAL</text>
-  <line x1="1338" y1="754" x2="1560" y2="754" stroke="#3a526d"/>
-  <text x="1338" y="777" fill="#dbe3ed" font-family="Segoe UI,Arial,sans-serif" font-size="10">Inventory     : Yes</text>
-  <text x="1338" y="795" fill="#dbe3ed" font-family="Segoe UI,Arial,sans-serif" font-size="10">Monitored     : Yes</text>
-  <text x="1338" y="822" fill="#94a3b8" font-family="Segoe UI,Arial,sans-serif" font-size="10">AUDIT</text>
-  <line x1="1338" y1="832" x2="1560" y2="832" stroke="#3a526d"/>
-  <text x="1338" y="854" fill="#dbe3ed" font-family="Segoe UI,Arial,sans-serif" font-size="10">Status        : LICENSED - MONITORED - ONLINE</text>
-
-  <rect x="8" y="944" width="1584" height="48" fill="#0f1928"/>
-  <circle cx="28" cy="969" r="4" fill="#22c55e"/>
-  <text x="40" y="974" fill="#22c55e" font-family="Segoe UI,Arial,sans-serif" font-size="12">License audit completed successfully.</text>
-  <text x="308" y="974" fill="#94a3b8" font-family="Segoe UI,Arial,sans-serif" font-size="12">Last audit: 2026-09-29 21:15:28</text>
-  <text x="550" y="974" fill="#94a3b8" font-family="Segoe UI,Arial,sans-serif" font-size="12">Duration: 00:00:42</text>
-  <text x="700" y="974" fill="#94a3b8" font-family="Segoe UI,Arial,sans-serif" font-size="12">Coverage: 86.16%</text>
-  <text x="1370" y="974" fill="#94a3b8" font-family="Segoe UI,Arial,sans-serif" font-size="12">Log: ALIA_20260929_211528.log</text>
+  <rect y="854" width="1600" height="46" fill="#dfe6ee"/><circle cx="12" cy="877" r="3" fill="#22c55e"/><text x="23" y="881" fill="#16a34a" font-family="Segoe UI,Arial" font-size="10">License audit completed successfully.</text><text x="254" y="881" fill="#475569" font-family="Segoe UI,Arial" font-size="10">Last audit: 2026-09-30 15:08:38</text><text x="470" y="881" fill="#475569" font-family="Segoe UI,Arial" font-size="10">Duration: 00:00:48</text><text x="600" y="881" fill="#475569" font-family="Segoe UI,Arial" font-size="10">Coverage: 86.16%</text>
 </svg>
