@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://prathameshhankare.github.io/ALIA/sitemap.xml
