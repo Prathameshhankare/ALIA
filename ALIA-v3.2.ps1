@@ -3527,8 +3527,21 @@ $script:btnHistory.Cursor = [System.Windows.Forms.Cursors]::Hand
 $script:btnHistory.Anchor = 'Top,Right'
 [void]$header.Controls.Add($script:btnHistory)
 
+function Set-ButtonTextWidth {
+    param(
+        [Parameter(Mandatory)]
+        [System.Windows.Forms.Button]$Button,
+        [Parameter(Mandatory)]
+        [int]$MinimumDesignWidth
+    )
+
+    $textWidth = [System.Windows.Forms.TextRenderer]::MeasureText($Button.Text, $Button.Font).Width
+    $Button.Width = [Math]::Max((Convert-ALIAValue $MinimumDesignWidth), $textWidth + (Convert-ALIAValue 24))
+}
+
 function Position-Header {
     try {
+        Set-ButtonTextWidth -Button $script:btnHistory -MinimumDesignWidth 122
         $version.Left = $header.ClientSize.Width - $version.Width - (Convert-ALIAValue 18)
         $version.Top = Convert-ALIAValue 12
         $headerStatus.Left = $version.Left - $headerStatus.Width - (Convert-ALIAValue 18)
@@ -4530,7 +4543,7 @@ $progressPanel.Add_Resize({ Position-ProgressBar })
 
 $script:btnToggleLog = New-Object System.Windows.Forms.Button
 $script:btnToggleLog.Text = 'Show Audit Log ▾'
-$script:btnToggleLog.Width = 130
+$script:btnToggleLog.Width = 152
 $script:btnToggleLog.Height = 30
 $script:btnToggleLog.FlatStyle = 'Flat'
 $script:btnToggleLog.FlatAppearance.BorderSize = 0
@@ -4553,6 +4566,20 @@ $logHint.AutoSize = $true
 [void]$logBar.Controls.Add($script:btnToggleLog)
 [void]$logBar.Controls.Add($logHint)
 
+function Position-LogBar {
+    try {
+        Set-ButtonTextWidth -Button $script:btnToggleLog -MinimumDesignWidth 152
+        $script:btnToggleLog.Height = Convert-ALIAValue 30
+        $script:btnToggleLog.Left = Convert-ALIAValue 4
+        $script:btnToggleLog.Top = [Math]::Max(0,[int](($logBar.ClientSize.Height - $script:btnToggleLog.Height) / 2))
+        $logHint.Left = $script:btnToggleLog.Right + (Convert-ALIAValue 10)
+        $logHint.Top = [Math]::Max(0,[int](($logBar.ClientSize.Height - $logHint.Height) / 2))
+    } catch {}
+}
+
+$logBar.Add_Resize({ Position-LogBar })
+Position-LogBar
+
 $logGroup = New-Object System.Windows.Forms.GroupBox
 $logGroup.Text = ' Audit Log '
 $logGroup.Font = $fontSection
@@ -4574,6 +4601,7 @@ $script:btnToggleLog.Add_Click({
         $script:LogPanelOpen = -not $script:LogPanelOpen
         $logGroup.Visible = $script:LogPanelOpen
         $script:btnToggleLog.Text = if ($script:LogPanelOpen) { 'Hide Audit Log ▴' } else { 'Show Audit Log ▾' }
+        Position-LogBar
         Apply-RootLayout
     }
     catch {
@@ -4834,6 +4862,7 @@ $script:frm.Add_Resize({
         Apply-RootLayout
         Position-ActionPanel
         Position-Header
+        Position-LogBar
         Position-Toolbar
         Position-ViewHeader
         Position-ProgressBar
@@ -4848,6 +4877,7 @@ $script:frm.Add_Shown({
         Position-ActionPanel
         Position-Workspace
         Position-Header
+        Position-LogBar
         Position-Toolbar
         Position-ViewHeader
         Position-ProgressBar
@@ -4866,6 +4896,7 @@ try {
             Position-ActionPanel
             Position-Workspace
             Position-Header
+            Position-LogBar
             Position-Toolbar
             Position-ViewHeader
             Position-ProgressBar

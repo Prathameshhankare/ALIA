@@ -20,6 +20,9 @@ if ($parseErrors.Count -gt 0) {
 
 $functionNames = @(
     'Convert-ALIAValue',
+    'Set-ButtonTextWidth',
+    'Position-Header',
+    'Position-LogBar',
     'Position-ActionPanel',
     'Position-HealthCard',
     'Position-KpiCard',
@@ -79,9 +82,48 @@ $kpi = [pscustomobject]@{
 $detailHeader = New-Object System.Windows.Forms.Panel
 $script:detailTitle = New-Object System.Windows.Forms.Label
 $script:detailStatus = New-Object System.Windows.Forms.Label
+$header = New-Object System.Windows.Forms.Panel
+$headerStatus = New-Object System.Windows.Forms.Label
+$headerStatus.Text = '● Ready'
+$headerStatus.AutoSize = $true
+$version = New-Object System.Windows.Forms.Label
+$version.Text = 'v3.2.0'
+$version.AutoSize = $true
+$script:btnHistory = New-Object System.Windows.Forms.Button
+$script:btnHistory.Text = 'Audit History'
+$script:btnHistory.Font = [System.Drawing.Font]::new('Segoe UI', 8.8)
+$logBar = New-Object System.Windows.Forms.Panel
+$logHint = New-Object System.Windows.Forms.Label
+$logHint.Text = 'Diagnostics available for troubleshooting'
+$logHint.AutoSize = $true
+$script:btnToggleLog = New-Object System.Windows.Forms.Button
+$script:btnToggleLog.Text = 'Show Audit Log ▾'
+$script:btnToggleLog.Font = [System.Drawing.Font]::new('Segoe UI Semibold', 8.5)
 
 foreach ($scale in @(1.0, 1.25, 1.5, 2.0)) {
     $script:DpiScale = $scale
+
+    $header.ClientSize = [System.Drawing.Size]::new(1200, 80)
+    Position-Header
+    Assert-ControlBounds $script:btnHistory 'Audit History button'
+    $historyTextWidth = [System.Windows.Forms.TextRenderer]::MeasureText($script:btnHistory.Text,$script:btnHistory.Font).Width
+    if ($script:btnHistory.Width -lt ($historyTextWidth + (Convert-ALIAValue 24))) {
+        throw "Audit History text may clip at DPI scale $scale."
+    }
+
+    $logBar.ClientSize = [System.Drawing.Size]::new(900, 34)
+    foreach ($text in @('Show Audit Log ▾','Hide Audit Log ▴')) {
+        $script:btnToggleLog.Text = $text
+        Position-LogBar
+        Assert-ControlBounds $script:btnToggleLog 'Audit log toggle button'
+        $buttonTextWidth = [System.Windows.Forms.TextRenderer]::MeasureText($script:btnToggleLog.Text,$script:btnToggleLog.Font).Width
+        if ($script:btnToggleLog.Width -lt ($buttonTextWidth + (Convert-ALIAValue 24))) {
+            throw "'$text' may clip at DPI scale $scale."
+        }
+        if ($logHint.Left -le $script:btnToggleLog.Right -or $logHint.Right -gt $logBar.ClientSize.Width) {
+            throw "Audit log hint overlaps or exceeds the bar at DPI scale $scale."
+        }
+    }
 
     $actions.ClientSize = [System.Drawing.Size]::new(420, 220)
     Position-ActionPanel
