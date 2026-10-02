@@ -7,7 +7,7 @@
     Developed by Prathamesh Hankare
 
 .VERSION
-    3.2
+    3.1
 
 .DESCRIPTION
     Enterprise WinForms application that:
@@ -450,27 +450,21 @@ public static class ALIADpiMethods
             if (SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2) != IntPtr.Zero)
                 return true;
         }
-        catch
-        {
-        }
+        catch { }
 
         try
         {
             if (SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2))
                 return true;
         }
-        catch
-        {
-        }
+        catch { }
 
         try
         {
             if (SetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE) == 0)
                 return true;
         }
-        catch
-        {
-        }
+        catch { }
 
         try
         {
@@ -489,13 +483,10 @@ public static class ALIADpiMethods
             if (hwnd != IntPtr.Zero)
             {
                 uint dpi = GetDpiForWindow(hwnd);
-                if (dpi > 0)
-                    return dpi;
+                if (dpi > 0) return dpi;
             }
         }
-        catch
-        {
-        }
+        catch { }
 
         return 96;
     }
@@ -3414,31 +3405,20 @@ $script:DpiScale = 1.0
 
 function Get-ALIADpiScale {
     $dpi = 96.0
-
     try {
-        if ($null -ne $script:frm -and
-            -not $script:frm.IsDisposed -and
-            $script:frm.IsHandleCreated) {
+        if ($null -ne $script:frm -and -not $script:frm.IsDisposed -and $script:frm.IsHandleCreated) {
             $windowDpi = [ALIADpiMethods]::GetDpiForWindowHandle($script:frm.Handle)
-            if ($windowDpi -gt 0) {
-                $dpi = [double]$windowDpi
-            }
+            if ($windowDpi -gt 0) { $dpi = [double]$windowDpi }
         }
         elseif ($null -ne $script:frm -and -not $script:frm.IsDisposed) {
             $graphics = $script:frm.CreateGraphics()
             try {
-                if ($graphics.DpiX -gt 0) {
-                    $dpi = [double]$graphics.DpiX
-                }
+                if ($graphics.DpiX -gt 0) { $dpi = [double]$graphics.DpiX }
             }
-            finally {
-                $graphics.Dispose()
-            }
+            finally { $graphics.Dispose() }
         }
     }
-    catch {
-        $dpi = 96.0
-    }
+    catch { $dpi = 96.0 }
 
     return [Math]::Min(3.0, [Math]::Max(0.75, $dpi / $script:BaseDpi))
 }
@@ -3460,9 +3440,7 @@ function Apply-RootLayout {
 
         Update-ALIADpiScale
 
-        # Use standard WinForms docking for the six top-level sections.
-        # Runtime-assigned pixel dimensions are scaled from the 96-DPI design
-        # baseline so the same visual layout survives 100/125/150/200% DPI.
+        # Runtime-assigned dimensions use the 96-DPI design baseline.
         $header.Dock = [System.Windows.Forms.DockStyle]::Top
         $header.Height = Convert-ALIAValue 72
 
@@ -3789,18 +3767,8 @@ function Position-ActionPanel {
         $runHint.Dock = 'None'
         $secondary.Dock = 'None'
 
-        $runPanel.SetBounds(
-            Convert-ALIAValue 6,
-            0,
-            $availableWidth,
-            $runHeight
-        )
-        $runHint.SetBounds(
-            Convert-ALIAValue 6,
-            $runHeight,
-            $availableWidth,
-            $hintHeight
-        )
+        $runPanel.SetBounds(Convert-ALIAValue 6, 0, $availableWidth, $runHeight)
+        $runHint.SetBounds(Convert-ALIAValue 6, $runHeight, $availableWidth, $hintHeight)
         $secondary.SetBounds(
             Convert-ALIAValue 4,
             $runHeight + $hintHeight,
@@ -3919,18 +3887,8 @@ function Position-HealthCard {
         $w = $healthCard.ClientSize.Width
         $h = $healthCard.ClientSize.Height
 
-        $healthTitleIconHost.SetBounds(
-            Convert-ALIAValue 8,
-            Convert-ALIAValue 1,
-            Convert-ALIAValue 28,
-            Convert-ALIAValue 28
-        )
-        $healthHeadlineIconHost.SetBounds(
-            Convert-ALIAValue 8,
-            Convert-ALIAValue 29,
-            Convert-ALIAValue 28,
-            Convert-ALIAValue 28
-        )
+        $healthTitleIconHost.SetBounds(Convert-ALIAValue 8,Convert-ALIAValue 1,Convert-ALIAValue 28,Convert-ALIAValue 28)
+        $healthHeadlineIconHost.SetBounds(Convert-ALIAValue 8,Convert-ALIAValue 29,Convert-ALIAValue 28,Convert-ALIAValue 28)
 
         $healthTitle.SetBounds(
             Convert-ALIAValue 38,
@@ -3945,10 +3903,7 @@ function Position-HealthCard {
             Convert-ALIAValue 28
         )
 
-        $healthStats.Location = [System.Drawing.Point]::new(
-            Convert-ALIAValue 8,
-            Convert-ALIAValue 62
-        )
+        $healthStats.Location = [System.Drawing.Point]::new(Convert-ALIAValue 8,Convert-ALIAValue 62)
         $healthStats.Size = [System.Drawing.Size]::new(
             [Math]::Max((Convert-ALIAValue 200), $w - (Convert-ALIAValue 16)),
             [Math]::Max((Convert-ALIAValue 60), $h - (Convert-ALIAValue 70))
@@ -4093,59 +4048,33 @@ Add-KpiTileClick -Kpi $script:kpiExpired -View 'Expired' -Title 'Expired License
 
 function Position-KpiCard {
     param([Parameter(Mandatory)][psobject]$Kpi)
-
     try {
         $panel = $Kpi.Panel
         $w = $panel.ClientSize.Width
         $h = $panel.ClientSize.Height
-        $rightMargin = Convert-ALIAValue 10
         $contentLeft = Convert-ALIAValue 60
-        $contentWidth = [Math]::Max((Convert-ALIAValue 80), $w - $contentLeft - $rightMargin)
+        $contentWidth = [Math]::Max((Convert-ALIAValue 80), $w - $contentLeft - (Convert-ALIAValue 10))
 
-        $Kpi.Icon.SetBounds(
-            Convert-ALIAValue 10,
-            Convert-ALIAValue 6,
-            Convert-ALIAValue 42,
-            Convert-ALIAValue 42
-        )
-        $Kpi.Caption.SetBounds(
-            $contentLeft,
-            Convert-ALIAValue 5,
-            $contentWidth,
-            Convert-ALIAValue 19
-        )
-        $Kpi.Value.SetBounds(
-            $contentLeft,
-            Convert-ALIAValue 25,
-            $contentWidth,
-            Convert-ALIAValue 30
-        )
+        $Kpi.Icon.SetBounds(Convert-ALIAValue 10,Convert-ALIAValue 6,Convert-ALIAValue 42,Convert-ALIAValue 42)
+        $Kpi.Caption.SetBounds($contentLeft,Convert-ALIAValue 5,$contentWidth,Convert-ALIAValue 19)
+        $Kpi.Value.SetBounds($contentLeft,Convert-ALIAValue 25,$contentWidth,Convert-ALIAValue 30)
         $Kpi.Trend.SetBounds(
             $contentLeft,
             [Math]::Max((Convert-ALIAValue 55), $h - (Convert-ALIAValue 23)),
             $contentWidth,
             Convert-ALIAValue 18
         )
-    }
-    catch {}
+    } catch {}
 }
 
 foreach ($kpi in @(
-    $script:kpiGL,
-    $script:kpiCentral,
-    $script:kpiMonitored,
-    $script:kpiLicensed,
-    $script:kpiIssues,
-    $script:kpiExpired
+    $script:kpiGL,$script:kpiCentral,$script:kpiMonitored,
+    $script:kpiLicensed,$script:kpiIssues,$script:kpiExpired
 )) {
     $kpi.Panel.Tag = $kpi
     $kpi.Panel.Add_Resize({
         param($sender)
-        try {
-            if ($null -ne $sender.Tag) {
-                Position-KpiCard -Kpi $sender.Tag
-            }
-        } catch {}
+        try { if ($null -ne $sender.Tag) { Position-KpiCard -Kpi $sender.Tag } } catch {}
     })
 }
 
@@ -4206,12 +4135,11 @@ $gridFilterHint.Anchor = 'Top,Right'
 function Position-Toolbar {
     try {
         $pad = Convert-ALIAValue 14
-        $gap = Convert-ALIAValue 8
         $right = $toolbar.ClientSize.Width - $pad
 
         $script:btnShowAll.Left = $pad
         $script:btnShowAll.Top = Convert-ALIAValue 7
-        $script:txtSearch.Left = $script:btnShowAll.Right + $gap
+        $script:txtSearch.Left = $script:btnShowAll.Right + (Convert-ALIAValue 8)
         $script:txtSearch.Top = Convert-ALIAValue 7
 
         $minSearch = Convert-ALIAValue 180
@@ -4219,18 +4147,12 @@ function Position-Toolbar {
         $hintWidth = $gridFilterHint.PreferredSize.Width
         $availableForSearch = $right - $script:txtSearch.Left - (Convert-ALIAValue 16) - $hintWidth
 
-        $script:txtSearch.Width = [Math]::Max(
-            $minSearch,
-            [Math]::Min($maxSearch, $availableForSearch)
-        )
+        $script:txtSearch.Width = [Math]::Max($minSearch,[Math]::Min($maxSearch,$availableForSearch))
 
         if ($availableForSearch -lt $minSearch) {
             $gridFilterHint.Text = 'Right-click headers to filter'
             $availableForSearch = $right - $script:txtSearch.Left - (Convert-ALIAValue 8) - $gridFilterHint.PreferredSize.Width
-            $script:txtSearch.Width = [Math]::Max(
-                (Convert-ALIAValue 140),
-                [Math]::Min($maxSearch, $availableForSearch)
-            )
+            $script:txtSearch.Width = [Math]::Max((Convert-ALIAValue 140),[Math]::Min($maxSearch,$availableForSearch))
         }
         else {
             $gridFilterHint.Text = 'Click a column header to sort  •  Right-click a column header to filter'
@@ -4284,10 +4206,7 @@ $script:lblViewBadge.Anchor = 'Top,Right'
 function Position-ViewHeader {
     try {
         $script:lblRecordCount.Left = $script:lblViewTitle.Right + (Convert-ALIAValue 12)
-        $script:lblViewBadge.Left = [Math]::Max(
-            0,
-            $resultsHeader.ClientSize.Width - $script:lblViewBadge.Width - (Convert-ALIAValue 8)
-        )
+        $script:lblViewBadge.Left = [Math]::Max(0,$resultsHeader.ClientSize.Width-$script:lblViewBadge.Width-(Convert-ALIAValue 8))
         $script:lblViewBadge.Top = Convert-ALIAValue 4
     } catch {}
 }
@@ -4474,13 +4393,13 @@ function Position-DetailHeader {
         $script:detailTitle.SetBounds(
             Convert-ALIAValue 6,
             Convert-ALIAValue 4,
-            [Math]::Max((Convert-ALIAValue 180), $w - (Convert-ALIAValue 12)),
+            [Math]::Max((Convert-ALIAValue 180),$w-(Convert-ALIAValue 12)),
             Convert-ALIAValue 32
         )
         $script:detailStatus.SetBounds(
             Convert-ALIAValue 6,
             Convert-ALIAValue 36,
-            [Math]::Max((Convert-ALIAValue 180), $w - (Convert-ALIAValue 12)),
+            [Math]::Max((Convert-ALIAValue 180),$w-(Convert-ALIAValue 12)),
             Convert-ALIAValue 20
         )
     } catch {}
@@ -4662,7 +4581,7 @@ function Position-ProgressBar {
         $left = Convert-ALIAValue 535
         $rightReserve = Convert-ALIAValue 85
         $minWidth = Convert-ALIAValue 220
-        $usable = [Math]::Max($minWidth, $progressPanel.ClientSize.Width - $left - $rightReserve)
+        $usable = [Math]::Max($minWidth,$progressPanel.ClientSize.Width-$left-$rightReserve)
 
         $script:progressBar.Left = $left
         $script:progressBar.Width = $usable
@@ -4840,11 +4759,10 @@ function Show-AuditHistoryDialog {
     $list.Font = [System.Drawing.Font]::new('Segoe UI', 9)
 
     foreach ($columnInfo in @(
-        @('Date',165), @('Duration',95), @('GreenLake',90), @('Central',90),
-        @('Monitored',90), @('Licensed',90), @('Exceptions',95),
-        @('Expired',80), @('Coverage',90)
+        @('Date',165),@('Duration',95),@('GreenLake',90),@('Central',90),
+        @('Monitored',90),@('Licensed',90),@('Exceptions',95),@('Expired',80),@('Coverage',90)
     )) {
-        [void]$list.Columns.Add([string]$columnInfo[0], (Convert-ALIAValue [double]$columnInfo[1]))
+        [void]$list.Columns.Add([string]$columnInfo[0],(Convert-ALIAValue [double]$columnInfo[1]))
     }
 
     foreach($h in $history){
@@ -4998,20 +4916,15 @@ $script:frm.Add_Shown({
         Position-ProgressBar
         Position-HealthCard
         Position-DetailHeader
-        foreach ($kpi in @(
-            $script:kpiGL,
-            $script:kpiCentral,
-            $script:kpiMonitored,
-            $script:kpiLicensed,
-            $script:kpiIssues,
-            $script:kpiExpired
-        )) { Position-KpiCard -Kpi $kpi }
+        foreach ($kpi in @($script:kpiGL,$script:kpiCentral,$script:kpiMonitored,$script:kpiLicensed,$script:kpiIssues,$script:kpiExpired)) {
+            Position-KpiCard -Kpi $kpi
+        }
     } catch {}
 })
 
 try {
     $script:frm.Add_DpiChanged({
-        param($sender, $eventArgs)
+        param($sender,$eventArgs)
         try {
             Update-ALIADpiScale
             Apply-RootLayout
@@ -5023,16 +4936,11 @@ try {
             Position-ProgressBar
             Position-HealthCard
             Position-DetailHeader
-            foreach ($kpi in @(
-                $script:kpiGL,
-                $script:kpiCentral,
-                $script:kpiMonitored,
-                $script:kpiLicensed,
-                $script:kpiIssues,
-                $script:kpiExpired
-            )) { Position-KpiCard -Kpi $kpi }
+            foreach ($kpi in @($script:kpiGL,$script:kpiCentral,$script:kpiMonitored,$script:kpiLicensed,$script:kpiIssues,$script:kpiExpired)) {
+                Position-KpiCard -Kpi $kpi
+            }
             $script:frm.PerformLayout()
-            $script:frm.Invalidate(true)
+            $script:frm.Invalidate($true)
         } catch {}
     })
 } catch {}
@@ -5073,14 +4981,9 @@ Position-ProgressBar
 Position-Workspace
 Position-HealthCard
 Position-DetailHeader
-foreach ($kpi in @(
-    $script:kpiGL,
-    $script:kpiCentral,
-    $script:kpiMonitored,
-    $script:kpiLicensed,
-    $script:kpiIssues,
-    $script:kpiExpired
-)) { Position-KpiCard -Kpi $kpi }
+foreach ($kpi in @($script:kpiGL,$script:kpiCentral,$script:kpiMonitored,$script:kpiLicensed,$script:kpiIssues,$script:kpiExpired)) {
+    Position-KpiCard -Kpi $kpi
+}
 Update-SessionStatus
 
 # ---------------------------------------------------------------------------
@@ -5977,8 +5880,7 @@ try { Set-SearchPlaceholder } catch {}
         [ALIADpiMethods]::EnablePerMonitorV2() | Out-Null
     }
 }
-catch {
-}
+catch { }
 
 # Initialize common-control dark mode only after the native helper type exists.
 try { [ALIANativeMethods]::EnableDarkAppMode() } catch {}
