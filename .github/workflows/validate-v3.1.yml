@@ -3,11 +3,10 @@ name: ALIA v3.1 Validation
 on:
   push:
     branches:
-      - main
-      - v3.1-gui-redesign
+      - v3.1
   pull_request:
     branches:
-      - main
+      - v3.1
 
 jobs:
   validate:

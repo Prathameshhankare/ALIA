@@ -33,7 +33,7 @@ The v3.2 layout is intended to behave consistently across:
 
 ## Regression protection
 
-The v3.1 source files remain unchanged. v3.2 introduces the new files:
+The v3.1 source and builder remain available on the `v3.1` branch. The `v3.2` branch contains these v3.2 files:
 
 - `ALIA-v3.2.ps1`
 - `Build-ALIA-v3.2.ps1`

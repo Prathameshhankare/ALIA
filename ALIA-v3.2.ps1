@@ -3757,9 +3757,9 @@ function Position-ActionPanel {
         $runPanel.Dock = 'None'
         $runHint.Dock = 'None'
         $secondary.Dock = 'None'
-        $runPanel.SetBounds(Convert-ALIAValue 6,0,$availableWidth,$runHeight)
-        $runHint.SetBounds(Convert-ALIAValue 6,$runHeight,$availableWidth,$hintHeight)
-        $secondary.SetBounds(Convert-ALIAValue 4,$runHeight+$hintHeight,[Math]::Max(1,$availableWidth-(Convert-ALIAValue 2)),$secondaryHeight)
+        $runPanel.SetBounds((Convert-ALIAValue 6),0,$availableWidth,$runHeight)
+        $runHint.SetBounds((Convert-ALIAValue 6),$runHeight,$availableWidth,$hintHeight)
+        $secondary.SetBounds((Convert-ALIAValue 4),$runHeight+$hintHeight,[Math]::Max(1,$availableWidth-(Convert-ALIAValue 2)),$secondaryHeight)
     } catch {}
 }
 
@@ -3871,11 +3871,11 @@ function Position-HealthCard {
     try {
         $w = $healthCard.ClientSize.Width
         $h = $healthCard.ClientSize.Height
-        $healthTitleIconHost.SetBounds(Convert-ALIAValue 8,Convert-ALIAValue 1,Convert-ALIAValue 28,Convert-ALIAValue 28)
-        $healthHeadlineIconHost.SetBounds(Convert-ALIAValue 8,Convert-ALIAValue 29,Convert-ALIAValue 28,Convert-ALIAValue 28)
-        $healthTitle.SetBounds(Convert-ALIAValue 38,Convert-ALIAValue 4,[Math]::Max((Convert-ALIAValue 160),$w-(Convert-ALIAValue 54)),Convert-ALIAValue 18)
-        $script:healthHeadline.SetBounds(Convert-ALIAValue 38,Convert-ALIAValue 28,[Math]::Max((Convert-ALIAValue 180),$w-(Convert-ALIAValue 54)),Convert-ALIAValue 28)
-        $healthStats.Location = [System.Drawing.Point]::new(Convert-ALIAValue 8,Convert-ALIAValue 62)
+        $healthTitleIconHost.SetBounds((Convert-ALIAValue 8),(Convert-ALIAValue 1),(Convert-ALIAValue 28),(Convert-ALIAValue 28))
+        $healthHeadlineIconHost.SetBounds((Convert-ALIAValue 8),(Convert-ALIAValue 29),(Convert-ALIAValue 28),(Convert-ALIAValue 28))
+        $healthTitle.SetBounds((Convert-ALIAValue 38),(Convert-ALIAValue 4),[Math]::Max((Convert-ALIAValue 160),$w-(Convert-ALIAValue 54)),(Convert-ALIAValue 18))
+        $script:healthHeadline.SetBounds((Convert-ALIAValue 38),(Convert-ALIAValue 28),[Math]::Max((Convert-ALIAValue 180),$w-(Convert-ALIAValue 54)),(Convert-ALIAValue 28))
+        $healthStats.Location = [System.Drawing.Point]::new((Convert-ALIAValue 8),(Convert-ALIAValue 62))
         $healthStats.Size = [System.Drawing.Size]::new(
             [Math]::Max((Convert-ALIAValue 200),$w-(Convert-ALIAValue 16)),
             [Math]::Max((Convert-ALIAValue 60),$h-(Convert-ALIAValue 70))
@@ -4025,10 +4025,10 @@ function Position-KpiCard {
         $h = $panel.ClientSize.Height
         $contentLeft = Convert-ALIAValue 60
         $contentWidth = [Math]::Max((Convert-ALIAValue 80),$w-$contentLeft-(Convert-ALIAValue 10))
-        $Kpi.Icon.SetBounds(Convert-ALIAValue 10,Convert-ALIAValue 6,Convert-ALIAValue 42,Convert-ALIAValue 42)
-        $Kpi.Caption.SetBounds($contentLeft,Convert-ALIAValue 5,$contentWidth,Convert-ALIAValue 19)
-        $Kpi.Value.SetBounds($contentLeft,Convert-ALIAValue 25,$contentWidth,Convert-ALIAValue 30)
-        $Kpi.Trend.SetBounds($contentLeft,[Math]::Max((Convert-ALIAValue 55),$h-(Convert-ALIAValue 23)),$contentWidth,Convert-ALIAValue 18)
+        $Kpi.Icon.SetBounds((Convert-ALIAValue 10),(Convert-ALIAValue 6),(Convert-ALIAValue 42),(Convert-ALIAValue 42))
+        $Kpi.Caption.SetBounds($contentLeft,(Convert-ALIAValue 5),$contentWidth,(Convert-ALIAValue 19))
+        $Kpi.Value.SetBounds($contentLeft,(Convert-ALIAValue 25),$contentWidth,(Convert-ALIAValue 30))
+        $Kpi.Trend.SetBounds($contentLeft,[Math]::Max((Convert-ALIAValue 55),$h-(Convert-ALIAValue 23)),$contentWidth,(Convert-ALIAValue 18))
     } catch {}
 }
 
@@ -4341,8 +4341,8 @@ $script:detailBody.HideSelection = $false
 function Position-DetailHeader {
     try {
         $w = $detailHeader.ClientSize.Width
-        $script:detailTitle.SetBounds(Convert-ALIAValue 6,Convert-ALIAValue 4,[Math]::Max((Convert-ALIAValue 180),$w-(Convert-ALIAValue 12)),Convert-ALIAValue 32)
-        $script:detailStatus.SetBounds(Convert-ALIAValue 6,Convert-ALIAValue 36,[Math]::Max((Convert-ALIAValue 180),$w-(Convert-ALIAValue 12)),Convert-ALIAValue 20)
+        $script:detailTitle.SetBounds((Convert-ALIAValue 6),(Convert-ALIAValue 4),[Math]::Max((Convert-ALIAValue 180),$w-(Convert-ALIAValue 12)),(Convert-ALIAValue 32))
+        $script:detailStatus.SetBounds((Convert-ALIAValue 6),(Convert-ALIAValue 36),[Math]::Max((Convert-ALIAValue 180),$w-(Convert-ALIAValue 12)),(Convert-ALIAValue 20))
     } catch {}
 }
 $detailHeader.Add_Resize({ try { Position-DetailHeader } catch {} })

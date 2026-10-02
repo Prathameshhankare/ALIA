@@ -53,21 +53,33 @@ Run the audit repeatedly, investigate the current view, export the current resul
 
 ---
 
-## v3.1 Preview
+## v3.2 Preview
 
 ![ALIA v3.1 Audit Workspace preview](docs/ALIA-v3.1-preview.svg)
 
 ![ALIA v3.1 workflow demo](docs/ALIA-v3.1-demo.svg)
 
-The v3.1 workspace uses a dark enterprise-style Windows Forms interface with a dashboard summary, audit health, KPI cards, searchable and filterable audit results, and a device detail pane.
+v3.2 keeps the v3.1 dark Windows Forms workspace and audit behavior, with additional DPI-aware layout handling for different display scales and window sizes.
 
 > The preview uses representative audit values for presentation; live counts are produced by the audit run.
 
 ---
 
-## What's new in v3.1
+## What's new in v3.2
 
-v3.1 is the redesigned **Audit Workspace** while retaining the existing v3.0 API and reconciliation engine.
+v3.2 preserves the v3.1 workspace and reconciliation behavior while improving layout compatibility across display scaling and viewport sizes.
+
+- Enables Per-Monitor V2 DPI awareness when Windows supports it, with fallbacks for older systems.
+- Scales layout coordinates from a shared 96-DPI design baseline.
+- Reflows the connection cards, Audit Health panel, KPI cards, search toolbar, device details, progress row, and Audit History dialog for the active DPI and available space.
+- Handles the WinForms `DpiChanged` event so layout can be recalculated when the window moves between displays.
+- Records the effective DPI scale in the audit log for troubleshooting.
+
+The target remains Windows PowerShell 5.1 and WinForms. The preview images below show the retained v3.1 visual design.
+
+## Audit Workspace features introduced in v3.1
+
+The v3.1 redesign provides the workspace and audit features retained by v3.2.
 
 ### Audit workspace
 
@@ -210,7 +222,7 @@ Live counts are produced by each audit run and should not be treated as fixed ap
 
 ## Requirements
 
-ALIA v3.1 targets:
+ALIA v3.2 targets:
 
 - Windows
 - **Windows PowerShell 5.1**
@@ -224,11 +236,11 @@ The script is also documented as compatible with **PowerShell ISE**.
 
 ## Running ALIA
 
-Run the canonical v3.1 source from Windows PowerShell 5.1:
+Run the canonical v3.2 source from Windows PowerShell 5.1:
 
 ```powershell
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-.\\ALIA-v3.1.ps1
+.\\ALIA-v3.2.ps1
 ```
 
 Credentials are entered at runtime through the GUI.
@@ -239,17 +251,17 @@ Credentials are entered at runtime through the GUI.
 
 ## Building the Windows EXE
 
-The repository includes the production v3.1 EXE builder:
+The repository includes the production v3.2 EXE builder:
 
 ```powershell
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-.\\Build-ALIA-v3.1.ps1
+.\\Build-ALIA-v3.2.ps1
 ```
 
 The builder:
 
 - Uses **PS2EXE**
-- Packages the canonical \`ALIA-v3.1.ps1\` source
+- Packages the canonical \`ALIA-v3.2.ps1\` source
 - Produces a 64-bit GUI-only Windows executable
 - Enables DPI-aware metadata
 - Generates and embeds the application icon
@@ -258,7 +270,7 @@ The builder:
 Output:
 
 ```text
-dist\\ALIA-v3.1.exe
+dist\\ALIA-v3.2.exe
 ```
 
 The \`dist\` directory and generated executables are excluded from Git.
@@ -285,9 +297,9 @@ Before production deployment, review the configured endpoints, credentials handl
 
 ```text
 ALIA/
-├── ALIA-v3.1.ps1                         # Canonical v3.1 application
-├── Build-ALIA-v3.1.ps1                   # Production v3.1 EXE builder
-├── CHANGELOG-v3.1.md                     # v3.1 release notes
+├── ALIA-v3.2.ps1                         # Canonical v3.2 application
+├── Build-ALIA-v3.2.ps1                   # Production v3.2 EXE builder
+├── CHANGELOG-v3.2.md                     # v3.2 release notes
 ├── docs/
 │   ├── index.html                        # GitHub Pages project site
 │   ├── aruba-license-audit-greenlake-aruba-central.html
@@ -299,9 +311,9 @@ ALIA/
 │   └── 404.html
 ├── .github/
 │   └── workflows/
-│       └── deploy-pages.yml              # GitHub Pages deployment
-├── ALIA-v3.0.ps1                         # Retained legacy v3.0 application
-├── Build-ALIA-v3.0.ps1                   # Retained legacy v3.0 builder
+│       ├── deploy-pages.yml              # GitHub Pages deployment
+│       ├── validate-v3.1.yml             # v3.1 validation
+│       └── validate-v3.2.yml             # v3.2 validation
 ├── README.md
 ├── LICENSE
 └── .gitignore
@@ -313,29 +325,27 @@ Generated EXE/build output and runtime audit logs are intentionally excluded fro
 
 ## Version and release status
 
-**Current application version:** \`v3.1.0\`
+**Current application version on this branch:** \`v3.2.0\`
 
-The canonical v3.1 source is \`ALIA-v3.1.ps1\`.
+The canonical v3.2 source is \`ALIA-v3.2.ps1\`; the corresponding builder is \`Build-ALIA-v3.2.ps1\`.
 
-The v3.0 source and builder remain in the repository as the legacy application line for comparison and rollback.
-
-The repository maintains separate \`v3.0\` and \`v3.1\` release branches in addition to \`main\`.
+The repository maintains \`main\`, \`v3.0\`, \`v3.1\`, and \`v3.2\` branches.
 
 ---
 
 ## Validation
 
-The v3.1 GitHub Actions validation workflow checks:
+The v3.2 GitHub Actions validation workflow checks:
 
 - PowerShell syntax
 - Error-severity PSScriptAnalyzer findings
 - Required GUI features
 - Grid sorting/filtering features
-- Required v3.1 dark UI/native chrome functions
+- Required v3.2 DPI and responsive layout functions
 - Production EXE build
 - EXE existence and non-zero output size
 
-The latest validation run on the finalized branch completed successfully for syntax validation, static analysis, GUI smoke tests, EXE build, and EXE verification.
+The v3.2 workflow runs on pushes and pull requests targeting the \`v3.2\` branch. Check the Actions tab for the latest result.
 
 ---
 
